@@ -1,7 +1,10 @@
 ﻿using HarmonyLib;
 using Il2CppPipistrello;
 using MelonLoader;
+using System.Reflection;
 using UnityEngine;
+using Il2CppUtil;
+using Archipelago.MultiClient.Net;
 
 [assembly: MelonInfo(typeof(PipistrelloArchipelago.Core), "PipistrelloArchipelago", "0.1.0", "CertifiedPyro", null)]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
@@ -10,163 +13,232 @@ namespace PipistrelloArchipelago;
 
 public static class GlobalState
 {
-    public static bool RunningInitRoom = false;
-    public static bool RunningCalculateIsHousePuzzleCompleted = false;
-    public static bool RunningPetalContainerMenu = false;
-    public static bool RunningBpContainerMenu = false;
+    public static Director Director = null;
 
-    public static UIDialog CurrentPetalContainerMenu;
-    public static UIDialog CurrentBpContainerMenu;
+    public static bool AcquiringPhysicalArchItem = false;
+    public static Queue<string> AcquiringVirtualArchItemStrings = new();
 
-    public static bool AcquiringPhysicalPetalContainer = false;  // True while obtaining physical petal container
-    public static bool AcquiringVirtualPetalContainer = false;  // True while Archipelago server gives us the petal container
-
-    public static bool AcquiringPhysicalBpContainer = false;  // True while obtaining physical BP container
-    public static bool AcquiringVirtualBpContainer = false;  // True while Archipelago server gives us the BP container
-    public static bool IsPhysicalBpContainerAcquired = false;  // True if physical BP container is gone
-
-    public static bool AcquiringPhysicalBadge = false;  // True while obtaining physical badge
-    public static bool AcquiringVirtualBadge = false;  // True while Archipelago server gives us the badge
-    public static bool IsPhysicalBadgeAcquired = false;  // True if physical badge is gone
+    public static Dictionary<string, Game.GlobalObjectId> SwappedItems = new()
+    {
+        { new Game.GlobalObjectId { mapId = "city", roomId = "ren223", objectId = "yug5534" }.AsString, new Game.GlobalObjectId() },  // Petal container (in plaza)
+        { new Game.GlobalObjectId { mapId = "city_interiors", roomId = "ren1362", objectId = "ren1605" }.AsString, new Game.GlobalObjectId() }  // Equip (in house, top left map)
+    };
 }
 
-[HarmonyPatch(typeof(Director))]
-public class DirectorPatch
+[HarmonyPatch(typeof(Director), nameof(Director.Init))]
+public class DirectorInitPatch
 {
-    public static Director instance;
-
-    [HarmonyPatch(nameof(Director.Init))]
     public static void Postfix(Director __instance)
     {
-        instance = __instance;
-    }
+        GlobalState.Director = __instance;
 
-    [HarmonyPatch(nameof(Director.InitRoom))]
-    public static void Prefix()
-    {
-        GlobalState.RunningInitRoom = true;
-    }
+        //var session = ArchipelagoSessionFactory.CreateSession("archipelago.gg", 49317);
+        //LoginResult result;
+        //try
+        //{
+        //    result = session.TryConnectAndLogin("TUNIC", "PyroTunic", Archipelago.MultiClient.Net.Enums.ItemsHandlingFlags.AllItems);
+        //}
+        //catch (Exception e)
+        //{
+        //    result = new LoginFailure(e.GetBaseException().Message);
+        //}
 
-    [HarmonyPatch(nameof(Director.InitRoom))]
-    public static void Postfix()
-    {
-        GlobalState.RunningInitRoom = false;
+        //if (result is LoginSuccessful loginSuccess)
+        //{
+        //    MelonLogger.Msg($"Connected successfully with Archipelago server!");
+        //}
+        //else
+        //{
+        //    MelonLogger.Msg($"Failed to connect with Archipelago server!");
+        //    var loginFailure = (LoginFailure)result;
+        //    foreach (var error in loginFailure.Errors)
+        //    {
+        //        MelonLogger.Msg(error);
+        //    }
+        //}
     }
 }
 
-[HarmonyPatch(typeof(Game), nameof(Game.GetFlagBool))]
-public class GameGetFlagBoolPatch
+[HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
+public class DirectorLoadProjectPatch
 {
-    public static void Postfix(string flag, ref bool __result)
+    public static void Postfix(Director __instance)
     {
-        // If original flag is true, then no need to check physical/virtual flags.
-        if (__result)
+        foreach (var map in __instance.currentProject.maps)
+        {
+            if (map.id == "city")
+            {
+                foreach (var room in map.rooms)
+                {
+                    //MelonLogger.Msg($"{room.id},{room.x},{room.y},{room.position.x},{room.position.y},{room.tileW},{room.tileH},{room.wTiles},{room.hTiles}");
+                    MelonLogger.Msg($"{room.id},{room.x/(16.0*18)},{room.y/(16.0*10)}");  // Gets map coordinate of room
+                }
+            }
+        }
+    }
+}
+
+[HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
+public static class DirectorPatch
+{
+    public static void Prefix(ref Mapvania.Object mapObj)
+    {
+        // Check if item needs to be swapped.
+        if (!GlobalState.SwappedItems.TryGetValue(mapObj.globalObjectId.AsString, out var swappedGlobalObjectId))
         {
             return;
         }
 
-        var basePhysicalPatch = GlobalState.RunningInitRoom || GlobalState.RunningCalculateIsHousePuzzleCompleted;
-        var petalPhysicalPatch = basePhysicalPatch || GlobalState.RunningPetalContainerMenu;
-        if (Utils.GetPetalIdFromFlag(flag, out var petalId) && petalId == "city/ren223/yug5534")
+        // Swap to a physical Archipelago item.
+        if (swappedGlobalObjectId.mapId == null && swappedGlobalObjectId.roomId == null && swappedGlobalObjectId.objectId == null)
         {
-            if (petalPhysicalPatch)
-            {
-                var physicalFlag = Utils.GetPetalPhysicalFlag(petalId);
-                __result = DirectorPatch.instance.GetFlagBool(physicalFlag);
-                MelonLogger.Msg($"Getting {physicalFlag}: {__result}");
-                return;
-            }
-            else
-            {
-                var virtualFlag = Utils.GetPetalVirtualFlag(petalId);
-                __result = DirectorPatch.instance.GetFlagBool(virtualFlag);
-                MelonLogger.Msg($"Getting {virtualFlag}: {__result}");
-                return;
-            }
+            MelonLogger.Msg($"Director.InstantiateFromMap() Prefix: {mapObj.globalObjectId.AsString} -> Arch item");
+            mapObj.objectDefId = "lor313";
+            mapObj.objectDefName = "bpContainer";
+
+            var globalObjectId = mapObj.globalObjectId;
+            globalObjectId.objectId += Constants.ArchItemObjectIdSuffix;
+            mapObj.globalObjectId = globalObjectId;
+        }
+        // TODO: Swap items with each other.
+    }
+
+    public static void Postfix(Il2CppPipistrello.Object __result)
+    {
+        if (Utils.IsArchItemId(__result?.globalObjectId?.objectId))
+        {
+            __result.spriteName = Constants.ArchSpriteName;
         }
     }
 }
 
-[HarmonyPatch(typeof(Game), nameof(Game.SetFlagBool))]
-public class GameSetFlagBoolPatch
+[HarmonyPatch(typeof(Game))]
+public static class GamePatch
 {
-    public static bool Prefix(string flag, ref bool value)
+    [HarmonyPatch(nameof(Game.SetBpContainerAcquired))]
+    [HarmonyPrefix]
+    public static bool PrefixSetBpContainerAcquired(string id, bool acquired, ref bool __result)
     {
-        if (Utils.GetPetalIdFromFlag(flag, out var petalId) && petalId == "city/ren223/yug5534")
+        // If this is an physical Archipelago item pretending to be a BP container, don't actually pick up the BP container.
+        if (Utils.IsArchItemId(id))
         {
-            var physicalFlag = Utils.GetPetalPhysicalFlag(petalId);
-            var virtualFlag = Utils.GetPetalVirtualFlag(petalId);
-            if (GlobalState.AcquiringPhysicalPetalContainer)
-            {
-                DirectorPatch.instance.SetFlagBool(physicalFlag, value);
-                MelonLogger.Msg($"Setting {physicalFlag}: {value}");
-            }
-            if (GlobalState.AcquiringVirtualPetalContainer)
-            {
-                DirectorPatch.instance.SetFlagBool(virtualFlag, value);
-                MelonLogger.Msg($"Setting {virtualFlag}: {value}");
-            }
-
-            // Only set original acquired flag if physical and virtual flags are true.
-            value = DirectorPatch.instance.GetFlagBool(physicalFlag) && DirectorPatch.instance.GetFlagBool(virtualFlag);
-            MelonLogger.Msg($"Setting {flag}: {value}");
-            return true;
+            // Still flag the item as acquired, so it doesn't show up again.
+            GlobalState.Director.SetFlagBool(Game.FlagBpContainerAcquired(id), acquired);
+            GlobalState.AcquiringPhysicalArchItem = true;
+            __result = false;
+            return false;
         }
 
         return true;
     }
 }
 
-[HarmonyPatch(typeof(Game))]
-public class GamePatch
+[HarmonyPatch(typeof(Minimap))]
+public static class MinimapPatch
 {
-    // Runs as petal container is picked up (e.g. before text shows up)
-    [HarmonyPatch(nameof(Game.SetPetalContainerAcquired))]
-    [HarmonyPrefix]
-    public static bool PrefixSetPetalContainerAcquired(string id, bool acquired, ref bool __result)
+    [HarmonyPatch(nameof(Minimap.RefreshPins))]
+    public static void Prefix()
     {
-        // If we're acquiring the petal container from Archipelago server, allow the original method to run.
-        if (GlobalState.AcquiringVirtualPetalContainer)
+        // Replace map pins for physical Archipelago items with the Archipelago UI pin.
+        var mapPins = GlobalState.Director.playerRecord.mapPins;
+        for (int i = 0; i < mapPins.Count; i++)
         {
-            return true;
+            var mapPin = mapPins[i];
+            if (Utils.IsArchItemId(mapPin.objectId.objectId))
+            {
+                mapPin.pinId = Constants.ArchMapPinSpriteName;
+                mapPins.System_Collections_IList_set_Item(i, mapPin);
+            }
+        }
+    }
+}
+
+[HarmonyPatch(typeof(InstructionPanel))]
+public static class InstructionPanelPatch
+{
+    private const long TextShowTimeMs = 3000;
+    private const long TextCooldownTimeMs = 250;
+
+    private static long? TextShowStartMs = null;
+    private static long? TextCooldownStartMs = null;
+
+    [HarmonyPatch(nameof(InstructionPanel.Process))]
+    public static void Prefix(InstructionPanel __instance)
+    {
+        // Check if InstructionPanel is off cooldown.
+        if (TextCooldownStartMs.HasValue && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - TextCooldownStartMs > TextCooldownTimeMs)
+        {
+            TextCooldownStartMs = null;
         }
 
-        // Otherwise, hijack the logic to not actually acquire the petal container.
-        GlobalState.AcquiringPhysicalPetalContainer = true;
-        DirectorPatch.instance.SetFlagBool(Game.FlagPetalContainerAcquired(id), acquired);
-        // Only set if acquired=true, since it's set to false when dialogue panel closes.
-        GlobalState.AcquiringPhysicalPetalContainer = acquired;
+        // Check if InstructionPanel should show due to acquired physical Archipelago item.
+        // TODO: Check that InstructionPanel isn't already showing.
+        if (!TextShowStartMs.HasValue && !TextCooldownStartMs.HasValue && GlobalState.AcquiringVirtualArchItemStrings.Count > 0)
+        {
+            var text = GlobalState.AcquiringVirtualArchItemStrings.Dequeue();
+            __instance.SetInstruction(text, true);
+            TextShowStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        }
+    }
 
-        __result = false;
-        return false;
+    [HarmonyPatch(nameof(InstructionPanel.GetInstructionText))]
+    public static bool Prefix(string id, InstructionPanel __instance, ref string __result)
+    {
+        // If InstructionPanel should show due to acquired physical Archipelago item, return proper string.
+        if (TextShowStartMs != null)
+        {
+            // Check if InstructionPanel should be on cooldown.
+            if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - TextShowStartMs > TextShowTimeMs)
+            {
+                TextShowStartMs = null;
+                TextCooldownStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+                __instance.SetInstruction(null, true);
+                return true;
+            }
+
+            __result = id;
+            return false;
+        }
+
+        return true;
     }
 }
 
 [HarmonyPatch(typeof(DialoguePanel))]
 public class DialoguePanelPatch
 {
-    // DialoguePanel InjectText(): [instant|You got a [c:rose|Petal Container]!][w:3]
-    // DialoguePanel InjectText(): [c:rose|Petals] collected so far: [c:blue|1].[d]\n Collect 8 to increase your [c|maximum life points]!  
+    private static bool ShowedArchItemDialogue = false;
+
     [HarmonyPatch(nameof(DialoguePanel.InjectText))]
-    public static void Prefix(ref string text)
+    public static bool Prefix(ref string text)
     {
-        if (GlobalState.AcquiringPhysicalPetalContainer)
+        //MelonLogger.Msg($"DialoguePanel InjectText() original args: {text}");
+        // Show player that they acquired a physical Archipelago item.
+        if (GlobalState.AcquiringPhysicalArchItem)
         {
-            //MelonLogger.Msg($"DialoguePanel InjectText() original args: {text}");
-            text = "[instant|You got a [c:blue|Archipelago item]!][w:2]";
+            if (!ShowedArchItemDialogue)
+            {
+                text = "[instant|You got a [c:blue|Archipelago item]!][w:2]";
+                ShowedArchItemDialogue = true;
+            }
+            else
+            {
+                // Don't show the remaining original dialogue.
+                return false;
+            }
         }
+
+        return true;
     }
- 
-    // Remove replace text once dialogue is over.
+
     [HarmonyPatch(nameof(DialoguePanel.IsOver))]
     public static void Postfix(ref bool __result)
     {
+        // Remove replaced text once dialogue is over.
         if (__result)
         {
-            if (GlobalState.AcquiringPhysicalPetalContainer)
-            {
-                GlobalState.AcquiringPhysicalPetalContainer = false;
-            }
+            GlobalState.AcquiringPhysicalArchItem = false;
+            ShowedArchItemDialogue = false;
         }
     }
 }
@@ -175,174 +247,314 @@ public class DialoguePanelPatch
 public class ObjectWarpAreaPatch
 {
     [HarmonyPatch(nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
-    public static void Prefix()
+    public static bool Prefix(ObjectWarpArea __instance, ref bool __result)
     {
-        GlobalState.RunningCalculateIsHousePuzzleCompleted = true;
-    }
-
-    [HarmonyPatch(nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
-    public static void Postfix()
-    {
-        GlobalState.RunningCalculateIsHousePuzzleCompleted = false;
-    }
-}
-
-[HarmonyPatch(typeof(Menu))]
-public class MenuPatch
-{
-    [HarmonyPatch(nameof(Menu.MakePetalContainerMenu))]
-    [HarmonyPrefix]
-    public static void PrefixPetalContainerMenu()
-    {
-        GlobalState.RunningPetalContainerMenu = true;
-    }
-
-    [HarmonyPatch(nameof(Menu.MakePetalContainerMenu))]
-    public static void PostfixPetalContainerMenu(ref UIDialog __result)
-    {
-        GlobalState.CurrentPetalContainerMenu = __result;
-    }
-
-    [HarmonyPatch(nameof(Menu.MakeBpContainerMenu))]
-    public static void PrefixBpContainerMenu()
-    {
-        GlobalState.RunningBpContainerMenu = true;
-    }
-
-    [HarmonyPatch(nameof(Menu.MakeBpContainerMenu))]
-    public static void PostfixBpContainerMenu(ref UIDialog __result)
-    {
-        GlobalState.CurrentBpContainerMenu = __result;
-    }
-}
-
-[HarmonyPatch(typeof(UIDialog))]
-public class UIDialogPatch
-{
-    [HarmonyPatch(nameof(UIDialog.Close))]
-    public static void Postfix(UIDialog __instance)
-    {
-        if (__instance == GlobalState.CurrentPetalContainerMenu)
+        if (!GlobalState.Director.currentProject.housePuzzleFlags.TryGetValue(__instance.globalObjectId.AsString, out var houseFlags))
         {
-            GlobalState.RunningPetalContainerMenu = false;
-            GlobalState.CurrentPetalContainerMenu = null;
+            return true;
         }
-        else if (__instance == GlobalState.CurrentBpContainerMenu)
+
+        foreach (var flag in houseFlags)
         {
-            GlobalState.RunningBpContainerMenu = false;
-            GlobalState.CurrentBpContainerMenu = null;
+            // TODO: Handle other types of objects
+            var newFlag = flag;
+            if (flag.StartsWith(Game.FLAG_EQUIP_PREFIX))
+            {
+                var startIndex = Game.FLAG_EQUIP_PREFIX.Length;
+                var endIndex = flag.IndexOf(':', startIndex);
+                var equipId = flag[startIndex..endIndex];
+
+                // Find equip based on name
+                Game.GlobalObjectId equipGlobalObjectId = null;
+                foreach (var meta in GlobalState.Director.currentProject.equipMeta)
+                {
+                    if (meta.equipId == equipId)
+                    {
+                        equipGlobalObjectId = meta.globalObjectId;
+                    }
+                }
+
+                var isSwapped = GlobalState.SwappedItems.TryGetValue(equipGlobalObjectId.AsString, out var swappedGlobalObjectId);
+                if (isSwapped)
+                {
+                    // Swap to an archipelago item flag.
+                    if (swappedGlobalObjectId.mapId == null && swappedGlobalObjectId.roomId == null && swappedGlobalObjectId.objectId == null)
+                    {
+                        newFlag = Game.FlagBpContainerAcquired(equipGlobalObjectId.AsString + Constants.ArchItemObjectIdSuffix);
+                    }
+                    // TODO: Swap items with each other
+                }
+            }
+
+            if (!GlobalState.Director.GetFlagBool(newFlag))
+            {
+                __result = false;
+                return false;
+            }
         }
+
+        __result = true;
+        return false;
     }
 }
 
 public class Core : MelonMod
 {
-    private static KeyCode addKey = KeyCode.P;
-    private static KeyCode removeKey = KeyCode.O;
+    private const KeyCode addKey = KeyCode.LeftControl;
+    private const KeyCode removeKey = KeyCode.LeftAlt;
+
+    private const KeyCode petalKey = KeyCode.U;
+    private const KeyCode bpKey = KeyCode.I;
+    private const KeyCode equipKey = KeyCode.O;
+    private const KeyCode upgradeKey = KeyCode.P;
+
+    private const KeyCode movementAbilityKey = KeyCode.J;
+    private const KeyCode chargedActionKey = KeyCode.K;
+    private const KeyCode specialActionKey = KeyCode.L;
+    private const KeyCode megaBatteryKey = KeyCode.Semicolon;
+
+    // mapId/roomId/objectId
+    // objectDefId=lor104, objectDefName=petalContainer
+    // position.x=792, position.y=456, width=16, height=16
+    private static string petalContainerId = "city/ren223/yug5534";
+    private static string bpContainerId = "city/yug5154/yug5202"; // mapId/roomId/objectId, objectDefId=lor313, objectDefName=bpContainer
 
     public override void OnInitializeMelon()
     {
         LoggerInstance.Msg("Initialized.");
+        ExportArchipelagoSprites();
+
+        //var res = new List<Mapvania.Object>();
+        //var proj = new Mapvania.Project();
+        //Mapvania.ReloadMaps(proj);
+        //foreach (Mapvania.Map map in proj.maps)
+        //{
+        //    foreach (Mapvania.Room room in map.rooms)
+        //    {
+        //        foreach (Mapvania.Object obj in room.objects)
+        //        {
+        //            if (obj.objectDefName == "petalContainer" && obj.globalObjectId.objectId == "yug5534")
+        //            {
+        //                MelonLogger.Msg($"{obj.objectDefId},{obj.objectDefName},{obj.objectDefBehaviorName}");
+        //                MelonLogger.Msg($"{obj.globalObjectId.mapId},{obj.globalObjectId.roomId},{obj.globalObjectId.objectId}");
+        //                MelonLogger.Msg($"{obj.tag}");
+        //                MelonLogger.Msg($"{obj.position.x},{obj.position.y},{obj.width},{obj.height}");
+        //                MelonLogger.Msg($"{obj.properties.objectFields.Count}, {obj.properties.Serialize()}");
+        //                MelonLogger.Msg($"{obj.usesFlags} {obj.usesPresenceFlag} {obj.isDev}");
+        //            }
+        //            //res.Add(obj);
+        //        }
+        //    }
+        //}
     }
 
     public override void OnLateUpdate()
     {
-        // Health (petal container)
-        if (Input.GetKeyDown(addKey) && Input.GetKey(KeyCode.LeftControl))
+        var director = GlobalState.Director;
+
+        // Petal containers (health)
+        if (Input.GetKeyDown(petalKey) && Input.GetKey(addKey))
         {
             LoggerInstance.Msg("Adding virtual petal container!");
-
-            var director = DirectorPatch.instance;
-            GlobalState.AcquiringVirtualPetalContainer = true;
-            Game.SetPetalContainerAcquired(director, "city/ren223/yug5534", 1, true);
-            GlobalState.AcquiringVirtualPetalContainer = false;
-
+            var result = Game.SetPetalContainerAcquired(director, "city/ren223/yug5534", 1, true);
+            if (result)
+            {
+                var text = $"You got a [c:rose|Petal Container]!\n[c:rose|Petals] collected: [c:blue|{GlobalState.Director.playerRecord.petalContainers}] / {Game.PETAL_COLLECTIBLES}";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
             LoggerInstance.Msg("Finished adding virtual petal container!");
         }
-        else if (Input.GetKeyDown(removeKey) && Input.GetKey(KeyCode.LeftControl))
+        else if (Input.GetKeyDown(petalKey) && Input.GetKey(removeKey))
         {
             LoggerInstance.Msg("Removing petal container!");
-
-            var director = DirectorPatch.instance;
-            GlobalState.AcquiringVirtualPetalContainer = true;
             Game.SetPetalContainerAcquired(director, "city/ren223/yug5534", 1, false);
-            GlobalState.AcquiringVirtualPetalContainer = false;
-            Game.SetPetalContainerAcquired(director, "city/ren223/yug5534", 1, false);
-
             LoggerInstance.Msg("Finished removing petal container!");
         }
-        //// BP (BP container)
-        //else if (Input.GetKeyDown(addKey) && Input.GetKey(KeyCode.LeftAlt))
-        //{
-        //    LoggerInstance.Msg("Adding virtual BP container!");
+        // BP shards
+        else if (Input.GetKeyDown(bpKey) && Input.GetKey(addKey))
+        {
+            LoggerInstance.Msg("Adding virtual BP container!");
+            var result = Game.SetBpContainerAcquired(director, "city/yug5154/yug5202", 1, true);
+            if (result)
+            {
+                var text = $"You got a [c:bp|BP Shard]!\n[c:bp|BP Shards] collected: [c:blue|{GlobalState.Director.playerRecord.bpContainers}] / {Game.BPSHARD_COLLECTIBLES}";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual BP container!");
+        }
+        else if (Input.GetKeyDown(bpKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing BP container!");
+            Game.SetBpContainerAcquired(director, "city/yug5154/yug5202", 1, false);
+            LoggerInstance.Msg("Finished removing BP container!");
+        }
+        // Badges (equips)
+        else if (Input.GetKeyDown(equipKey) && Input.GetKey(addKey))
+        {
+            // TODO: Factor in badge upgrade for name
+            LoggerInstance.Msg("Adding virtual badge!");
+            var equip = Game.GetEquipById("stringedYoyoNoPierce");
+            var result = Game.SetEquipAcquired(director, equip, true, true);
+            if (result)
+            {
+                // TODO: Factor in removing cheater's badges
+                var text = $"You got the [c:equip|{Game.GetEquipName(equip, false)}]!\n[c:equip|Equips] collected: {GlobalState.Director.playerStatus.equipsAcquired} / {Game.EQUIP_COLLECTIBLES}";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual badge!");
+        }
+        else if (Input.GetKeyDown(equipKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing badge!");
+            Game.SetEquipAcquired(director, Game.GetEquipById("stringedYoyoNoPierce"), false, true);
+            LoggerInstance.Msg("Finished removing badge!");
+        }
 
-        //    var director = DirectorPatch.instance;
-        //    GlobalState.AcquiringVirtualBpContainer = true;
-        //    Game.SetBpContainerAcquired(director, "city/yug5154/yug5202", 1, true);
-        //    GlobalState.AcquiringVirtualBpContainer = false;
+        // Upgrades
+        else if (Input.GetKeyDown(upgradeKey) && Input.GetKey(addKey))
+        {
+            // TODO: Disable upgrade shop
+            LoggerInstance.Msg("Adding virtual upgrade!");
+            var upgrade = Game.GetUpgradeById("bpUp");
+            var result = Game.SetUpgradeAcquired(director, upgrade, true);
+            if (result)
+            {
+                var text = $"You got the [c:upgrade|{Game.GetUpgradeName(upgrade)}] upgrade!\n[c:upgrade|Upgrades] collected: [c:blue|{GlobalState.Director.playerStatus.upgradesAcquired}] / {Game.upgrades.Count}";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual upgrade!");
+        }
+        else if (Input.GetKeyDown(upgradeKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing upgrade!");
+            Game.SetUpgradeAcquired(director, Game.GetUpgradeById("bpUp"), false);
+            LoggerInstance.Msg("Finished removing upgrade!");
+        }
+        // Movement abilities
+        else if (Input.GetKeyDown(movementAbilityKey) && Input.GetKey(addKey))
+        {
+            LoggerInstance.Msg("Adding virtual movement ability!");
+            var flag = GlobalState.Director.GetFlagBool(Game.FLAG_ABILITY_WALKTHEDOG);
+            if (!flag)
+            {
+                // TODO: Figure out how to convert ability flag to ability name
+                GlobalState.Director.SetFlagBool(Game.FLAG_ABILITY_WALKTHEDOG, true);
+                var text = $"You've learned the [c|{Localization.Get("ui_ability_walkTheDog")}] ability!";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual movement ability!");
+        }
+        else if (Input.GetKeyDown(movementAbilityKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing movement ability!");
+            GlobalState.Director.SetFlagBool(Game.FLAG_ABILITY_WALKTHEDOG, false);
+            LoggerInstance.Msg("Finished removing movement ability!");
+        }
+        // Charged moves
+        else if (Input.GetKeyDown(chargedActionKey) && Input.GetKey(addKey))
+        {
+            LoggerInstance.Msg("Adding virtual charged move!");
+            var flag = GlobalState.Director.GetFlagBool(Game.FLAG_ABILITY_CHARGED_SLEEPER);
+            if (!flag)
+            {
+                // TODO: Figure out how to convert ability flag to ability name
+                // TODO: Should this replace current equipped move?
+                GlobalState.Director.SetFlagBool(Game.FLAG_ABILITY_CHARGED_SLEEPER, true);
+                var text = $"You've learned the [c|{Localization.Get("ui_ability_sleeper_name")}] Charged Move!";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual charged move!");
+        }
+        else if (Input.GetKeyDown(chargedActionKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing charged move!");
+            GlobalState.Director.SetFlagBool(Game.FLAG_ABILITY_CHARGED_SLEEPER, false);
+            GlobalState.Director.SetFlag(Game.FLAG_EQUIPPED_CHARGED_ACTION, 0);
+            LoggerInstance.Msg("Finished removing charged move!");
+        }
+        // Special moves
+        else if (Input.GetKeyDown(specialActionKey) && Input.GetKey(addKey))
+        {
+            LoggerInstance.Msg("Adding virtual special move!");
+            var flag = GlobalState.Director.GetFlagBool(Game.FLAG_ABILITY_SPECIAL_PARRY);
+            if (!flag)
+            {
+                // TODO: Figure out how to convert ability flag to ability name
+                // TODO: Should this replace current equipped move?
+                GlobalState.Director.SetFlagBool(Game.FLAG_ABILITY_SPECIAL_PARRY, true);
+                var text = $"You've learned the [c|{Localization.Get("ui_ability_parry_name")}] Special Move!";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual special move!");
+        }
+        else if (Input.GetKeyDown(specialActionKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing special move!");
+            GlobalState.Director.SetFlagBool(Game.FLAG_ABILITY_SPECIAL_PARRY, false);
+            GlobalState.Director.SetFlag(Game.FLAG_EQUIPPED_SPECIAL_ACTION, 0);
+            LoggerInstance.Msg("Finished removing special move!");
+        }
+        // Mega-Batteries
+        else if (Input.GetKeyDown(megaBatteryKey) && Input.GetKey(addKey))
+        {
+            LoggerInstance.Msg("Adding virtual mega battery!");
+            var flag = GlobalState.Director.GetFlagBool(Game.FLAG_MEGABATTERY2);
+            if (!flag)
+            {
+                GlobalState.Director.SetFlagBool(Game.FLAG_MEGABATTERY2, true);
+                var text = $"You got a [c|Mega-Battery]!";
+                GlobalState.AcquiringVirtualArchItemStrings.Enqueue(text);
+            }
+            LoggerInstance.Msg("Finished adding virtual mega battery!");
+        }
+        else if (Input.GetKeyDown(megaBatteryKey) && Input.GetKey(removeKey))
+        {
+            LoggerInstance.Msg("Removing mega battery!");
+            GlobalState.Director.SetFlagBool(Game.FLAG_MEGABATTERY2, false);
+            LoggerInstance.Msg("Finished removing mega battery!");
+        }
+    }
 
-        //    LoggerInstance.Msg("Finished adding virtual BP container!");
-        //}
-        //else if (Input.GetKeyDown(removeKey) && Input.GetKey(KeyCode.LeftAlt))
-        //{
-        //    LoggerInstance.Msg("Removing BP container!");
+    private void ExportArchipelagoSprites()
+    {
+        try
+        {
+            var filesToPaths = new Dictionary<string, string>()
+            {
+                { "archipelago.png", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites") },
+                { "archipelagoMapPin.png", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins") }
+            };
+            foreach (var (file, path) in filesToPaths)
+            {
+                var fullPath = Path.Combine(path, file);
 
-        //    var director = DirectorPatch.instance;
-        //    GlobalState.AcquiringVirtualBpContainer = true;
-        //    Game.SetBpContainerAcquired(director, "city/yug5154/yug5202", 1, false);
-        //    GlobalState.AcquiringVirtualBpContainer = false;
-        //    GlobalState.IsPhysicalBpContainerAcquired = false;
-        //    // TODO: Remove flag?
+                // Write the file if it's missing or outdated
+                // Tip: You can remove the File.Exists check during dev to ensure it overwrites with your latest icon
+                var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}");
+                if (data != null)
+                {
+                    File.WriteAllBytes(fullPath, data);
+                    MelonLogger.Msg($"Archipelago sprite deployed to: {fullPath}");
+                }
+                else
+                {
+                    MelonLogger.Error($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
+                }
+            }
+        }
+        catch (Exception e)
+        {
+            MelonLogger.Error($"Failed to export sprite: {e.Message}");
+        }
+    }
 
-        //    LoggerInstance.Msg("Finished removing BP container!");
-        //}
-        //// Upgrades
-        //else if (Input.GetKeyDown(addKey) && Input.GetKey(KeyCode.LeftShift))
-        //{
-        //    LoggerInstance.Msg("Adding upgrade!");
-
-        //    var director = DirectorPatch.instance;
-        //    var upgrade = Game.GetUpgradeById("yoyoBounceAttackUp");
-        //    Game.SetUpgradeAcquired(director, upgrade, true);
-
-        //    LoggerInstance.Msg("Finished adding upgrade!");
-        //}
-        //else if (Input.GetKeyDown(removeKey) && Input.GetKey(KeyCode.LeftShift))
-        //{
-        //    LoggerInstance.Msg("Removing upgrade!");
-
-        //    var director = DirectorPatch.instance;
-        //    var upgrade = Game.GetUpgradeById("yoyoBounceAttackUp");
-        //    Game.SetUpgradeAcquired(director, upgrade, false);
-
-        //    LoggerInstance.Msg("Finished removing upgrade!");
-        //}
-        //// Badges
-        //else if (Input.GetKeyDown(addKey))
-        //{
-        //    LoggerInstance.Msg("Adding virtual badge!");
-
-        //    var director = DirectorPatch.instance;
-        //    GlobalState.AcquiringVirtualBadge = true;
-        //    var equip = Game.GetEquipById("stringedYoyoNoPierce");
-        //    Game.SetEquipAcquired(director, equip, true, true);
-        //    GlobalState.AcquiringVirtualBadge = false;
-
-        //    LoggerInstance.Msg("Finished adding virtual badge!");
-        //}
-        //else if (Input.GetKeyDown(removeKey))
-        //{
-        //    LoggerInstance.Msg("Removing badge!");
-
-        //    var director = DirectorPatch.instance;
-        //    GlobalState.AcquiringVirtualBadge = true;
-        //    var equip = Game.GetEquipById("stringedYoyoNoPierce");
-        //    Game.SetEquipAcquired(director, equip, false, true);
-        //    GlobalState.AcquiringVirtualBadge = false;
-        //    GlobalState.IsPhysicalBadgeAcquired = false;
-        //    // TODO: Remove flag?
-
-        //    LoggerInstance.Msg("Finished removing badge!");
-        //}
+    private static byte[] LoadBytesFromResource(string path)
+    {
+        var assembly = Assembly.GetExecutingAssembly();
+        using Stream stream = assembly.GetManifestResourceStream(path);
+        if (stream == null) return null;
+        var buffer = new byte[stream.Length];
+        stream.Read(buffer, 0, buffer.Length);
+        return buffer;
     }
 }

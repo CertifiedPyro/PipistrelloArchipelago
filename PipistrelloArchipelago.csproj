@@ -13,7 +13,14 @@
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
+	<ItemGroup>
+	  <None Remove="archipelago.png" />
+	  <None Remove="archipelagoMapPin.png" />
+	</ItemGroup>
 
+	<PropertyGroup>
+		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
+	</PropertyGroup>
 	<ItemGroup>
 		<Reference Include="Assembly-CSharp">
 			<HintPath>C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
@@ -275,6 +282,19 @@
 	<ItemGroup>
 		<Compile Include="Core.cs" />
 		<Compile Include="Utils.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <EmbeddedResource Include="archipelago.png" />
+	  <EmbeddedResource Include="archipelagoMapPin.png" />
+	</ItemGroup>
+
+	<ItemGroup>
+	  <PackageReference Include="Archipelago.MultiClient.Net" Version="6.7.0" />
+	  <PackageReference Include="Archipelago.MultiClient.Net.Analyzers" Version="2.0.1">
+	    <PrivateAssets>all</PrivateAssets>
+	    <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+	  </PackageReference>
 	</ItemGroup>
 	
 	<Target Name="PostBuild" AfterTargets="PostBuildEvent">
