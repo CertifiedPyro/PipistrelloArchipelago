@@ -3,8 +3,8 @@
 static class Constants
 {
     public static string ArchItemObjectIdSuffix = "_architem";
-    public static string ArchSpriteName = "archipelago";
-    public static string ArchMapPinSpriteName = "archipelagoMapPin";
+    public static string ArchSpriteName = "arch_medium";
+    public static string ArchMapPinSpriteName = "arch_small";
 }
 
 static class Utils

@@ -13,14 +13,15 @@
 		<LangVersion>latest</LangVersion>
 		<ImplicitUsings>enable</ImplicitUsings>
 	</PropertyGroup>
-	<ItemGroup>
-	  <None Remove="archipelago.png" />
-	  <None Remove="archipelagoMapPin.png" />
-	</ItemGroup>
 
 	<PropertyGroup>
 		<CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
 	</PropertyGroup>
+
+	<ItemGroup>
+	  <None Remove="arch_medium.png" />
+	  <None Remove="arch_small.png" />
+	</ItemGroup>
 	<ItemGroup>
 		<Reference Include="Assembly-CSharp">
 			<HintPath>C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
@@ -281,12 +282,15 @@
 
 	<ItemGroup>
 		<Compile Include="Core.cs" />
+		<Compile Include="RoomConnections.cs" />
 		<Compile Include="Utils.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="archipelago.png" />
-	  <EmbeddedResource Include="archipelagoMapPin.png" />
+	  <EmbeddedResource Include="arch.png" />
+	  <EmbeddedResource Include="arch_medium.png" />
+	  <EmbeddedResource Include="arch_small.png" />
+	  <EmbeddedResource Include="arch_small_bad.png" />
 	</ItemGroup>
 
 	<ItemGroup>

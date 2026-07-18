@@ -20,7 +20,9 @@ public static class GlobalState
 
     public static Dictionary<string, Game.GlobalObjectId> SwappedItems = new()
     {
-        { new Game.GlobalObjectId { mapId = "city", roomId = "ren223", objectId = "yug5534" }.AsString, new Game.GlobalObjectId() },  // Petal container (in plaza)
+        { new Game.GlobalObjectId { mapId = "city", roomId = "ren223", objectId = "yug5534" }.AsString, new Game.GlobalObjectId() },  // Petal container (South plaza)
+        { new Game.GlobalObjectId { mapId = "city", roomId = "lor2248", objectId = "yug4337" }.AsString, new Game.GlobalObjectId() },  // Golden Badge (walletAttackUp) (South Plaza)
+        { new Game.GlobalObjectId { mapId = "city", roomId = "yug5210", objectId = "yug5250" }.AsString, new Game.GlobalObjectId() },  // Pitcher's Badge blueprint (thrownObjectAttackUp) (South Plaza)
         { new Game.GlobalObjectId { mapId = "city_interiors", roomId = "ren1362", objectId = "ren1605" }.AsString, new Game.GlobalObjectId() }  // Equip (in house, top left map)
     };
 }
@@ -56,25 +58,6 @@ public class DirectorInitPatch
         //        MelonLogger.Msg(error);
         //    }
         //}
-    }
-}
-
-[HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
-public class DirectorLoadProjectPatch
-{
-    public static void Postfix(Director __instance)
-    {
-        foreach (var map in __instance.currentProject.maps)
-        {
-            if (map.id == "city")
-            {
-                foreach (var room in map.rooms)
-                {
-                    //MelonLogger.Msg($"{room.id},{room.x},{room.y},{room.position.x},{room.position.y},{room.tileW},{room.tileH},{room.wTiles},{room.hTiles}");
-                    MelonLogger.Msg($"{room.id},{room.x/(16.0*18)},{room.y/(16.0*10)}");  // Gets map coordinate of room
-                }
-            }
-        }
     }
 }
 
@@ -139,12 +122,20 @@ public static class MinimapPatch
     [HarmonyPatch(nameof(Minimap.RefreshPins))]
     public static void Prefix()
     {
-        // Replace map pins for physical Archipelago items with the Archipelago UI pin.
         var mapPins = GlobalState.Director.playerRecord.mapPins;
-        for (int i = 0; i < mapPins.Count; i++)
+        for (var i = 0; i < mapPins.Count; i++)
         {
             var mapPin = mapPins[i];
+
+            // Replace map pins for physical Archipelago items with the Archipelago UI pin.
             if (Utils.IsArchItemId(mapPin.objectId.objectId))
+            {
+                mapPin.pinId = Constants.ArchMapPinSpriteName;
+                mapPins.System_Collections_IList_set_Item(i, mapPin);
+            }
+
+            // Replace map pins for the original items with the Archipelago UI pin.
+            if (GlobalState.SwappedItems.ContainsKey(mapPin.objectId.AsString))
             {
                 mapPin.pinId = Constants.ArchMapPinSpriteName;
                 mapPins.System_Collections_IList_set_Item(i, mapPin);
@@ -352,6 +343,11 @@ public class Core : MelonMod
     {
         var director = GlobalState.Director;
 
+        if (Input.GetKeyDown(KeyCode.Slash))
+        {
+            RoomConnections.Postfix(director);
+        }
+
         // Petal containers (health)
         if (Input.GetKeyDown(petalKey) && Input.GetKey(addKey))
         {
@@ -393,7 +389,7 @@ public class Core : MelonMod
         {
             // TODO: Factor in badge upgrade for name
             LoggerInstance.Msg("Adding virtual badge!");
-            var equip = Game.GetEquipById("stringedYoyoNoPierce");
+            var equip = Game.GetEquipById("thrownObjectAttackUp");
             var result = Game.SetEquipAcquired(director, equip, true, true);
             if (result)
             {
@@ -521,8 +517,8 @@ public class Core : MelonMod
         {
             var filesToPaths = new Dictionary<string, string>()
             {
-                { "archipelago.png", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites") },
-                { "archipelagoMapPin.png", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins") }
+                { "arch_medium.png", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites") },
+                { "arch_small.png", Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins") }
             };
             foreach (var (file, path) in filesToPaths)
             {
