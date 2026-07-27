@@ -105,3 +105,6 @@ When you collect another world's item, you'll get a message showing the item nam
 ## When the player receives an item, what happens?
 
 The item is instantly granted to you, and a message appears on the bottom of the screen showing the item name and sender.
+
+## Credits
+- Scipio for the Archipelago sprites used in-game
