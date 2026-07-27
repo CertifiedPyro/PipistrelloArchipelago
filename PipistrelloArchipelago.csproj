@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
 	<PropertyGroup>
 		<TargetFramework>net6.0</TargetFramework>
 		<ImplicitUsings>enable</ImplicitUsings>
@@ -21,6 +21,7 @@
 	<ItemGroup>
 	  <None Remove="arch_medium.png" />
 	  <None Remove="arch_small.png" />
+	  <None Remove="object_id_mapping.json" />
 	</ItemGroup>
 	<ItemGroup>
 		<Reference Include="Assembly-CSharp">
@@ -281,16 +282,21 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<Compile Include="Core.cs" />
+		<Compile Include="ArchipelagoHelper.cs" />
+		<Compile Include="PipArchMod.cs" />
+		<Compile Include="Patches\CorePatches.cs" />
+		<Compile Include="Patches\DialoguePanelPatches.cs" />
+		<Compile Include="Patches\InstructionPanelPatches.cs" />
 		<Compile Include="RoomConnections.cs" />
+		<Compile Include="Patches\MainMenuPatches.cs" />
+		<Compile Include="Patches\UIPatches.cs" />
 		<Compile Include="Utils.cs" />
 	</ItemGroup>
 
 	<ItemGroup>
-	  <EmbeddedResource Include="arch.png" />
-	  <EmbeddedResource Include="arch_medium.png" />
-	  <EmbeddedResource Include="arch_small.png" />
-	  <EmbeddedResource Include="arch_small_bad.png" />
+	  <EmbeddedResource Include="Images\arch_medium.png" />
+	  <EmbeddedResource Include="Images\arch_small.png" />
+	  <EmbeddedResource Include="object_id_mapping.json" />
 	</ItemGroup>
 
 	<ItemGroup>
