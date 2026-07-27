@@ -63,4 +63,25 @@ public static class UIPatches
     {
         GlobalState.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, _prevAccountantFlagValue);
     }
+
+    /// <summary>
+    /// Patch upgrade menu to make all upgrades locked.
+    /// </summary>
+    [HarmonyPatch(typeof(Game), nameof(Game.IsUpgradeLocked))]
+    [HarmonyPrefix]
+    public static bool IsUpgradeLockedPatch(ref bool __result)
+    {
+        __result = true;
+        return false;
+    }
+
+    /// <summary>
+    /// Patch badge menu to make all badge refinements locked.
+    /// </summary>
+    [HarmonyPatch(typeof(UIEquipRefinement), nameof(UIEquipRefinement.MakeConfirmationDialog))]
+    [HarmonyPrefix]
+    public static bool UIEquipRefinementPatch()
+    {
+        return false;
+    }
 }

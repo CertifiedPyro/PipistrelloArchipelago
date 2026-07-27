@@ -323,7 +323,8 @@ public static class ArchipelagoHelper
             else if (itemName.Contains('$') 
                 && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
             {
-                Game.MoneyAdd(director.playerRecord, money);
+                // CollectCoin properly handles debts.
+                GlobalState.Director.CollectCoin(money);
                 Melon<PipArchMod>.Logger.Msg("Added $" + money);
             }
             else

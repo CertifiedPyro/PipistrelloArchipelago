@@ -52,14 +52,16 @@ public class PipArchMod : MelonMod
     {
         try
         {
-            var filesToPaths = new Dictionary<string, string>()
+            var filesToPaths = new List<KeyValuePair<string, string>>()
             {
-                { Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMediumSpriteName}.png" },
-                { Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchSmallSpriteName}.png" },
-                { Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "icons"), $"{Constants.ArchSmallSpriteName}.png" },
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMediumSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchSmallSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "icons"), $"{Constants.ArchSmallSpriteName}.png"),
             };
-            foreach (var (path, file) in filesToPaths)
+            foreach (var pair in filesToPaths)
             {
+                var path = pair.Key;
+                var file = pair.Value;
                 var fullPath = Path.Combine(path, file);
                 var data = LoadBytesFromResource($"PipistrelloArchipelago.Images.{file}");
                 if (data != null)
