@@ -1,5 +1,6 @@
 ﻿using HarmonyLib;
 using Il2CppPipistrello;
+using Il2CppUtil;
 using MelonLoader;
 
 namespace PipistrelloArchipelago.Patches;
@@ -34,9 +35,10 @@ public static class CorePatches
         }
 
         // Find the South Plaza new-game scenario.
+        var southPlazaNames = Localization.GetEntries("location_plaza1").ToArray().Select(e => e.contents);
         foreach (var scenario in Game.GetNewGameScenarios())
         {
-            if (scenario.name == "South Plaza")
+            if (southPlazaNames.Contains(scenario.name))
             {
                 var record = Game.DeserializeRecord(scenario.serializedRecord);
                 record.flags[Game.FLAG_ABILITY_THROW] = 0;  // Remove Offstring Throw (obtained in Abandoned Tunnels).

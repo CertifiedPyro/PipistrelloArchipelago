@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using Il2CppPipistrello;
-using MelonLoader;
 
 namespace PipistrelloArchipelago.Patches;
 
@@ -52,7 +51,6 @@ public class DialoguePanelPatch
             var item = SaveState.AcquiredPhysicalItem;
             if (!ShowedArchItemDialogue)
             {
-                var alreadyChecked = SaveState.Session.Locations.AllLocationsChecked.Contains(item.LocationId);
                 var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
                 var playerName = item.Player.Name.Replace(" ", "[nbsp]");
 

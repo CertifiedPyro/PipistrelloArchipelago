@@ -3,6 +3,7 @@ using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
+using Il2CppUtil;
 using MelonLoader;
 using System.Collections.ObjectModel;
 
@@ -29,12 +30,6 @@ public static class ArchipelagoHelper
         { "Mega-Battery 3", Game.FLAG_MEGABATTERY3 },
         { "Mega-Battery 4", Game.FLAG_MEGABATTERY4 },
     };
-    private static readonly Dictionary<string, Game.Upgrade> _itemToUpgrade = Game.upgrades
-        .ToArray()
-        .ToDictionary(u => Game.GetUpgradeName(u));
-    private static readonly Dictionary<string, Game.Equip> _itemToEquip = Game.equips
-        .ToArray()
-        .ToDictionary(e => Game.GetEquipName(e, false));
 
     /// <summary>
     /// Handle connection to Archipelago server.
@@ -279,21 +274,28 @@ public static class ArchipelagoHelper
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
 
+            var itemToUpgrade = Game.upgrades
+                .ToArray()
+                .ToDictionary(u => Localization.Get($"upgrade_name_{u.id}", lang: "en_US"));
+            var itemToEquip = Game.equips
+                .ToArray()
+                .ToDictionary(e => Localization.Get($"equip_name_{e.id}", lang: "en_US"));
+
             if (_itemToFlag.ContainsKey(itemName))
             {
                 director.SetFlagBool(_itemToFlag[itemName], true);
                 Melon<PipArchMod>.Logger.Msg($"Set flag: {_itemToFlag[itemName]}");
             }
-            else if (_itemToUpgrade.Any((pair) => itemName == pair.Key))
+            else if (itemToUpgrade.ContainsKey(itemName))
             {
-                var upgrade = _itemToUpgrade.FirstOrDefault(
-                    (pair) => itemName == pair.Key).Value;
+                var upgrade = itemToUpgrade[itemName];
                 Game.SetUpgradeAcquired(director, upgrade, true);
                 Melon<PipArchMod>.Logger.Msg("Added upgrade");
             }
-            else if (_itemToEquip.Any((pair) => itemName.Contains(pair.Key)))
+            else if (itemToEquip.Any((pair) => itemName.Contains(pair.Key)))
             {
-                var equip = _itemToEquip.FirstOrDefault(
+                Game.equips.ToArray().ToDictionary(e => Localization.Get(e.id, lang: "en_US"));
+                var equip = itemToEquip.FirstOrDefault(
                     (pair) => itemName.Contains(pair.Key)).Value;
                 var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
                 if (!equipAcquired)
