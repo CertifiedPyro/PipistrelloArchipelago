@@ -13,12 +13,15 @@
 
 ### Prerequisites
 1. Run the MelonLoader installer, select "Pipistrello and the Cursed Yoyo", and click "Install".
-2. Launch the game to create the required mod folders.
-3. Navigate to your game's installation installation folder.
+2. If you're running Linux:
+   1. Export the following environment variable: `WINEDLLOVERRIDES="version=n,b"`
+   2. On Steam, you can set the launch options to: `WINEDLLOVERRIDES="version=n,b" %command%`
+3. Launch the game to create the required mod folders.
+4. Navigate to your game's installation installation folder.
     1. You can find this in Steam by right-clicking > Manage > Browse Local Files.
     2. This is usually  `C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo`
-4. Download the latest release of MelonPreferencesManager.
-5. Extract the two dlls into the `Mods/` folder under your game's installation directory.
+5. Download the latest release of MelonPreferencesManager.
+6. Extract the two dlls into the `Mods/` folder under your game's installation directory.
 
 ### Archipelago mod
 
