@@ -31,11 +31,7 @@ public class PipArchMod : MelonMod
             if (data != null)
             {
                 GlobalState.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
-                GlobalState.LocationNameToGlobalObjectId = [];
-                foreach (var (k, v) in GlobalState.GlobalObjectIdToLocationName)
-                {
-                    GlobalState.LocationNameToGlobalObjectId[v] = k;
-                }
+                GlobalState.LocationNameToGlobalObjectId = GlobalState.GlobalObjectIdToLocationName.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
             }
             else
             {
@@ -52,16 +48,15 @@ public class PipArchMod : MelonMod
     {
         try
         {
-            var filesToPaths = new List<KeyValuePair<string, string>>()
+            var filesToPaths = new List<Tuple<string, string>>()
             {
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMediumSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMoneyBagSpriteName}.png"),
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchSmallSpriteName}.png"),
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "icons"), $"{Constants.ArchSmallSpriteName}.png"),
             };
-            foreach (var pair in filesToPaths)
+            foreach (var (path, file) in filesToPaths)
             {
-                var path = pair.Key;
-                var file = pair.Value;
                 var fullPath = Path.Combine(path, file);
                 var data = LoadBytesFromResource($"PipistrelloArchipelago.Images.{file}");
                 if (data != null)
@@ -83,9 +78,12 @@ public class PipArchMod : MelonMod
 
     private static byte[] LoadBytesFromResource(string path)
     {
-        var assembly = Assembly.GetExecutingAssembly();
-        using Stream stream = assembly.GetManifestResourceStream(path);
-        if (stream == null) return null;
+        using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path);
+        if (stream == null)
+        {
+            return null;
+        }
+
         var buffer = new byte[stream.Length];
         stream.Read(buffer, 0, buffer.Length);
         return buffer;
