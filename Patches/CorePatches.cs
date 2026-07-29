@@ -138,49 +138,30 @@ public static class CorePatches
     }
 
     [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
-    [HarmonyPrefix]
-    public static void ObjectMoneyBagProcessPatch(ObjectMoneyBag __instance)
+    [HarmonyPostfix]
+    public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
     {
         // TODO: Check if money bag should actually be replaced.
-        var moneyBag = __instance.TryCast<ObjectMoneyBag>();
-        if (moneyBag == null || !SaveState.SaveFileLoaded || moneyBag.moneyAmount == 0)
+        if (!SaveState.SaveFileLoaded || __instance.moneyAmount == 0)
         {
             return;
         }
 
-        moneyBag.moneyAmount = 0;
+        // If money bag is an Archipelago item, don't actually collect money from it.
+        __instance.moneyAmount = 0;
+
+        // Add map pin for money bag if it's missing.
         var mapPins = GlobalState.Director.playerRecord.mapPins;
         var mapObj = __instance.mapObject;
         var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
         if (!existingPin)
         {
-            MelonLogger.Msg("Adding pin for " + mapObj.globalObjectId.AsString);
             GlobalState.Director.playerRecord.mapPins.System_Collections_IList_Add(new Game.MapPin
             {
                 pinId = Constants.ArchMoneyBagSpriteName,
                 objectId = mapObj.globalObjectId,
                 position = mapObj.position
             });
-        }
-    }
-
-    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
-    [HarmonyPostfix]
-    public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
-    {
-        var moneyBag = __instance.TryCast<ObjectMoneyBag>();
-        if (moneyBag == null || !moneyBag.destroyed)
-        {
-            return;
-        }
-
-        var mapPins = GlobalState.Director.playerRecord.mapPins;
-        var mapObj = __instance.mapObject;
-        var existingPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
-        if (existingPin != null)
-        {
-            MelonLogger.Msg("Removing existing pin");
-            GlobalState.Director.playerRecord.mapPins.Remove(existingPin);
         }
     }
 
