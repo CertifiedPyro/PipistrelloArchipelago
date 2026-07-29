@@ -118,8 +118,8 @@ public static class ArchipelagoHelper
                 director.SetFlagBool(flag, true);
             }
 
-            // Remove map pin.
-            var mapPins = director.playerRecord.mapPins;
+           // Remove map pin.
+           var mapPins = director.playerRecord.mapPins;
             for (var i = 0; i < mapPins.Count; i++)
             {
                 var mapPinObjectId = mapPins[i].objectId.AsString;
