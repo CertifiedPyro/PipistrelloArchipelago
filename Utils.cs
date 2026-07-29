@@ -11,6 +11,7 @@ static class Constants
     public static string ArchItemObjectIdSuffix = "_architem";
     public static string ArchMediumSpriteName = "arch_medium";
     public static string ArchSmallSpriteName = "arch_small";
+    public static string ArchMoneyBagSpriteName = "moneyBag_arch";
 
     public static string FLAG_ARCHIPELAGO = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static string FLAG_LAST_ITEM_INDEX = $"{FLAG_ARCHIPELAGO}:lastItemIndex";

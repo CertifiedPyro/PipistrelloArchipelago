@@ -58,6 +58,24 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
     {
+        if (mapObj.objectDefName == "moneyBag")
+        {
+            var mapPins = GlobalState.Director.playerRecord.mapPins;
+            var tempMapObj = mapObj;
+            var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == tempMapObj.globalObjectId.AsString);
+            if (!existingPin)
+            {
+                mapPins.Add(new Game.MapPin
+                {
+                    pinId = "battery",
+                    objectId = mapObj.globalObjectId,
+                    position = mapObj.position
+                });
+            }
+
+            return;
+        }
+
         // Check if item could to be swapped (excluding taxi phones).
         var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapObj.globalObjectId.AsString);
         if (objLocationName == null || objLocationName.ToLower().Contains("taxi"))
@@ -94,6 +112,16 @@ public static class CorePatches
         {
             // Replace sprite.
             __result.spriteName = Constants.ArchMediumSpriteName;
+        }
+    }
+
+    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
+    [HarmonyPrefix]
+    public static void GetSpritePatch(ref string sprId)
+    {
+        if (sprId == "objs/moneyBag")
+        {
+            sprId = Constants.ArchMoneyBagSpriteName;
         }
     }
 

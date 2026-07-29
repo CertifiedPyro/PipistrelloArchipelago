@@ -34,7 +34,7 @@ public static class UIPatches
             // Als replace map pins for the original items.
             var locationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapPin.objectId.AsString);
             if (Utils.IsArchItemId(mapPin.objectId.objectId)
-                || (locationName != null && !locationName.Contains("Taxi")))
+                || (locationName != null && !locationName.Contains("Taxi") && !locationName.Contains("Money Bag")))
             {
                 mapPin.pinId = Constants.ArchSmallSpriteName;
                 mapPins.System_Collections_IList_set_Item(i, mapPin);
