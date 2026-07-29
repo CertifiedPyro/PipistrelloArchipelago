@@ -253,6 +253,8 @@ public static class ArchipelagoHelper
                     Melon<PipArchMod>.Logger.Error($"Could not send location checks: {ex}");
                 }
             }
+
+            SaveState.SaveFileLoaded = true;
         }
         catch (Exception ex)
         {

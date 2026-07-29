@@ -31,6 +31,7 @@ public static class CorePatches
         var savefileRecord = GlobalState.Director.savefileRecords[savefileIndex];
         if (savefileRecord != null)
         {
+            SaveState.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
             ArchipelagoHelper.InitialHandler();
             return;
         }
@@ -142,12 +143,12 @@ public static class CorePatches
     {
         // TODO: Check if money bag should actually be replaced.
         var moneyBag = __instance.TryCast<ObjectMoneyBag>();
-        if (moneyBag == null || moneyBag.moneyAmount == 0)
+        if (moneyBag == null || !SaveState.SaveFileLoaded || moneyBag.moneyAmount == 0)
         {
             return;
         }
-        
-        //__instance.moneyAmount = 0;
+
+        moneyBag.moneyAmount = 0;
         var mapPins = GlobalState.Director.playerRecord.mapPins;
         var mapObj = __instance.mapObject;
         var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == mapObj.globalObjectId.AsString);

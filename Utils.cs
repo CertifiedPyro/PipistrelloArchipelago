@@ -30,6 +30,7 @@ public static class SaveState
     public static Dictionary<string, object> SlotData = null;
     public static Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
 
+    public static bool SaveFileLoaded = false;
     public static ScoutedItemInfo AcquiredPhysicalItem = null;
     public static Queue<string> Messages = new();
 
@@ -39,6 +40,7 @@ public static class SaveState
         SlotData = null;
         ScoutedLocations = null;
 
+        SaveFileLoaded = false;
         AcquiredPhysicalItem = null;
         Messages = new();
     }
