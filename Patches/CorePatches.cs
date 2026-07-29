@@ -105,50 +105,6 @@ public static class CorePatches
         }
     }
 
-    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
-    [HarmonyPrefix]
-    public static void GetSpritePatch(ref string sprId)
-    {
-        if (sprId == "objs/moneyBag")
-        {
-            sprId = Constants.ArchMoneyBagSpriteName;
-        }
-    }
-
-    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
-    [HarmonyPrefix]
-    public static void ObjectMoneyBagProcessPatch(ObjectMoneyBag __instance)
-    {
-        var moneyBag = __instance.TryCast<ObjectMoneyBag>();
-        if (moneyBag == null)
-        {
-            return;
-        }
-
-        var mapPins = GlobalState.Director.playerRecord.mapPins;
-        var mapObj = __instance.mapObject;
-        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
-        if (!existingPin)
-        {
-            if (mapPins.Count > 0)
-            {
-                MelonLogger.Msg("Last item is " + GlobalState.Director.playerRecord.mapPins[GlobalState.Director.playerRecord.mapPins.Count - 1].objectId.AsString);
-            }
-            MelonLogger.Msg("Adding moneybag map pin for " + mapObj.globalObjectId.AsString);
-            MelonLogger.Msg("Pin count is: " + GlobalState.Director.playerRecord.mapPins.Count);
-            GlobalState.Director.playerRecord.mapPins.System_Collections_IList_Add(new Game.MapPin
-            {
-                pinId = Constants.ArchMoneyBagSpriteName,
-                objectId = mapObj.globalObjectId,
-                position = mapObj.position
-            });
-
-            MelonLogger.Msg("Last item is " + GlobalState.Director.playerRecord.mapPins[GlobalState.Director.playerRecord.mapPins.Count - 1].objectId.AsString);
-            MelonLogger.Msg("Pin count is: " + GlobalState.Director.playerRecord.mapPins.Count);
-            MelonLogger.Msg("-------------");
-        }
-    }
-
     /// <summary>
     /// Patch for handling physical Archipelago items (disguised as BP containers).
     /// </summary>
@@ -168,6 +124,63 @@ public static class CorePatches
         }
 
         return true;
+    }
+
+    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
+    [HarmonyPrefix]
+    public static void GetSpritePatch(ref string sprId)
+    {
+        if (sprId == "objs/moneyBag")
+        {
+            sprId = Constants.ArchMoneyBagSpriteName;
+        }
+    }
+
+    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
+    [HarmonyPrefix]
+    public static void ObjectMoneyBagProcessPatch(ObjectMoneyBag __instance)
+    {
+        // TODO: Check if money bag should actually be replaced.
+        var moneyBag = __instance.TryCast<ObjectMoneyBag>();
+        if (moneyBag == null || moneyBag.moneyAmount == 0)
+        {
+            return;
+        }
+        
+        //__instance.moneyAmount = 0;
+        var mapPins = GlobalState.Director.playerRecord.mapPins;
+        var mapObj = __instance.mapObject;
+        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
+        if (!existingPin)
+        {
+            MelonLogger.Msg("Adding pin for " + mapObj.globalObjectId.AsString);
+            GlobalState.Director.playerRecord.mapPins.System_Collections_IList_Add(new Game.MapPin
+            {
+                pinId = Constants.ArchMoneyBagSpriteName,
+                objectId = mapObj.globalObjectId,
+                position = mapObj.position
+            });
+        }
+    }
+
+    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
+    [HarmonyPostfix]
+    public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
+    {
+        var moneyBag = __instance.TryCast<ObjectMoneyBag>();
+        if (moneyBag == null || !moneyBag.destroyed)
+        {
+            return;
+        }
+
+        var mapPins = GlobalState.Director.playerRecord.mapPins;
+        var mapObj = __instance.mapObject;
+        var existingPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
+        if (existingPin != null)
+        {
+            MelonLogger.Msg("Removing existing pin");
+            GlobalState.Director.playerRecord.mapPins.Remove(existingPin);
+        }
     }
 
     //[HarmonyPatch(typeof(ObjectWarpArea))]
