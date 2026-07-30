@@ -125,22 +125,28 @@ public static class CorePatches
         return true;
     }
 
-    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
-    [HarmonyPrefix]
-    public static void GetSpritePatch(ref string sprId)
-    {
-        if (sprId == "objs/moneyBag")
-        {
-            sprId = Constants.ArchMoneyBagSpriteName;
-        }
-    }
-
     [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
     [HarmonyPostfix]
     public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
-    {
-        // TODO: Check if money bag should actually be replaced.
+    {   
+        // Check that save file is actually loaded, since Process() will run before save file finishes loading.
+        // If money bag is already replaced, exit early.
         if (!SaveState.SaveFileLoaded || __instance.moneyAmount == 0)
+        {
+            return;
+        }
+
+        // Check if item should actually be swapped.
+        var globalObjectId = __instance.globalObjectId;
+        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId.AsString);
+        if (objLocationName == null)
+        {
+            return;
+        }
+
+        var game = SaveState.Session.ConnectionInfo.Game;
+        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
+        if (!SaveState.ScoutedLocations.ContainsKey(locationId))
         {
             return;
         }
@@ -161,6 +167,33 @@ public static class CorePatches
                 position = mapObj.position
             });
         }
+    }
+
+    [HarmonyPatch(typeof(Il2CppPipistrello.Object), nameof(Il2CppPipistrello.Object.DrawSpriteStandard))]
+    [HarmonyPrefix]
+    public static void DrawSpritePatch(Il2CppPipistrello.Object __instance, ref string sprId)
+    {
+        if (sprId != "objs/moneyBag")
+        {
+            return;
+        }
+
+        // Check if item should actually be swapped.
+        var globalObjectId = __instance.globalObjectId;
+        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId.AsString);
+        if (objLocationName == null)
+        {
+            return;
+        }
+
+        var game = SaveState.Session.ConnectionInfo.Game;
+        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
+        if (!SaveState.ScoutedLocations.ContainsKey(locationId))
+        {
+            return;
+        }
+
+        sprId = Constants.ArchMoneyBagSpriteName;
     }
 
     //[HarmonyPatch(typeof(ObjectWarpArea))]

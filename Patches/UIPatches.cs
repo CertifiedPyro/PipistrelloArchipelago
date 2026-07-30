@@ -1,6 +1,5 @@
 ﻿using HarmonyLib;
 using Il2CppPipistrello;
-using MelonLoader;
 
 namespace PipistrelloArchipelago.Patches;
 
@@ -30,7 +29,6 @@ public static class UIPatches
         for (var i = 0; i < mapPins.Count; i++)
         {
             var mapPin = mapPins[i];
-            MelonLogger.Msg(i + " " + mapPin.pinId + " " + mapPin.objectId.AsString);
 
             // Replace map pins for physical Archipelago items with the Archipelago UI pin.
             // Als replace map pins for the original items.
