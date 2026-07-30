@@ -2,6 +2,7 @@
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
+using static Il2CppPipistrello.Mapvania;
 
 namespace PipistrelloArchipelago.Patches;
 
@@ -165,14 +166,13 @@ public static class CorePatches
         }
     }
 
-    [HarmonyPatch(typeof(Il2CppPipistrello.Object), nameof(Il2CppPipistrello.Object.DrawSpriteStandard))]
+    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
     [HarmonyPrefix]
-    public static void DrawSpritePatch(Il2CppPipistrello.Object __instance, ref string sprId)
+    public static bool DrawSpritePatch(ObjectMoneyBag __instance)
     {
-        // Check if original sprite is money bag.
-        if (sprId != "objs/moneyBag")
+        if (__instance.director.IsPlayerDeathFreeze())
         {
-            return;
+            return true;
         }
 
         // Check if item should actually be swapped.
@@ -180,18 +180,22 @@ public static class CorePatches
         var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId.AsString);
         if (objLocationName == null)
         {
-            return;
+            return true;
         }
 
         var game = SaveState.Session.ConnectionInfo.Game;
         var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
         if (!SaveState.ScoutedLocations.ContainsKey(locationId))
         {
-            return;
+            return true;
         }
 
-        // Replace sprite with Archipelago-style money bag sprite.
-        sprId = Constants.ArchMoneyBagSpriteName;
+        // Just re-implement this Draw() call.
+        
+        __instance.DrawSpriteStandard(Constants.ArchMoneyBagSpriteName, __instance.animFrame, new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
+        __instance.DrawShadowStandard(options: new Il2CppPipistrello.Object.DrawShadowStandardOptions());
+        __instance.DrawEffectsStandard(new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
+        return false;
     }
 
     //[HarmonyPatch(typeof(ObjectWarpArea))]
