@@ -2,7 +2,6 @@
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
-using static Il2CppPipistrello.Mapvania;
 
 namespace PipistrelloArchipelago.Patches;
 
@@ -159,7 +158,7 @@ public static class CorePatches
         if (!existingPin)
         {
             Melon<PipArchMod>.Logger.Msg("Adding pin for " + globalObjectId.AsString);
-            __instance.UpdateMapPin(Constants.ArchMoneyBagSpriteName);
+            __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
 
             // If money bag is an Archipelago item, don't actually collect money from it.
             __instance.moneyAmount = 0;
@@ -191,8 +190,7 @@ public static class CorePatches
         }
 
         // Just re-implement this Draw() call.
-        
-        __instance.DrawSpriteStandard(Constants.ArchMoneyBagSpriteName, __instance.animFrame, new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
+        __instance.DrawSpriteStandard(Constants.MoneyBagMediumSpriteName, __instance.animFrame, new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
         __instance.DrawShadowStandard(options: new Il2CppPipistrello.Object.DrawShadowStandardOptions());
         __instance.DrawEffectsStandard(new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
         return false;

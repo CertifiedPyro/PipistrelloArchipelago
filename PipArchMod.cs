@@ -51,10 +51,9 @@ public class PipArchMod : MelonMod
             var filesToPaths = new List<Tuple<string, string>>()
             {
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMediumSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMoneyBagSpriteName}.png"),
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchSmallSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchMoneyBagSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "icons"), $"{Constants.ArchSmallSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.MoneyBagMediumSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.MoneyBagSmallSpriteName}.png"),
             };
             foreach (var (path, file) in filesToPaths)
             {

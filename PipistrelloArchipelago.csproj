@@ -21,7 +21,8 @@
 	<ItemGroup>
 	  <None Remove="arch_medium.png" />
 	  <None Remove="arch_small.png" />
-	  <None Remove="Images\moneyBag_arch.png" />
+	  <None Remove="Images\moneyBag_medium.png" />
+	  <None Remove="Images\moneyBag_small.png" />
 	  <None Remove="object_id_mapping.json" />
 	</ItemGroup>
 	<ItemGroup>
@@ -297,7 +298,8 @@
 	<ItemGroup>
 	  <EmbeddedResource Include="Images\arch_medium.png" />
 	  <EmbeddedResource Include="Images\arch_small.png" />
-	  <EmbeddedResource Include="Images\moneyBag_arch.png" />
+	  <EmbeddedResource Include="Images\moneyBag_medium.png" />
+	  <EmbeddedResource Include="Images\moneyBag_small.png" />
 	  <EmbeddedResource Include="object_id_mapping.json" />
 	</ItemGroup>
 
