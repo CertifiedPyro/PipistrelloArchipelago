@@ -167,11 +167,11 @@ public static class CorePatches
 
     [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
     [HarmonyPrefix]
-    public static bool DrawSpritePatch(ObjectMoneyBag __instance)
+    public static void DrawSpritePatch(ObjectMoneyBag __instance)
     {
         if (__instance.director.IsPlayerDeathFreeze())
         {
-            return true;
+            return;
         }
 
         // Check if item should actually be swapped.
@@ -179,21 +179,31 @@ public static class CorePatches
         var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId.AsString);
         if (objLocationName == null)
         {
-            return true;
+            return;
         }
 
         var game = SaveState.Session.ConnectionInfo.Game;
         var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
         if (!SaveState.ScoutedLocations.ContainsKey(locationId))
         {
-            return true;
+            return;
         }
 
-        // Just re-implement this Draw() call.
-        __instance.DrawSpriteStandard(Constants.MoneyBagMediumSpriteName, __instance.animFrame, new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
-        __instance.DrawShadowStandard(options: new Il2CppPipistrello.Object.DrawShadowStandardOptions());
-        __instance.DrawEffectsStandard(new Il2CppPipistrello.Object.DrawSpriteStandardOptions());
-        return false;
+        if (__instance.IsVisibleInCamera())
+        {
+            SaveState.ReplaceMoneyBagSprite = true;
+        }
+    }
+
+    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
+    [HarmonyPrefix]
+    public static void GetSpritePatch(ref string sprId)
+    {
+        if (sprId == "objs/moneyBag" && SaveState.ReplaceMoneyBagSprite)
+        {
+            sprId = Constants.MoneyBagMediumSpriteName;
+            SaveState.ReplaceMoneyBagSprite = false;
+        }
     }
 
     //[HarmonyPatch(typeof(ObjectWarpArea))]

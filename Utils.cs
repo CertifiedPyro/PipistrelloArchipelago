@@ -32,6 +32,8 @@ public static class SaveState
     public static Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
 
     public static bool SaveFileLoaded = false;
+    public static bool ReplaceMoneyBagSprite = false;
+
     public static ScoutedItemInfo AcquiredPhysicalItem = null;
     public static Queue<string> Messages = new();
 
@@ -42,6 +44,8 @@ public static class SaveState
         ScoutedLocations = null;
 
         SaveFileLoaded = false;
+        ReplaceMoneyBagSprite = false;
+
         AcquiredPhysicalItem = null;
         Messages = new();
     }
