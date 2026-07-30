@@ -29,7 +29,8 @@ public static class UIPatches
         for (var i = 0; i < mapPins.Count; i++)
         {
             var mapPin = mapPins[i];
-            if (mapPin.pinId == "taxiPhone" || mapPin.pinId == Constants.ArchMoneyBagSpriteName)
+            // Skip taxiPhone, taxiPhoneNew, and money bags.
+            if (mapPin.pinId.Contains("taxiPhone") || mapPin.pinId == Constants.ArchMoneyBagSpriteName)
             {
                 continue;
             }
