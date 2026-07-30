@@ -29,12 +29,15 @@ public static class UIPatches
         for (var i = 0; i < mapPins.Count; i++)
         {
             var mapPin = mapPins[i];
+            if (mapPin.pinId == "taxiPhone" || mapPin.pinId == Constants.ArchMoneyBagSpriteName)
+            {
+                continue;
+            }
 
             // Replace map pins for physical Archipelago items with the Archipelago UI pin.
             // Als replace map pins for the original items.
             var locationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapPin.objectId.AsString);
-            if (Utils.IsArchItemId(mapPin.objectId.objectId)
-                || (locationName != null && !locationName.Contains("Taxi") && !locationName.Contains("Money Bag")))
+            if (Utils.IsArchItemId(mapPin.objectId.objectId) || locationName != null)
             {
                 mapPin.pinId = Constants.ArchSmallSpriteName;
                 mapPins.System_Collections_IList_set_Item(i, mapPin);

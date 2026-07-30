@@ -130,8 +130,7 @@ public static class CorePatches
     public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
     {   
         // Check that save file is actually loaded, since Process() will run before save file finishes loading.
-        // If money bag is already replaced, exit early.
-        if (!SaveState.SaveFileLoaded || __instance.moneyAmount == 0)
+        if (!SaveState.SaveFileLoaded)
         {
             return;
         }
@@ -155,11 +154,13 @@ public static class CorePatches
         __instance.moneyAmount = 0;
 
         // Add map pin for money bag if it's missing.
+        // This needs to run continuously, since loading a new area seems to remove these map pins.
         var mapPins = GlobalState.Director.playerRecord.mapPins;
         var mapObj = __instance.mapObject;
         var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
         if (!existingPin)
         {
+            MelonLogger.Msg("Adding pin for " + globalObjectId.AsString);
             GlobalState.Director.playerRecord.mapPins.System_Collections_IList_Add(new Game.MapPin
             {
                 pinId = Constants.ArchMoneyBagSpriteName,
@@ -173,6 +174,7 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void DrawSpritePatch(Il2CppPipistrello.Object __instance, ref string sprId)
     {
+        // Check if original sprite is money bag.
         if (sprId != "objs/moneyBag")
         {
             return;
@@ -193,6 +195,7 @@ public static class CorePatches
             return;
         }
 
+        // Replace sprite with Archipelago-style money bag sprite.
         sprId = Constants.ArchMoneyBagSpriteName;
     }
 
