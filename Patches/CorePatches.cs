@@ -128,7 +128,7 @@ public static class CorePatches
     [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
     [HarmonyPostfix]
     public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
-    {   
+    {
         // Check that save file is actually loaded, since Process() will run before save file finishes loading.
         if (!SaveState.SaveFileLoaded)
         {
@@ -150,23 +150,18 @@ public static class CorePatches
             return;
         }
 
-        // If money bag is an Archipelago item, don't actually collect money from it.
-        __instance.moneyAmount = 0;
-
         // Add map pin for money bag if it's missing.
-        // This needs to run continuously, since loading a new area seems to remove these map pins.
+        // This needs to run continuously, since loading a new room/area removes these map pins.
+        // Note: These map pins also aren't saved the record for some raosn.
         var mapPins = GlobalState.Director.playerRecord.mapPins;
-        var mapObj = __instance.mapObject;
-        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == mapObj.globalObjectId.AsString);
+        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == globalObjectId.AsString);
         if (!existingPin)
         {
-            MelonLogger.Msg("Adding pin for " + globalObjectId.AsString);
-            GlobalState.Director.playerRecord.mapPins.System_Collections_IList_Add(new Game.MapPin
-            {
-                pinId = Constants.ArchMoneyBagSpriteName,
-                objectId = mapObj.globalObjectId,
-                position = mapObj.position
-            });
+            Melon<PipArchMod>.Logger.Msg("Adding pin for " + globalObjectId.AsString);
+            __instance.UpdateMapPin(Constants.ArchMoneyBagSpriteName);
+
+            // If money bag is an Archipelago item, don't actually collect money from it.
+            __instance.moneyAmount = 0;
         }
     }
 

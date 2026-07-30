@@ -53,6 +53,7 @@ public class PipArchMod : MelonMod
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMediumSpriteName}.png"),
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMoneyBagSpriteName}.png"),
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchSmallSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchMoneyBagSpriteName}.png"),
                 new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "icons"), $"{Constants.ArchSmallSpriteName}.png"),
             };
             foreach (var (path, file) in filesToPaths)

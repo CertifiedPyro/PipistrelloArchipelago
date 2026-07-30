@@ -29,14 +29,12 @@ public static class UIPatches
         for (var i = 0; i < mapPins.Count; i++)
         {
             var mapPin = mapPins[i];
-            // Skip taxiPhone, taxiPhoneNew, and money bags.
-            if (mapPin.pinId.Contains("taxiPhone") || mapPin.pinId == Constants.ArchMoneyBagSpriteName)
+            if (mapPin.pinId != "bpContainer")
             {
                 continue;
             }
 
             // Replace map pins for physical Archipelago items with the Archipelago UI pin.
-            // Als replace map pins for the original items.
             var locationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapPin.objectId.AsString);
             if (Utils.IsArchItemId(mapPin.objectId.objectId) || locationName != null)
             {
