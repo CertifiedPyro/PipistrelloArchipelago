@@ -2,7 +2,6 @@
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
-using static MelonLoader.MelonLogger;
 
 namespace PipistrelloArchipelago.Patches;
 
@@ -60,16 +59,15 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
     {
-        // Don't replace moneybags.
-        // TODO: Look if object should be swapped first.
-        if (mapObj.objectDefName == "moneyBag")
+        // Don't replace moneybags or taxi phones.
+        if (mapObj.objectDefName == "moneyBag" || mapObj.objectDefName == "taxiPhone")
         {
             return;
         }
 
-        // Check if item could to be swapped (excluding taxi phones).
+        // Check if item could be swapped.
         var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapObj.globalObjectId.AsString);
-        if (objLocationName == null || objLocationName.ToLower().Contains("taxi"))
+        if (objLocationName == null)
         {
             return;
         }
