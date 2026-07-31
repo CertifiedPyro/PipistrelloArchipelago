@@ -107,22 +107,25 @@ public static class ArchipelagoHelper
 
         foreach (var locationId in newCheckedLocations)
         {
+            var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
             var objectId = Utils.LocationIdToObjectId(locationId);
             var mapObject = Utils.GetMapvaniaObject(objectId);
-            MelonLogger.Msg($"Checked location: {locationId}, {objectId}, {mapObject.objectDefName}");
-            if (mapObject.objectDefName == "taxiPhone")
+            MelonLogger.Msg($"Checked location: {locationId}, {objectId}, {mapObject?.objectDefName}");
+            if (mapObject?.objectDefName == "taxiPhone")
             {
                 // Unlock and refresh the taxi phone.
                 // For some reason, the notification still shows until the player changes rooms.
+                Melon<PipArchMod>.Logger.Msg($"Unlocking taxi phone for {locationName}");
                 Game.TaxiPhoneUnlock(Global.Director.playerRecord, mapObject.globalObjectId);
+                var taxiPhone = Utils.GetObjectOrNew<ObjectTaxiPhone>(mapObject, instantiate: false);
+                taxiPhone?.OnRefresh();
 
-                var taxiPhone = Utils.GetObjectOrNew<ObjectTaxiPhone>(mapObject);
-                taxiPhone.OnRefresh();
                 continue;
             }
 
-            if (mapObject.objectDefName == "moneyBag")
+            if (mapObject?.objectDefName == "moneyBag")
             {
+                Melon<PipArchMod>.Logger.Msg($"Removing money bag at {locationName}");
                 var moneyBag = Utils.GetObjectOrNew<ObjectMoneyBag>(mapObject);
                 moneyBag.UpdateMapPin(null);
                 moneyBag.RegisterDespawn(despawnType: Game.FLAGVALUE_OBJECT_DESPAWN_PERMANENT);
@@ -135,21 +138,25 @@ public static class ArchipelagoHelper
             var flag = Game.FlagBpContainerAcquired(archObjectId);
             if (!director.GetFlagBool(flag))
             {
-                var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
                 Melon<PipArchMod>.Logger.Msg($"Setting flag {flag} for location {locationName}");
                 director.SetFlagBool(flag, true);
             }
 
-           // Remove map pin.
-           var mapPins = director.playerRecord.mapPins;
-            for (var i = 0; i < mapPins.Count; i++)
+            mapObject = Utils.GetMapvaniaObject(archObjectId);
+            if (mapObject == null)
             {
-                var mapPinObjectId = mapPins[i].objectId.AsString;
-                if (mapPinObjectId == archObjectId)
-                {
-                    mapPins.RemoveAt(i);
-                    break;
-                }
+                return;
+            }
+
+            var archItem = Utils.GetObjectOrNew<ObjectBpContainer>(mapObject);
+            Global.Director.DestroyObject(archItem);
+
+            // Remove map pin.
+            var mapPins = director.playerRecord.mapPins;
+            var mapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == archObjectId);
+            if (mapPin != null)
+            {
+                mapPins.Remove(mapPin);
             }
         }
     }

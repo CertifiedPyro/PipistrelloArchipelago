@@ -1,4 +1,6 @@
-﻿using Archipelago.MultiClient.Net;
+﻿#nullable enable
+
+using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
@@ -80,7 +82,7 @@ static class Utils
         return Global.State.ScoutedLocations.ContainsKey(locationId);
     }
 
-    public static Mapvania.Object GetMapvaniaObject(string globalObjectIdString)
+    public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
     {
         var parts = globalObjectIdString.Split('/');
         var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == parts[0]);
@@ -89,7 +91,7 @@ static class Utils
         return obj;
     }
 
-    public static T GetObjectOrNew<T>(Mapvania.Object mapObject)
+    public static T? GetObjectOrNew<T>(Mapvania.Object mapObject, bool instantiate = true)
         where T : Il2CppPipistrello.Object
     {
         foreach (var obj in Global.Director.IterateObjectsOfType<T>().ToArray())
@@ -100,7 +102,7 @@ static class Utils
             }
         }
 
-        return (T)Global.Director.InstantiateFromMap(mapObject);
+        return instantiate ? Global.Director.InstantiateRemotely(mapObject.globalObjectId).Cast<T>() : null;
     }
 
     public static void SendLocationCheck(string globalObjectId)
