@@ -57,6 +57,7 @@ public class DialoguePanelPatch
         // Reset state once dialogue is over.
         if (__result)
         {
+            Global.State.AcquiredPhysicalItem = null;
             Global.State.DialogueText = null;
             _showedArchItemDialogue = false;
         }
