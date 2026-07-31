@@ -136,6 +136,13 @@ public static class CorePatches
             return;
         }
 
+        // If money bag is destroyed, remove map pin.
+        if (__instance.destroyed)
+        {
+            __instance.UpdateMapPin(null);
+            return;
+        }
+
         // Add map pin for money bag if it's missing.
         // This needs to run continuously, since loading a new room/area removes these map pins.
         // Note: These map pins also aren't saved the record for some raosn.
@@ -143,7 +150,6 @@ public static class CorePatches
         var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == globalObjectId);
         if (!existingPin)
         {
-            // TODO: Fix map pins not going away on pickup
             __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
 
             // Money bag should not actually give money.

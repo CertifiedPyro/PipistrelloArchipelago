@@ -62,6 +62,7 @@ public class DialoguePanelPatch
                 {
                     text = $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
                 }
+
                 ShowedArchItemDialogue = true;
             }
             else
@@ -77,7 +78,7 @@ public class DialoguePanelPatch
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.IsOver))]
     public static void Postfix(ref bool __result)
     {
-        // Remove replaced text once dialogue is over.
+        // Reset state once dialogue is over.
         if (__result)
         {
             SaveState.AcquiredPhysicalItem = null;
