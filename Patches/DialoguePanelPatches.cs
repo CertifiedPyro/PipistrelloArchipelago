@@ -27,36 +27,24 @@ public class DialoguePanelPatch
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
     public static bool Prefix(ref string text)
     {
-        // Check if player acquired a physical Archipelago item.
-        if (Global.State.AcquiredPhysicalItem == null)
+        // Check if there is Archipelago dialogue to show.
+        if (Global.State.DialogueText == null)
         {
             return true;
         }
 
-        var item = Global.State.AcquiredPhysicalItem;
         if (!_showedArchItemDialogue)
         {
-            var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
-            var playerName = item.Player.Name.Replace(" ", "[nbsp]");
-
-            if (item.Player.Slot == Global.State.Session.ConnectionInfo.Slot)
-            {
-                text = $"[instant|You found your [c:blue|{itemName}]!][w:2]";
-            }
-            else
-            {
-                text = $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
-            }
-
+            text = Global.State.DialogueText;
             _showedArchItemDialogue = true;
             return true;
         }
         else
         {
             // Don't show the remaining original dialogue, unless location was a taxi phone.
-            var objectId = Utils.LocationIdToObjectId(item.LocationId);
+            var objectId = Utils.LocationIdToObjectId(Global.State.AcquiredPhysicalItem.LocationId);
             var mapObject = Utils.GetMapvaniaObject(objectId);
-            return mapObject.objectDefName == "taxiPhone";
+            return mapObject?.objectDefName == "taxiPhone";
         }
     }
 
@@ -69,7 +57,7 @@ public class DialoguePanelPatch
         // Reset state once dialogue is over.
         if (__result)
         {
-            Global.State.AcquiredPhysicalItem = null;
+            Global.State.DialogueText = null;
             _showedArchItemDialogue = false;
         }
     }

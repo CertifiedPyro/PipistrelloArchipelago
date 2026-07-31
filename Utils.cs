@@ -114,7 +114,6 @@ static class Utils
     public static void SendLocationCheck(string globalObjectId)
     {
         var locationId = ObjectIdToLocationId(globalObjectId);
-        Global.State.AcquiredPhysicalItem = Global.State.ScoutedLocations[locationId];
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
         try
         {
@@ -123,6 +122,25 @@ static class Utils
         catch (ArchipelagoSocketClosedException ex)
         {
             Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
+            return;
+        }
+
+        var item = Global.State.ScoutedLocations[locationId];
+        Global.State.AcquiredPhysicalItem = item;
+        var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
+        var playerName = item.Player.Name.Replace(" ", "[nbsp]");
+
+        var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot 
+            ? $"[instant|You found your [c:blue|{itemName}]!][w:2]"
+            : $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
+        var mapObject = Utils.GetMapvaniaObject(globalObjectId);
+        if (mapObject?.objectDefName == "moneyBag")
+        {
+            Global.State.Messages.Enqueue(text);
+        }
+        else
+        {
+            Global.State.DialogueText = text;
         }
     }
 }
@@ -139,6 +157,7 @@ class State
     public bool ReplaceMoneyBagSprite = false;
 
     public ScoutedItemInfo AcquiredPhysicalItem = null;
+    public string DialogueText = null;
     public Queue<string> Messages = new();
 }
 
