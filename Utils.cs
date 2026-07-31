@@ -2,6 +2,7 @@
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
+using Il2CppSystem.IO;
 using MelonLoader;
 
 namespace PipistrelloArchipelago;
@@ -77,6 +78,29 @@ static class Utils
         var game = Global.State.Session.ConnectionInfo.Game;
         var locationId = Global.State.Session.Locations.GetLocationIdFromName(game, objLocationName);
         return Global.State.ScoutedLocations.ContainsKey(locationId);
+    }
+
+    public static Mapvania.Object GetMapvaniaObject(string globalObjectIdString)
+    {
+        var parts = globalObjectIdString.Split('/');
+        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == parts[0]);
+        var room = map.rooms.ToArray().FirstOrDefault(r => r.id == parts[1]);
+        var obj = room.objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == parts[2]);
+        return obj;
+    }
+
+    public static T GetObjectOrNew<T>(Mapvania.Object mapObject)
+        where T : Il2CppPipistrello.Object
+    {
+        foreach (var obj in Global.Director.IterateObjectsOfType<T>().ToArray())
+        {
+            if (obj.globalObjectId.AsString == mapObject.globalObjectId.AsString)
+            {
+                return obj;
+            }
+        }
+
+        return (T)Global.Director.InstantiateFromMap(mapObject);
     }
 
     public static void SendLocationCheck(string globalObjectId)

@@ -3,6 +3,7 @@ using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
+using Il2CppSystem.Linq;
 using Il2CppUtil;
 using MelonLoader;
 using System.Collections.ObjectModel;
@@ -106,13 +107,35 @@ public static class ArchipelagoHelper
 
         foreach (var locationId in newCheckedLocations)
         {
+            var objectId = Utils.LocationIdToObjectId(locationId);
+            var mapObject = Utils.GetMapvaniaObject(objectId);
+            MelonLogger.Msg($"Checked location: {locationId}, {objectId}, {mapObject.objectDefName}");
+            if (mapObject.objectDefName == "taxiPhone")
+            {
+                // Unlock and refresh the taxi phone.
+                // For some reason, the notification still shows until the player changes rooms.
+                Game.TaxiPhoneUnlock(Global.Director.playerRecord, mapObject.globalObjectId);
+
+                var taxiPhone = Utils.GetObjectOrNew<ObjectTaxiPhone>(mapObject);
+                taxiPhone.OnRefresh();
+                continue;
+            }
+
+            if (mapObject.objectDefName == "moneyBag")
+            {
+                var moneyBag = Utils.GetObjectOrNew<ObjectMoneyBag>(mapObject);
+                moneyBag.UpdateMapPin(null);
+                moneyBag.RegisterDespawn(despawnType: Game.FLAGVALUE_OBJECT_DESPAWN_PERMANENT);
+                Global.Director.DestroyObject(moneyBag);
+                continue;
+            }
+
             // Flag the item as acquired, so it doesn't show up again.
-            var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
-            var objectId = Global.LocationNameToGlobalObjectId[locationName];
             var archObjectId = Utils.IdToArchItemId(objectId);
             var flag = Game.FlagBpContainerAcquired(archObjectId);
             if (!director.GetFlagBool(flag))
             {
+                var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
                 Melon<PipArchMod>.Logger.Msg($"Setting flag {flag} for location {locationName}");
                 director.SetFlagBool(flag, true);
             }
