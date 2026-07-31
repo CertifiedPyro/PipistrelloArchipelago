@@ -21,6 +21,11 @@ public class TaxiPhonePatches
             var taxiPhoneObject = Global.Director.FindNearestObject<ObjectTaxiPhone>(
                 Global.Director.player.position, predicate);
 
+            if (!Utils.IsObjectIdActiveLocation(taxiPhoneObject.globalObjectId.AsString))
+            {
+                return;
+            }
+
             // Sanity check that the player is close to the taxi phone.
             if (Global.Director.currentRoomId != taxiPhoneObject.globalObjectId.roomId)
             {
