@@ -46,6 +46,7 @@ public static class MainMenuPatches
         };
         _connectionStatus = label;
 
+        // Wrap connection status label in a panel.
         var panel = new UIPanel()
         {
             childrenCenterH = true

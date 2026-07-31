@@ -9,8 +9,7 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 public class DialoguePanelPatch
 {
-    private static bool ShowedArchItemDialogue;
-    private static int UnlockedTaxiPhones;
+    private static bool _showedArchItemDialogue;
 
     /// <summary>
     /// If loading save, reset global state.
@@ -19,70 +18,57 @@ public class DialoguePanelPatch
     [HarmonyPostfix]
     public static void InitFromSavefilePatch(int savefileIndex)
     {
-        ShowedArchItemDialogue = false;
-        UnlockedTaxiPhones = -1;
+        _showedArchItemDialogue = false;
     }
 
+    /// <summary>
+    /// Patch to handle overwriting dialogue text if physical Archipelago item is picked up.
+    /// </summary>
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
-    public static bool Prefix(DialoguePanel __instance, ref string text)
+    public static bool Prefix(ref string text)
     {
-        // Handle taxi phones (because Game.TaxiPhoneUnlock() isn't called for some reason).
-        var currentTaxiPhoneCount = Global.Director.playerRecord.taxiPhonesUnlocked.Count;
-        if (UnlockedTaxiPhones == -1)
+        // Check if player acquired a physical Archipelago item.
+        if (Global.State.AcquiredPhysicalItem == null)
         {
-            UnlockedTaxiPhones = currentTaxiPhoneCount;
+            return true;
         }
 
-        if (currentTaxiPhoneCount > UnlockedTaxiPhones)
+        var item = Global.State.AcquiredPhysicalItem;
+        if (!_showedArchItemDialogue)
         {
-            UnlockedTaxiPhones = currentTaxiPhoneCount;
+            var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
+            var playerName = item.Player.Name.Replace(" ", "[nbsp]");
 
-            // Assume the player is interacting with a ObjectTaxiPhone now.
-            // Find the closest ObjectTaxiPhone.
-            Func<ObjectTaxiPhone, bool> predicate = (_) => true;
-            var taxiPhoneObject = Global.Director.FindNearestObject<ObjectTaxiPhone>(
-                Global.Director.player.position, predicate);
-            Utils.SendLocationCheck(taxiPhoneObject.globalObjectId.AsString);
-        }
-
-        // Show player that they acquired a physical Archipelago item.
-        if (Global.State.AcquiredPhysicalItem != null)
-        {
-            var item = Global.State.AcquiredPhysicalItem;
-            if (!ShowedArchItemDialogue)
+            if (item.Player.Slot == Global.State.Session.ConnectionInfo.Slot)
             {
-                var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
-                var playerName = item.Player.Name.Replace(" ", "[nbsp]");
-
-                if (item.Player.Slot == Global.State.Session.ConnectionInfo.Slot)
-                {
-                    text = $"[instant|You found your [c:blue|{itemName}]!][w:2]";
-                }
-                else
-                {
-                    text = $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
-                }
-
-                ShowedArchItemDialogue = true;
+                text = $"[instant|You found your [c:blue|{itemName}]!][w:2]";
             }
             else
             {
-                // Don't show the remaining original dialogue.
-                return false;
+                text = $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
             }
-        }
 
-        return true;
+            _showedArchItemDialogue = true;
+            return true;
+        }
+        else
+        {
+            // Don't show the remaining original dialogue.
+            return false;
+        }
     }
 
+    /// <summary>
+    /// Patch to handle when dialogue is finished.
+    /// </summary>
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.IsOver))]
-    public static void Postfix(ref bool __result)
+    public static void Postfix(bool __result)
     {
         // Reset state once dialogue is over.
         if (__result)
         {
             Global.State.AcquiredPhysicalItem = null;
-            ShowedArchItemDialogue = false;
+            _showedArchItemDialogue = false;
         }
     }
 }

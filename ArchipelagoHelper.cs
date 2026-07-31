@@ -59,7 +59,6 @@ public static class ArchipelagoHelper
         LoginResult result;
         try
         {
-            Melon<PipArchMod>.Logger.Msg($"Connecting to {host}:{port}");
             await session.ConnectAsync();
             result = await session.LoginAsync(
                 "Pipistrello and the Cursed Yoyo",
