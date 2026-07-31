@@ -141,7 +141,7 @@ public static class ArchipelagoHelper
             mapObject = Utils.GetMapvaniaObject(archObjectId);
             if (mapObject == null)
             {
-                return;
+                continue;
             }
 
             var archItem = Utils.GetObjectOrNew<ObjectBpContainer>(mapObject);

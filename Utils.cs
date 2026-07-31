@@ -69,6 +69,11 @@ static class Utils
 
     public static bool IsObjectIdActiveLocation(string globalObjectId)
     {
+        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) && !existingValue)
+        {
+            return false;
+        }
+
         // Check if item should actually be swapped.
         var objLocationName = Global.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
         if (objLocationName == null)
@@ -78,7 +83,9 @@ static class Utils
 
         var game = Global.State.Session.ConnectionInfo.Game;
         var locationId = Global.State.Session.Locations.GetLocationIdFromName(game, objLocationName);
-        return Global.State.ScoutedLocations.ContainsKey(locationId);
+        var active = Global.State.ScoutedLocations.ContainsKey(locationId);
+        Global.State.IsObjectIdActiveLocationCache[globalObjectId] = active;
+        return active;
     }
 
     public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
@@ -125,6 +132,8 @@ class State
     public ArchipelagoSession Session = null;
     public Dictionary<string, object> SlotData = null;
     public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
+
+    public Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
 
     public bool SaveFileLoaded = false;
     public bool ReplaceMoneyBagSprite = false;
