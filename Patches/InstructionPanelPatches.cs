@@ -23,7 +23,7 @@ public static class InstructionPanelPatch
     /// </summary>
     [HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
     [HarmonyPostfix]
-    public static void InitFromSavefilePatch(int savefileIndex)
+    public static void InitFromSavefilePatch()
     {
         TextShowStartMs = null;
         TextCooldownStartMs = null;
@@ -31,27 +31,33 @@ public static class InstructionPanelPatch
         previousState = ObjectPlayer.State.Cutscene;
     }
 
+    /// <summary>
+    /// Patch to handle showing received items.
+    /// Message shows for a fixed time, then goes on a short cooldown before showing the next message.
+    /// The player must also be idle for a set amount of time (to avoid showing during cutscenes, dialogue, etc).
+    /// </summary>
     [HarmonyPatch(typeof(InstructionPanel), nameof(InstructionPanel.Process))]
     public static void Prefix(InstructionPanel __instance)
     {
+        if (Global.State.Messages.Count == 0)
+        {
+            return;
+        }
+
         // Check if InstructionPanel should be on cooldown.
-        if (DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - TextShowStartMs > TextShowTimeMs)
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (currentTime - TextShowStartMs > TextShowTimeMs)
         {
             TextShowStartMs = null;
-            TextCooldownStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            TextCooldownStartMs = currentTime;
             __instance.SetInstruction(null, true);
+            return;
         }
 
         // Check if InstructionPanel is off cooldown.
-        if (TextCooldownStartMs.HasValue && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - TextCooldownStartMs > TextCooldownTimeMs)
+        if (TextCooldownStartMs.HasValue && currentTime - TextCooldownStartMs > TextCooldownTimeMs)
         {
             TextCooldownStartMs = null;
-        }
-
-        // Check that idle state is off cooldown.
-        if (IdleStartMs.HasValue && DateTimeOffset.UtcNow.ToUnixTimeMilliseconds() - IdleStartMs > IdleStateMs)
-        {
-            IdleStartMs = null;
         }
 
         // Check that player is in idle state for long enough.
@@ -64,7 +70,14 @@ public static class InstructionPanelPatch
         if (previousState != ObjectPlayer.State.Idle)
         {
             previousState = Global.Director.player.state;
-            IdleStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+            IdleStartMs = currentTime;
+            return;
+        }
+
+        // Check that idle state is off cooldown.
+        if (IdleStartMs.HasValue && currentTime - IdleStartMs > IdleStateMs)
+        {
+            IdleStartMs = null;
         }
 
         // Check that no cooldowns are active.
@@ -73,20 +86,15 @@ public static class InstructionPanelPatch
             return;
         }
 
-        // Check if InstructionPanel should show due to acquired physical Archipelago item.
-        // TODO: Check that InstructionPanel isn't already showing.
-        if (Global.State.Messages.Count > 0)
-        {
-            var text = Global.State.Messages.Dequeue();
-            TextShowStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-            __instance.SetInstruction(text, true);
-        }
+        var text = Global.State.Messages.Dequeue();
+        TextShowStartMs = currentTime;
+        __instance.SetInstruction(text, true);
     }
 
     [HarmonyPatch(typeof(InstructionPanel), nameof(InstructionPanel.GetInstructionText))]
-    public static bool Prefix(string id, InstructionPanel __instance, ref string __result)
+    public static bool Prefix(string id, ref string __result)
     {
-        // If InstructionPanel should show due to acquired physical Archipelago item, return proper string.
+        // If queued message should show, use the id as the text.
         if (TextShowStartMs != null)
         {
             __result = id;
