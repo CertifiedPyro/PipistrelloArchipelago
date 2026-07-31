@@ -37,24 +37,24 @@ public static class ArchipelagoHelper
     /// <returns>true if the connection succeeded, false otherwise.</returns>
     public static async Task<bool> ConnectAsync()
     {
-        if (SaveState.Session != null)
+        if (Global.State.Session != null)
         {
-            SaveState.Session.Locations.CheckedLocationsUpdated -= CheckedLocationsHandler;
-            SaveState.Session.Items.ItemReceived -= ItemReceivedHandler;
-            if (SaveState.Session.Socket.Connected)
+            Global.State.Session.Locations.CheckedLocationsUpdated -= CheckedLocationsHandler;
+            Global.State.Session.Items.ItemReceived -= ItemReceivedHandler;
+            if (Global.State.Session.Socket.Connected)
             {
-                await SaveState.Session.Socket.DisconnectAsync();
+                await Global.State.Session.Socket.DisconnectAsync();
             }
         }
 
-        SaveState.Reset();
+        Global.State = new();
 
         var host = ModSettings.Host.Value;
         var port = ModSettings.Port.Value;
         var session = ArchipelagoSessionFactory.CreateSession(host, port);
-        SaveState.Session = session;
         session.Locations.CheckedLocationsUpdated += CheckedLocationsHandler;
         session.Items.ItemReceived += ItemReceivedHandler;
+        Global.State.Session = session;
 
         LoginResult result;
         try
@@ -74,8 +74,8 @@ public static class ArchipelagoHelper
 
         if (result is LoginSuccessful loginSuccess)
         {
-            SaveState.SlotData = loginSuccess.SlotData;
-            SaveState.ScoutedLocations = await session.Locations.ScoutLocationsAsync(
+            Global.State.SlotData = loginSuccess.SlotData;
+            Global.State.ScoutedLocations = await session.Locations.ScoutLocationsAsync(
                 [.. session.Locations.AllLocations]);
             return true;
         }
@@ -99,7 +99,7 @@ public static class ArchipelagoHelper
     public static void CheckedLocationsHandler(ReadOnlyCollection<long> newCheckedLocations)
     {
         // Ignore if save file isn't selected yet.
-        var director = GlobalState.Director;
+        var director = Global.Director;
         if (director.selectedSavefileIndex == -1)
         {
             return;
@@ -108,8 +108,8 @@ public static class ArchipelagoHelper
         foreach (var locationId in newCheckedLocations)
         {
             // Flag the item as acquired, so it doesn't show up again.
-            var locationName = SaveState.Session.Locations.GetLocationNameFromId(locationId);
-            var objectId = GlobalState.LocationNameToGlobalObjectId[locationName];
+            var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
+            var objectId = Global.LocationNameToGlobalObjectId[locationName];
             var archObjectId = Utils.IdToArchItemId(objectId);
             var flag = Game.FlagBpContainerAcquired(archObjectId);
             if (!director.GetFlagBool(flag))
@@ -139,7 +139,7 @@ public static class ArchipelagoHelper
     {
         try
         {
-            var director = GlobalState.Director;
+            var director = Global.Director;
             if (director.selectedSavefileIndex != -1)
             {
                 // If a save file is selected, handle item normally.
@@ -159,7 +159,7 @@ public static class ArchipelagoHelper
                     Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
 
                     var text = $"[instant|[c:red|Network error - Please reconnect.]][w:2]";
-                    SaveState.Messages.Enqueue(text);
+                    Global.State.Messages.Enqueue(text);
                 }
             }
         }
@@ -181,8 +181,8 @@ public static class ArchipelagoHelper
             // Archipelago sends every received item on connection.
             // Note: this assumes that player must reconnect every time from main menu.
             Melon<PipArchMod>.Logger.Msg("Handling initial received items...");
-            var director = GlobalState.Director;
-            var itemsHelper = SaveState.Session.Items;
+            var director = Global.Director;
+            var itemsHelper = Global.State.Session.Items;
             var index = itemsHelper.Index;
             var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
             Melon<PipArchMod>.Logger.Msg($"Current index: {index} | Stored index: {lastIndex}");
@@ -210,7 +210,7 @@ public static class ArchipelagoHelper
             // Handle remote-checked locations.
             // Archipelago sends every checked location on connection.
             Melon<PipArchMod>.Logger.Msg("Handling remote checked locations...");
-            var locationsHelper = SaveState.Session.Locations;
+            var locationsHelper = Global.State.Session.Locations;
             CheckedLocationsHandler(locationsHelper.AllLocationsChecked);
 
             // Handle missed local-checked locations.
@@ -254,7 +254,7 @@ public static class ArchipelagoHelper
                 }
             }
 
-            SaveState.SaveFileLoaded = true;
+            Global.State.SaveFileLoaded = true;
         }
         catch (Exception ex)
         {
@@ -271,7 +271,7 @@ public static class ArchipelagoHelper
     {
         try
         {
-            var director = GlobalState.Director;
+            var director = Global.Director;
             var itemName = item.ItemName;
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
@@ -328,7 +328,7 @@ public static class ArchipelagoHelper
                 && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
             {
                 // CollectCoin properly handles debts.
-                GlobalState.Director.CollectCoin(money);
+                Global.Director.CollectCoin(money);
                 Melon<PipArchMod>.Logger.Msg("Added $" + money);
             }
             else
@@ -337,13 +337,13 @@ public static class ArchipelagoHelper
                 Melon<PipArchMod>.Logger.Error($"Could not handle item: {itemName}");
             }
 
-            if (result && item.Player.Slot != SaveState.Session.ConnectionInfo.Slot)
+            if (result && item.Player.Slot != Global.State.Session.ConnectionInfo.Slot)
             {
                 var itemDisplayName = item.ItemDisplayName.Replace(" ", "[nbsp]");
                 var playerName = item.Player.Name.Replace(" ", "[nbsp]");
 
                 var text = $"[instant|You received [c:blue|{itemDisplayName}] from [c:red|{playerName}]!][w:2]";
-                SaveState.Messages.Enqueue(text);
+                Global.State.Messages.Enqueue(text);
             }
 
             return result;

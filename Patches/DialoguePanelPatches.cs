@@ -27,7 +27,7 @@ public class DialoguePanelPatch
     public static bool Prefix(DialoguePanel __instance, ref string text)
     {
         // Handle taxi phones (because Game.TaxiPhoneUnlock() isn't called for some reason).
-        var currentTaxiPhoneCount = GlobalState.Director.playerRecord.taxiPhonesUnlocked.Count;
+        var currentTaxiPhoneCount = Global.Director.playerRecord.taxiPhonesUnlocked.Count;
         if (UnlockedTaxiPhones == -1)
         {
             UnlockedTaxiPhones = currentTaxiPhoneCount;
@@ -40,21 +40,21 @@ public class DialoguePanelPatch
             // Assume the player is interacting with a ObjectTaxiPhone now.
             // Find the closest ObjectTaxiPhone.
             Func<ObjectTaxiPhone, bool> predicate = (_) => true;
-            var taxiPhoneObject = GlobalState.Director.FindNearestObject<ObjectTaxiPhone>(
-                GlobalState.Director.player.position, predicate);
+            var taxiPhoneObject = Global.Director.FindNearestObject<ObjectTaxiPhone>(
+                Global.Director.player.position, predicate);
             Utils.SendLocationCheck(taxiPhoneObject.globalObjectId.AsString);
         }
 
         // Show player that they acquired a physical Archipelago item.
-        if (SaveState.AcquiredPhysicalItem != null)
+        if (Global.State.AcquiredPhysicalItem != null)
         {
-            var item = SaveState.AcquiredPhysicalItem;
+            var item = Global.State.AcquiredPhysicalItem;
             if (!ShowedArchItemDialogue)
             {
                 var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
                 var playerName = item.Player.Name.Replace(" ", "[nbsp]");
 
-                if (item.Player.Slot == SaveState.Session.ConnectionInfo.Slot)
+                if (item.Player.Slot == Global.State.Session.ConnectionInfo.Slot)
                 {
                     text = $"[instant|You found your [c:blue|{itemName}]!][w:2]";
                 }
@@ -81,7 +81,7 @@ public class DialoguePanelPatch
         // Reset state once dialogue is over.
         if (__result)
         {
-            SaveState.AcquiredPhysicalItem = null;
+            Global.State.AcquiredPhysicalItem = null;
             ShowedArchItemDialogue = false;
         }
     }

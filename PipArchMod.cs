@@ -11,15 +11,15 @@ public class PipArchMod : MelonMod
 {
     public override void OnInitializeMelon()
     {
-        ReadObjectIdMapping();
-        ExportArchipelagoSprites();
-
         // Initialize MelonLoader settings.
         ModSettings.Category = MelonPreferences.CreateCategory("Archipelago");
         ModSettings.Host = ModSettings.Category.CreateEntry<string>("Host", "archipelago.gg");
         ModSettings.Port = ModSettings.Category.CreateEntry<int>("Port", 0);
         ModSettings.SlotName = ModSettings.Category.CreateEntry<string>("Slot Name", string.Empty);
         ModSettings.Password = ModSettings.Category.CreateEntry<string>("Password", null);
+
+        ReadObjectIdMapping();
+        ExportArchipelagoSprites();
     }
 
     private static void ReadObjectIdMapping()
@@ -30,8 +30,8 @@ public class PipArchMod : MelonMod
             var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}");
             if (data != null)
             {
-                GlobalState.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
-                GlobalState.LocationNameToGlobalObjectId = GlobalState.GlobalObjectIdToLocationName.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+                Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
+                Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
             }
             else
             {

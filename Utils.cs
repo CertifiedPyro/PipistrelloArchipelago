@@ -18,39 +18,6 @@ static class Constants
     public static string FLAG_LAST_ITEM_INDEX = $"{FLAG_ARCHIPELAGO}:lastItemIndex";
 }
 
-public static class GlobalState
-{
-    public static Director Director = null;
-    public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
-    public static Dictionary<string, string> LocationNameToGlobalObjectId = null;
-}
-
-public static class SaveState
-{
-    public static ArchipelagoSession Session = null;
-    public static Dictionary<string, object> SlotData = null;
-    public static Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
-
-    public static bool SaveFileLoaded = false;
-    public static bool ReplaceMoneyBagSprite = false;
-
-    public static ScoutedItemInfo AcquiredPhysicalItem = null;
-    public static Queue<string> Messages = new();
-
-    public static void Reset()
-    {
-        Session = null;
-        SlotData = null;
-        ScoutedLocations = null;
-
-        SaveFileLoaded = false;
-        ReplaceMoneyBagSprite = false;
-
-        AcquiredPhysicalItem = null;
-        Messages = new();
-    }
-}
-
 static class ModSettings
 {
     public static MelonPreferences_Category Category;
@@ -58,6 +25,14 @@ static class ModSettings
     public static MelonPreferences_Entry<int> Port;
     public static MelonPreferences_Entry<string> SlotName;
     public static MelonPreferences_Entry<string> Password;
+}
+
+static class Global
+{
+    public static Director Director = null;
+    public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
+    public static Dictionary<string, string> LocationNameToGlobalObjectId = null;
+    public static State State = new();
 }
 
 static class Utils
@@ -79,39 +54,39 @@ static class Utils
 
     public static long ObjectIdToLocationId(string globalObjectId)
     {
-        var locationName = GlobalState.GlobalObjectIdToLocationName[globalObjectId];
-        var game = SaveState.Session.ConnectionInfo.Game;
-        return SaveState.Session.Locations.GetLocationIdFromName(game, locationName);
+        var locationName = Global.GlobalObjectIdToLocationName[globalObjectId];
+        var game = Global.State.Session.ConnectionInfo.Game;
+        return Global.State.Session.Locations.GetLocationIdFromName(game, locationName);
     }
 
     public static string LocationIdToObjectId(long locationId)
     {
-        var locationName = SaveState.Session.Locations.GetLocationNameFromId(locationId);
-        return GlobalState.LocationNameToGlobalObjectId[locationName];
+        var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
+        return Global.LocationNameToGlobalObjectId[locationName];
     }
 
     public static bool IsObjectIdActiveLocation(string globalObjectId)
     {
         // Check if item should actually be swapped.
-        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
+        var objLocationName = Global.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
         if (objLocationName == null)
         {
             return false;
         }
 
-        var game = SaveState.Session.ConnectionInfo.Game;
-        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
-        return SaveState.ScoutedLocations.ContainsKey(locationId);
+        var game = Global.State.Session.ConnectionInfo.Game;
+        var locationId = Global.State.Session.Locations.GetLocationIdFromName(game, objLocationName);
+        return Global.State.ScoutedLocations.ContainsKey(locationId);
     }
 
     public static void SendLocationCheck(string globalObjectId)
     {
         var locationId = ObjectIdToLocationId(globalObjectId);
-        SaveState.AcquiredPhysicalItem = SaveState.ScoutedLocations[locationId];
+        Global.State.AcquiredPhysicalItem = Global.State.ScoutedLocations[locationId];
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
         try
         {
-            SaveState.Session.Locations.CompleteLocationChecks([locationId]);
+            Global.State.Session.Locations.CompleteLocationChecks([locationId]);
         }
         catch (ArchipelagoSocketClosedException ex)
         {
@@ -119,3 +94,17 @@ static class Utils
         }
     }
 }
+
+class State
+{
+    public ArchipelagoSession Session = null;
+    public Dictionary<string, object> SlotData = null;
+    public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
+
+    public bool SaveFileLoaded = false;
+    public bool ReplaceMoneyBagSprite = false;
+
+    public ScoutedItemInfo AcquiredPhysicalItem = null;
+    public Queue<string> Messages = new();
+}
+

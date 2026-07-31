@@ -55,15 +55,15 @@ public static class InstructionPanelPatch
         }
 
         // Check that player is in idle state for long enough.
-        if (GlobalState.Director.player.state != ObjectPlayer.State.Idle)
+        if (Global.Director.player.state != ObjectPlayer.State.Idle)
         {
-            previousState = GlobalState.Director.player.state;
+            previousState = Global.Director.player.state;
             return;
         }
 
         if (previousState != ObjectPlayer.State.Idle)
         {
-            previousState = GlobalState.Director.player.state;
+            previousState = Global.Director.player.state;
             IdleStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         }
 
@@ -75,9 +75,9 @@ public static class InstructionPanelPatch
 
         // Check if InstructionPanel should show due to acquired physical Archipelago item.
         // TODO: Check that InstructionPanel isn't already showing.
-        if (SaveState.Messages.Count > 0)
+        if (Global.State.Messages.Count > 0)
         {
-            var text = SaveState.Messages.Dequeue();
+            var text = Global.State.Messages.Dequeue();
             TextShowStartMs = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
             __instance.SetInstruction(text, true);
         }

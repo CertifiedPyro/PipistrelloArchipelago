@@ -12,7 +12,7 @@ public static class CorePatches
     [HarmonyPostfix]
     public static void DirectorInitPatch(Director __instance)
     {
-        GlobalState.Director = __instance;
+        Global.Director = __instance;
     }
 
     /// <summary>
@@ -24,13 +24,13 @@ public static class CorePatches
     {
         // Reload project to reset Mapvania objects.
         // This crashes the game if called twice before loading, but it shouldn't happen here.
-        GlobalState.Director.LoadProject();
+        Global.Director.LoadProject();
 
         // If record exists, we're loading from existing save file.
-        var savefileRecord = GlobalState.Director.savefileRecords[savefileIndex];
+        var savefileRecord = Global.Director.savefileRecords[savefileIndex];
         if (savefileRecord != null)
         {
-            SaveState.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
+            Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
             ArchipelagoHelper.InitialHandler();
             return;
         }
@@ -44,9 +44,9 @@ public static class CorePatches
                 var record = Game.DeserializeRecord(scenario.serializedRecord);
                 record.flags[Game.FLAG_ABILITY_THROW] = 0;  // Remove Offstring Throw (obtained in Abandoned Tunnels).
                 record.flags[Constants.FLAG_ARCHIPELAGO] = 1;  // Mark as an Archipelago save.
-                GlobalState.Director.InitFromRecord(record);
+                Global.Director.InitFromRecord(record);
 
-                SaveState.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
+                Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
                 ArchipelagoHelper.InitialHandler();
             }
         }
@@ -125,7 +125,7 @@ public static class CorePatches
     public static void MoneyBagProcessPatch(ObjectMoneyBag __instance)
     {
         // Check that save file is actually loaded, since Process() will run before save file finishes loading.
-        if (!SaveState.SaveFileLoaded)
+        if (!Global.State.SaveFileLoaded)
         {
             return;
         }
@@ -146,7 +146,7 @@ public static class CorePatches
         // Add map pin for money bag if it's missing.
         // This needs to run continuously, since loading a new room/area removes these map pins.
         // Note: These map pins also aren't saved the record for some raosn.
-        var mapPins = GlobalState.Director.playerRecord.mapPins;
+        var mapPins = Global.Director.playerRecord.mapPins;
         var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == globalObjectId);
         if (!existingPin)
         {
@@ -174,7 +174,7 @@ public static class CorePatches
             return;
         }
 
-        SaveState.ReplaceMoneyBagSprite = true;
+        Global.State.ReplaceMoneyBagSprite = true;
     }
 
     /// <summary>
@@ -184,10 +184,10 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void GetSpritePatch(ref string sprId)
     {
-        if (SaveState.ReplaceMoneyBagSprite && sprId == "objs/moneyBag")
+        if (Global.State.ReplaceMoneyBagSprite && sprId == "objs/moneyBag")
         {
             sprId = Constants.MoneyBagMediumSpriteName;
-            SaveState.ReplaceMoneyBagSprite = false;
+            Global.State.ReplaceMoneyBagSprite = false;
         }
     }
 
@@ -258,8 +258,8 @@ public static class CorePatches
             {
                 Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
                 var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
-                SaveState.Messages.Enqueue(text);
-                SaveState.Session.SetClientState(
+                Global.State.Messages.Enqueue(text);
+                Global.State.Session.SetClientState(
                     Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
             }
         }
