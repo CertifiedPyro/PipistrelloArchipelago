@@ -39,25 +39,20 @@ public static class InstructionPanelPatch
     [HarmonyPatch(typeof(InstructionPanel), nameof(InstructionPanel.Process))]
     public static void Prefix(InstructionPanel __instance)
     {
-        if (Global.State.Messages.Count == 0)
+        // Check if InstructionPanel is off cooldown.
+        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        if (TextCooldownStartMs.HasValue && currentTime - TextCooldownStartMs > TextCooldownTimeMs)
         {
-            return;
+            TextCooldownStartMs = null;
         }
 
         // Check if InstructionPanel should be on cooldown.
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
         if (currentTime - TextShowStartMs > TextShowTimeMs)
         {
             TextShowStartMs = null;
             TextCooldownStartMs = currentTime;
             __instance.SetInstruction(null, true);
             return;
-        }
-
-        // Check if InstructionPanel is off cooldown.
-        if (TextCooldownStartMs.HasValue && currentTime - TextCooldownStartMs > TextCooldownTimeMs)
-        {
-            TextCooldownStartMs = null;
         }
 
         // Check that player is in idle state for long enough.
@@ -82,6 +77,12 @@ public static class InstructionPanelPatch
 
         // Check that no cooldowns are active.
         if (TextShowStartMs.HasValue || TextCooldownStartMs.HasValue || IdleStartMs.HasValue)
+        {
+            return;
+        }
+
+        // Check that there are messages to show.
+        if (Global.State.Messages.Count == 0)
         {
             return;
         }
