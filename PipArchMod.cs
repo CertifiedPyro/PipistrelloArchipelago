@@ -13,10 +13,10 @@ public class PipArchMod : MelonMod
     {
         // Initialize MelonLoader settings.
         ModSettings.Category = MelonPreferences.CreateCategory("Archipelago");
-        ModSettings.Host = ModSettings.Category.CreateEntry<string>("Host", "archipelago.gg");
-        ModSettings.Port = ModSettings.Category.CreateEntry<int>("Port", 0);
-        ModSettings.SlotName = ModSettings.Category.CreateEntry<string>("Slot Name", string.Empty);
-        ModSettings.Password = ModSettings.Category.CreateEntry<string>("Password", null);
+        ModSettings.Host = ModSettings.Category.CreateEntry("Host", "archipelago.gg");
+        ModSettings.Port = ModSettings.Category.CreateEntry("Port", 0);
+        ModSettings.SlotName = ModSettings.Category.CreateEntry("Slot Name", string.Empty);
+        ModSettings.Password = ModSettings.Category.CreateEntry("Password", string.Empty);
 
         ReadObjectIdMapping();
         ExportArchipelagoSprites();
