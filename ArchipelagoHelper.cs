@@ -113,13 +113,9 @@ public static class ArchipelagoHelper
             MelonLogger.Msg($"Checked location: {locationId}, {objectId}, {mapObject?.objectDefName}");
             if (mapObject?.objectDefName == "taxiPhone")
             {
-                // Unlock and refresh the taxi phone.
-                // For some reason, the notification still shows until the player changes rooms.
-                Melon<PipArchMod>.Logger.Msg($"Unlocking taxi phone for {locationName}");
-                Game.TaxiPhoneUnlock(Global.Director.playerRecord, mapObject.globalObjectId);
-                var taxiPhone = Utils.GetObjectOrNew<ObjectTaxiPhone>(mapObject, instantiate: false);
-                taxiPhone?.OnRefresh();
-
+                Melon<PipArchMod>.Logger.Msg($"Marking taxi phone for {locationName}");
+                var taxiFlag = $"{Game.GLOBAL_FLAG_PREFIX}{objectId}{Constants.FLAG_INTERACT_SUFFIX}";
+                Global.Director.SetFlagBool(taxiFlag, true);
                 continue;
             }
 

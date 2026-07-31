@@ -1,6 +1,4 @@
-﻿#nullable enable
-
-using Archipelago.MultiClient.Net;
+﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
@@ -19,6 +17,7 @@ static class Constants
 
     public static string FLAG_ARCHIPELAGO = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static string FLAG_LAST_ITEM_INDEX = $"{FLAG_ARCHIPELAGO}:lastItemIndex";
+    public static string FLAG_INTERACT_SUFFIX = ":interacted";
 }
 
 static class ModSettings

@@ -12,8 +12,8 @@ public class TaxiPhonePatches
     [HarmonyPrefix]
     public static void LocalizationPatch(string stringId)
     {
-        // Check if taxi phone unlock dialogue is showing.
-        if (stringId == "taxiPhone_unlockSuccess")
+        // Check if taxi phone dialogue is showing.
+        if (stringId == "taxiPhone_unlock")
         {
             // Assume the player is interacting with a ObjectTaxiPhone now.
             // Find the closest ObjectTaxiPhone.
@@ -30,6 +30,13 @@ public class TaxiPhonePatches
             if (Global.Director.currentRoomId != taxiPhoneObject.globalObjectId.roomId)
             {
                 Melon<PipArchMod>.Logger.Msg("Could not find correct taxi phone for location check.");
+                return;
+            }
+
+            // Check if player already interacted with this taxi phone.
+            var flag = $"{Game.GLOBAL_FLAG_PREFIX}{taxiPhoneObject.globalObjectId.AsString}{Constants.FLAG_INTERACT_SUFFIX}";
+            if (Global.Director.GetFlagBool(flag))
+            {
                 return;
             }
 

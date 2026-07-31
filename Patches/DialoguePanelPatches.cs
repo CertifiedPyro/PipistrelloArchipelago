@@ -53,8 +53,10 @@ public class DialoguePanelPatch
         }
         else
         {
-            // Don't show the remaining original dialogue.
-            return false;
+            // Don't show the remaining original dialogue, unless location was a taxi phone.
+            var objectId = Utils.LocationIdToObjectId(item.LocationId);
+            var mapObject = Utils.GetMapvaniaObject(objectId);
+            return mapObject.objectDefName == "taxiPhone";
         }
     }
 
