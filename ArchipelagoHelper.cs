@@ -220,7 +220,7 @@ public static class ArchipelagoHelper
             foreach (var locationId in locationsHelper.AllMissingLocations)
             {
                 // Check physical Archipelago items.
-                var objectId = Utils.LocationIdToGlobalObjectId(locationId);
+                var objectId = Utils.LocationIdToObjectId(locationId);
                 var archObjectId = Utils.IdToArchItemId(objectId);
                 var flag = Game.FlagBpContainerAcquired(archObjectId);
                 if (director.GetFlagBool(flag) 
@@ -233,7 +233,7 @@ public static class ArchipelagoHelper
             // Check missed taxi phones.
             foreach (var objectId in director.playerRecord.taxiPhonesUnlocked)
             {
-                var locationId = Utils.GlobalObjectIdToLocationId(objectId.AsString);
+                var locationId = Utils.ObjectIdToLocationId(objectId.AsString);
                 if (!checkedLocationsSet.Contains(locationId))
                 {
                     missedLocalLocations.Add(locationId);

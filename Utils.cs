@@ -74,12 +74,39 @@ static class Utils
 
     public static bool IsArchItemId(string id)
     {
-        return id != null && id.Contains(Constants.ArchItemObjectIdSuffix);
+        return id != null && id.EndsWith(Constants.ArchItemObjectIdSuffix);
+    }
+
+    public static long ObjectIdToLocationId(string globalObjectId)
+    {
+        var locationName = GlobalState.GlobalObjectIdToLocationName[globalObjectId];
+        var game = SaveState.Session.ConnectionInfo.Game;
+        return SaveState.Session.Locations.GetLocationIdFromName(game, locationName);
+    }
+
+    public static string LocationIdToObjectId(long locationId)
+    {
+        var locationName = SaveState.Session.Locations.GetLocationNameFromId(locationId);
+        return GlobalState.LocationNameToGlobalObjectId[locationName];
+    }
+
+    public static bool IsObjectIdActiveLocation(string globalObjectId)
+    {
+        // Check if item should actually be swapped.
+        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
+        if (objLocationName == null)
+        {
+            return false;
+        }
+
+        var game = SaveState.Session.ConnectionInfo.Game;
+        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
+        return SaveState.ScoutedLocations.ContainsKey(locationId);
     }
 
     public static void SendLocationCheck(string globalObjectId)
     {
-        var locationId = GlobalObjectIdToLocationId(globalObjectId);
+        var locationId = ObjectIdToLocationId(globalObjectId);
         SaveState.AcquiredPhysicalItem = SaveState.ScoutedLocations[locationId];
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
         try
@@ -90,18 +117,5 @@ static class Utils
         {
             Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
         }
-    }
-
-    public static long GlobalObjectIdToLocationId(string globalObjectId)
-    {
-        var locationName = GlobalState.GlobalObjectIdToLocationName[globalObjectId];
-        var game = SaveState.Session.ConnectionInfo.Game;
-        return SaveState.Session.Locations.GetLocationIdFromName(game, locationName);
-    }
-
-    public static string LocationIdToGlobalObjectId(long locationId)
-    {
-        var locationName = SaveState.Session.Locations.GetLocationNameFromId(locationId);
-        return GlobalState.LocationNameToGlobalObjectId[locationName];
     }
 }

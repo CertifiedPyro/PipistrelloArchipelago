@@ -59,23 +59,13 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
     {
-        // Don't replace moneybags or taxi phones.
-        if (mapObj.objectDefName == "moneyBag" || mapObj.objectDefName == "taxiPhone")
+        // Don't replace taxi phones or money bags.
+        if (mapObj.objectDefName == "taxiPhone" || mapObj.objectDefName == "moneyBag")
         {
             return;
         }
 
-        // Check if item could be swapped.
-        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapObj.globalObjectId.AsString);
-        if (objLocationName == null)
-        {
-            return;
-        }
-
-        // Check if item should actually be swapped.
-        var game = SaveState.Session.ConnectionInfo.Game;
-        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
-        if (!SaveState.ScoutedLocations.ContainsKey(locationId))
+        if (!Utils.IsObjectIdActiveLocation(mapObj.globalObjectId.AsString))
         {
             return;
         }
@@ -84,9 +74,11 @@ public static class CorePatches
         mapObj.objectDefId = "lor313";
         mapObj.objectDefName = "bpContainer";
 
+        // Object id must be edited like this, instead of assigned directly for some reason.
         var globalObjectId = mapObj.globalObjectId;
         globalObjectId.objectId = Utils.IdToArchItemId(globalObjectId.objectId);
         mapObj.globalObjectId = globalObjectId;
+
         // TODO: Swap items with each other.
     }
 
@@ -125,9 +117,12 @@ public static class CorePatches
         return true;
     }
 
+    /// <summary>
+    /// Patch for handling money bags as physical Archipelago items.
+    /// </summary>
     [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
     [HarmonyPostfix]
-    public static void ObjectMoneyBagProcessPostfixPatch(ObjectMoneyBag __instance)
+    public static void MoneyBagProcessPatch(ObjectMoneyBag __instance)
     {
         // Check that save file is actually loaded, since Process() will run before save file finishes loading.
         if (!SaveState.SaveFileLoaded)
@@ -135,17 +130,8 @@ public static class CorePatches
             return;
         }
 
-        // Check if item should actually be swapped.
-        var globalObjectId = __instance.globalObjectId;
-        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId.AsString);
-        if (objLocationName == null)
-        {
-            return;
-        }
-
-        var game = SaveState.Session.ConnectionInfo.Game;
-        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
-        if (!SaveState.ScoutedLocations.ContainsKey(locationId))
+        var globalObjectId = __instance.globalObjectId.AsString;
+        if (!Utils.IsObjectIdActiveLocation(globalObjectId))
         {
             return;
         }
@@ -154,52 +140,45 @@ public static class CorePatches
         // This needs to run continuously, since loading a new room/area removes these map pins.
         // Note: These map pins also aren't saved the record for some raosn.
         var mapPins = GlobalState.Director.playerRecord.mapPins;
-        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == globalObjectId.AsString);
+        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == globalObjectId);
         if (!existingPin)
         {
-            Melon<PipArchMod>.Logger.Msg("Adding pin for " + globalObjectId.AsString);
+            // TODO: Fix map pins not going away on pickup
             __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
 
-            // If money bag is an Archipelago item, don't actually collect money from it.
+            // Money bag should not actually give money.
             __instance.moneyAmount = 0;
         }
     }
 
+    /// <summary>
+    /// Patch for mark money bags sprites for replacement.
+    /// </summary>
     [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
     [HarmonyPrefix]
-    public static void DrawSpritePatch(ObjectMoneyBag __instance)
+    public static void DrawMoneyBagPatch(ObjectMoneyBag __instance)
     {
-        if (__instance.director.IsPlayerDeathFreeze())
+        if (__instance.director.IsPlayerDeathFreeze() || !__instance.IsVisibleInCamera())
         {
             return;
         }
 
-        // Check if item should actually be swapped.
-        var globalObjectId = __instance.globalObjectId;
-        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId.AsString);
-        if (objLocationName == null)
+        if (!Utils.IsObjectIdActiveLocation(__instance.globalObjectId.AsString))
         {
             return;
         }
 
-        var game = SaveState.Session.ConnectionInfo.Game;
-        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
-        if (!SaveState.ScoutedLocations.ContainsKey(locationId))
-        {
-            return;
-        }
-
-        if (__instance.IsVisibleInCamera())
-        {
-            SaveState.ReplaceMoneyBagSprite = true;
-        }
+        SaveState.ReplaceMoneyBagSprite = true;
     }
 
+    /// <summary>
+    /// Patch for replacing the money bag sprite.
+    /// </summary>
     [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
     [HarmonyPrefix]
     public static void GetSpritePatch(ref string sprId)
     {
-        if (sprId == "objs/moneyBag" && SaveState.ReplaceMoneyBagSprite)
+        if (SaveState.ReplaceMoneyBagSprite && sprId == "objs/moneyBag")
         {
             sprId = Constants.MoneyBagMediumSpriteName;
             SaveState.ReplaceMoneyBagSprite = false;
