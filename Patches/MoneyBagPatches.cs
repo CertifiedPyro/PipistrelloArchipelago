@@ -33,18 +33,13 @@ public class MoneyBagPatches
             return;
         }
 
-        // Add map pin for money bag if it's missing.
-        // This needs to run continuously, since loading a new room/area removes these map pins.
-        // Note: These map pins also aren't saved the record for some raosn.
-        var mapPins = Global.Director.playerRecord.mapPins;
-        var existingPin = mapPins.ToArray().Any(p => p.objectId.AsString == globalObjectId);
-        if (!existingPin)
-        {
-            __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
+        // Money bag should not actually give money.
+        __instance.moneyAmount = 0;
 
-            // Money bag should not actually give money.
-            __instance.moneyAmount = 0;
-        }
+        // Add map pin for money bag.
+        // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
+        // Note: These map pins also aren't saved the record for some raosn.
+        __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
     }
 
     /// <summary>
