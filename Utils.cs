@@ -97,18 +97,23 @@ static class Utils
         return obj;
     }
 
-    public static T? GetObjectOrNew<T>(Mapvania.Object mapObject, bool instantiate = true)
+    public static T? GetObject<T>(Mapvania.Object mapObject)
         where T : Il2CppPipistrello.Object
     {
-        foreach (var obj in Global.Director.IterateObjectsOfType<T>().ToArray())
+        if (mapObject == null)
+        {
+            return null;
+        }
+
+        foreach (var obj in Global.Director.objects.ToArray())
         {
             if (obj.globalObjectId.AsString == mapObject.globalObjectId.AsString)
             {
-                return obj;
+                return obj.Cast<T>();
             }
         }
 
-        return instantiate ? Global.Director.InstantiateRemotely(mapObject.globalObjectId).Cast<T>() : null;
+        return null;
     }
 
     public static void SendLocationCheck(string globalObjectId)

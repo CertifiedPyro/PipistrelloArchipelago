@@ -97,6 +97,22 @@ public static class CorePatches
     }
 
     /// <summary>
+    /// Patch to handle post InitRoom().
+    /// </summary>
+    [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
+    [HarmonyPostfix]
+    public static void InitRoomPatch()
+    {
+        // Check if Director is null, since apparently this can run before the main menu appears.
+        if (Global.Director != null)
+        {
+            // To ensure map pins are stored properly after being added/modified, prepare a checkpoint.
+            // This way, if a player returns to the safehouse, the map pins are still saved.
+            Global.Director.PrepareCheckpoint(false);
+        }
+    }
+
+    /// <summary>
     /// Patch for handling physical Archipelago items (disguised as BP containers).
     /// </summary>
     [HarmonyPatch(typeof(Game), nameof(Game.SetBpContainerAcquired))]

@@ -2,6 +2,7 @@
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
+using Il2Cpp;
 using Il2CppPipistrello;
 using Il2CppSystem.Linq;
 using Il2CppUtil;
@@ -110,22 +111,39 @@ public static class ArchipelagoHelper
             var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
             var objectId = Utils.LocationIdToObjectId(locationId);
             var mapObject = Utils.GetMapvaniaObject(objectId);
-            MelonLogger.Msg($"Checked location: {locationId}, {objectId}, {mapObject?.objectDefName}");
+            var mapPins = director.playerRecord.mapPins;
+            Melon<PipArchMod>.Logger.Msg($"Checked location: {locationName}, {objectId}, {mapObject?.objectDefName}");
+
             if (mapObject?.objectDefName == "taxiPhone")
             {
-                Melon<PipArchMod>.Logger.Msg($"Marking taxi phone for {locationName}");
+                // Mark taxi phone interaction.
                 var taxiFlag = $"{Game.GLOBAL_FLAG_PREFIX}{objectId}{Constants.FLAG_INTERACT_SUFFIX}";
-                Global.Director.SetFlagBool(taxiFlag, true);
+                director.SetFlagBool(taxiFlag, true);
+                Melon<PipArchMod>.Logger.Msg($"Set flag {taxiFlag}");
                 continue;
             }
 
             if (mapObject?.objectDefName == "moneyBag")
             {
-                Melon<PipArchMod>.Logger.Msg($"Removing money bag at {locationName}");
-                var moneyBag = Utils.GetObjectOrNew<ObjectMoneyBag>(mapObject);
-                moneyBag.UpdateMapPin(null);
-                moneyBag.RegisterDespawn(despawnType: Game.FLAGVALUE_OBJECT_DESPAWN_PERMANENT);
-                Global.Director.DestroyObject(moneyBag);
+                // Mark money bag as despawned.
+                var moneyBagDespawnFlag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
+                director.SetFlag(moneyBagDespawnFlag, Game.FLAGVALUE_OBJECT_DESPAWN_PERMANENT);
+                Melon<PipArchMod>.Logger.Msg($"Set flag {moneyBagDespawnFlag}");
+
+                // Remove the map pin.
+                // We must check if the resulting map pin is null, or the game can crash.
+                var moneyBagMapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == objectId);
+                if (moneyBagMapPin != null)
+                {
+                    mapPins.Remove(moneyBagMapPin);
+                }
+
+                // Attempt to destroy object if it is instantiated.
+                var moneyBag = Utils.GetObject<ObjectMoneyBag>(mapObject);
+                if (moneyBag != null)
+                {
+                    director.DestroyObject(moneyBag);
+                }
                 continue;
             }
 
@@ -134,27 +152,29 @@ public static class ArchipelagoHelper
             var flag = Game.FlagBpContainerAcquired(archObjectId);
             if (!director.GetFlagBool(flag))
             {
-                Melon<PipArchMod>.Logger.Msg($"Setting flag {flag} for location {locationName}");
                 director.SetFlagBool(flag, true);
+                Melon<PipArchMod>.Logger.Msg($"Set flag {flag}");
             }
-
-            mapObject = Utils.GetMapvaniaObject(archObjectId);
-            if (mapObject == null)
-            {
-                continue;
-            }
-
-            var archItem = Utils.GetObjectOrNew<ObjectBpContainer>(mapObject);
-            Global.Director.DestroyObject(archItem);
 
             // Remove map pin.
-            var mapPins = director.playerRecord.mapPins;
+            // We must check if the resulting map pin is null, or the game can crash.
             var mapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == archObjectId);
             if (mapPin != null)
             {
                 mapPins.Remove(mapPin);
             }
+
+            // Attempt to destroy object if it is instantiated.
+            mapObject = Utils.GetMapvaniaObject(archObjectId);
+            var archItem = Utils.GetObject<ObjectBpContainer>(mapObject);
+            if (archItem != null)
+            {
+                director.DestroyObject(archItem);
+            }
         }
+
+        // Ensure map pin changes are saved.
+        Global.Director.PrepareCheckpoint(false);
     }
 
     /// <summary>

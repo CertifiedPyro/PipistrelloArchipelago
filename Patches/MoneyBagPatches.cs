@@ -26,10 +26,16 @@ public class MoneyBagPatches
             return;
         }
 
-        // If money bag is destroyed, remove map pin.
+        // If money bag is collected, send location check.
+        if (__instance.collected)
+        {
+            Utils.SendLocationCheck(globalObjectId);
+            return;
+        }
+
+        // If money bag is destroyed through other means (i.e. moving to new area), return early.
         if (__instance.destroyed)
         {
-            __instance.UpdateMapPin(null);
             return;
         }
 
@@ -38,7 +44,7 @@ public class MoneyBagPatches
 
         // Add map pin for money bag.
         // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
-        // Note: These map pins also aren't saved the record for some raosn.
+        // Note: These map pins also aren't saved to the record for some reason.
         __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
     }
 
