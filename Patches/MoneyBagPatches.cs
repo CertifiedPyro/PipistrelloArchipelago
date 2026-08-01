@@ -44,7 +44,6 @@ public class MoneyBagPatches
 
         // Add map pin for money bag.
         // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
-        // Note: These map pins also aren't saved to the record for some reason.
         __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
     }
 

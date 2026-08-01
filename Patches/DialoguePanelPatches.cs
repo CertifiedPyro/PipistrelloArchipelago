@@ -41,10 +41,7 @@ public class DialoguePanelPatch
         }
         else
         {
-            // Don't show the remaining original dialogue, unless location was a taxi phone.
-            var objectId = Utils.LocationIdToObjectId(Global.State.AcquiredPhysicalItem.LocationId);
-            var mapObject = Utils.GetMapvaniaObject(objectId);
-            return mapObject?.objectDefName == "taxiPhone";
+            return Global.State.ShowRemainingDialogue;
         }
     }
 
@@ -57,7 +54,6 @@ public class DialoguePanelPatch
         // Reset state once dialogue is over.
         if (__result)
         {
-            Global.State.AcquiredPhysicalItem = null;
             Global.State.DialogueText = null;
             _showedArchItemDialogue = false;
         }

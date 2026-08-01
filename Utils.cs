@@ -2,7 +2,6 @@
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
-using Il2CppSystem.IO;
 using MelonLoader;
 
 namespace PipistrelloArchipelago;
@@ -74,13 +73,14 @@ static class Utils
             return false;
         }
 
-        // Check if item should actually be swapped.
+        // Check if location is eligible for replacement.
         var objLocationName = Global.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
         if (objLocationName == null)
         {
             return false;
         }
 
+        // Check if location is actually replaced.
         var game = Global.State.Session.ConnectionInfo.Game;
         var locationId = Global.State.Session.Locations.GetLocationIdFromName(game, objLocationName);
         var active = Global.State.ScoutedLocations.ContainsKey(locationId);
@@ -92,8 +92,8 @@ static class Utils
     {
         var parts = globalObjectIdString.Split('/');
         var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == parts[0]);
-        var room = map.rooms.ToArray().FirstOrDefault(r => r.id == parts[1]);
-        var obj = room.objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == parts[2]);
+        var room = map?.rooms.ToArray().FirstOrDefault(r => r.id == parts[1]);
+        var obj = room?.objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == parts[2]);
         return obj;
     }
 
@@ -105,19 +105,13 @@ static class Utils
             return null;
         }
 
-        foreach (var obj in Global.Director.objects.ToArray())
-        {
-            if (obj.globalObjectId.AsString == mapObject.globalObjectId.AsString)
-            {
-                return obj.Cast<T>();
-            }
-        }
-
-        return null;
+        var result = Global.Director.objects.ToArray().FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
+        return result?.Cast<T>();
     }
 
     public static void SendLocationCheck(string globalObjectId)
     {
+        // Send location check to Archipelago.
         var locationId = ObjectIdToLocationId(globalObjectId);
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
         try
@@ -130,15 +124,16 @@ static class Utils
             return;
         }
 
+        // Create the text to show the player.
         var item = Global.State.ScoutedLocations[locationId];
-        Global.State.AcquiredPhysicalItem = item;
         var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
         var playerName = item.Player.Name.Replace(" ", "[nbsp]");
-
         var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot 
             ? $"[instant|You found your [c:blue|{itemName}]!][w:2]"
             : $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
-        var mapObject = Utils.GetMapvaniaObject(globalObjectId);
+
+        // Determine if text should replace dialogue or be queued for later.
+        var mapObject = GetMapvaniaObject(globalObjectId);
         if (mapObject?.objectDefName == "moneyBag")
         {
             Global.State.Messages.Enqueue(text);
@@ -146,6 +141,7 @@ static class Utils
         else
         {
             Global.State.DialogueText = text;
+            Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
         }
     }
 }
@@ -161,8 +157,8 @@ class State
     public bool SaveFileLoaded = false;
     public bool ReplaceMoneyBagSprite = false;
 
-    public ScoutedItemInfo AcquiredPhysicalItem = null;
     public string DialogueText = null;
     public Queue<string> Messages = new();
+    public bool ShowRemainingDialogue = true;
 }
 

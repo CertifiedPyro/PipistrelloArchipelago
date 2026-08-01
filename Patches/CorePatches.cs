@@ -119,8 +119,6 @@ public static class CorePatches
     [HarmonyPrefix]
     public static bool HandlePhysicalArchItemPatch(string id, ref bool __result)
     {
-        // If this is an physical Archipelago item pretending to be a BP container,
-        // don't actually pick up the BP container.
         if (Utils.IsArchItemId(id))
         {
             var objectId = Utils.ArchItemIdToId(id);
