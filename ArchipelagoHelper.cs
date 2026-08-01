@@ -271,9 +271,21 @@ public static class ArchipelagoHelper
                 // Check physical Archipelago items.
                 var objectId = Utils.LocationIdToObjectId(locationId);
                 var archObjectId = Utils.IdToArchItemId(objectId);
-                var flag = Game.FlagBpContainerAcquired(archObjectId);
-                if (director.GetFlagBool(flag) 
-                    && !checkedLocationsSet.Contains(locationId))
+                var bpFlag = Game.FlagBpContainerAcquired(archObjectId);
+                if (director.GetFlagBool(bpFlag))
+                {
+                    missedLocalLocations.Add(locationId);
+                }
+
+                // Check money bags
+                var mapObject = Utils.GetMapvaniaObject(objectId);
+                if (mapObject == null)
+                {
+                    continue;
+                }
+
+                var moneyBagDespawnFlag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
+                if (director.GetFlag(moneyBagDespawnFlag) != 0)
                 {
                     missedLocalLocations.Add(locationId);
                 }
@@ -282,6 +294,11 @@ public static class ArchipelagoHelper
             // Check missed taxi phones.
             foreach (var objectId in director.playerRecord.taxiPhonesUnlocked)
             {
+                if (!Utils.IsObjectIdActiveLocation(objectId.AsString))
+                {
+                    continue;
+                }
+
                 var locationId = Utils.ObjectIdToLocationId(objectId.AsString);
                 if (!checkedLocationsSet.Contains(locationId))
                 {
@@ -292,7 +309,7 @@ public static class ArchipelagoHelper
             if (missedLocalLocations.Count > 0)
             {
                 Melon<PipArchMod>.Logger.Msg(
-                    $"Found unsent location checks: {string.Join(',', missedLocalLocations)}");
+                    $"Found unsent location check ids: {string.Join(',', missedLocalLocations)}");
                 try
                 {
                     locationsHelper.CompleteLocationChecks([.. missedLocalLocations]);
