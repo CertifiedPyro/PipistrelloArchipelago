@@ -117,7 +117,7 @@ public static class ArchipelagoHelper
             var objectId = Utils.LocationIdToObjectId(locationId);
             var mapObject = Utils.GetMapvaniaObject(objectId);
             var mapPins = director.playerRecord.mapPins;
-            Melon<PipArchMod>.Logger.Msg($"Checked location: {locationName}, {objectId}, {mapObject?.objectDefName}");
+            Melon<PipArchMod>.Logger.Msg($"Location checked: {locationName}, {objectId}, {mapObject?.objectDefName}");
 
             if (mapObject?.objectDefName == "taxiPhone")
             {
@@ -175,7 +175,6 @@ public static class ArchipelagoHelper
             var archItem = Utils.GetObject<ObjectBpContainer>(mapObject);
             var playerAcquiringState = Global.Director.player.state == ObjectPlayer.State.AcquiringItem
                 || Global.Director.player.state == ObjectPlayer.State.AcquiringMegaBattery;
-            MelonLogger.Msg(playerAcquiringState);
             // TODO: Figure out more robust condition to determine if arch item is being acquired right now.
             if (archItem != null && !playerAcquiringState)
             {

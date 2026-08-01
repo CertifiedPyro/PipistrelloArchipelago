@@ -13,10 +13,18 @@ public static class InstructionPanelPatch
     private const long TextCooldownTimeMs = 250;
     private const long IdleStateMs = 750;
 
+    private static readonly HashSet<ObjectPlayer.State> InvalidStates = [
+        ObjectPlayer.State.AcquiringItem,
+        ObjectPlayer.State.AcquiringMegaBattery,
+        ObjectPlayer.State.AuntieFinish,
+        ObjectPlayer.State.AuntieTalk,
+        ObjectPlayer.State.Cutscene,
+    ];
+
     private static long? TextShowStartMs;
     private static long? TextCooldownStartMs;
     private static long? IdleStartMs;
-    private static ObjectPlayer.State previousState;
+    private static bool validPreviousState;
 
     /// <summary>
     /// If loading save, reset global state.
@@ -28,7 +36,7 @@ public static class InstructionPanelPatch
         TextShowStartMs = null;
         TextCooldownStartMs = null;
         IdleStartMs = null;
-        previousState = ObjectPlayer.State.Cutscene;
+        validPreviousState = false;
     }
 
     /// <summary>
@@ -55,21 +63,21 @@ public static class InstructionPanelPatch
             return;
         }
 
-        // Check that player is in idle state for long enough.
-        if (Global.Director.player.state != ObjectPlayer.State.Idle)
+        // Check that player is in valid state for long enough.
+        if (!CanShowTextDuringState(Global.Director.player.state))
         {
-            previousState = Global.Director.player.state;
+            validPreviousState = false;
             return;
         }
 
-        if (previousState != ObjectPlayer.State.Idle)
+        if (!validPreviousState)
         {
-            previousState = Global.Director.player.state;
+            validPreviousState = true;
             IdleStartMs = currentTime;
             return;
         }
 
-        // Check that idle state is off cooldown.
+        // Check that valid state is off cooldown.
         if (IdleStartMs.HasValue && currentTime - IdleStartMs > IdleStateMs)
         {
             IdleStartMs = null;
@@ -103,5 +111,13 @@ public static class InstructionPanelPatch
         }
 
         return true;
+    }
+
+    private static bool CanShowTextDuringState(ObjectPlayer.State state)
+    {
+        // Show text if player is not in cutscene, not in menu, and not in dialogue.
+        return !InvalidStates.Contains(state) 
+            && Global.Director.uiDialog == null
+            && Global.Director.dialoguePanel?.IsOver() != false;
     }
 }
