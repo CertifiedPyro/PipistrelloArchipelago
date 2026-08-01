@@ -4,7 +4,7 @@ using Il2CppPipistrello;
 using MelonLoader;
 using UnityEngine;
 
-namespace PipistrelloArchipelago;
+namespace PipistrelloArchipelago.Generate;
 
 //[HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
 static class RoomConnections
