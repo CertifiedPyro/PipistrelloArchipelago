@@ -13,7 +13,7 @@ public class TaxiPhonePatches
     public static void LocalizationPatch(string stringId)
     {
         // Check if taxi phone dialogue is showing.
-        if (stringId == "taxiPhone_unlock")
+        if (stringId == "taxiPhone_unlock" || stringId == "taxiPhone_unlocked")
         {
             // Assume the player is interacting with a ObjectTaxiPhone now.
             // Find the closest ObjectTaxiPhone.
