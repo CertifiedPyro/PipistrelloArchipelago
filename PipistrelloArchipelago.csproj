@@ -21,6 +21,8 @@
 	<ItemGroup>
 	  <None Remove="arch_medium.png" />
 	  <None Remove="arch_small.png" />
+	  <None Remove="Images\moneyBag_medium.png" />
+	  <None Remove="Images\moneyBag_small.png" />
 	  <None Remove="object_id_mapping.json" />
 	</ItemGroup>
 	<ItemGroup>
@@ -283,11 +285,13 @@
 
 	<ItemGroup>
 		<Compile Include="ArchipelagoHelper.cs" />
+		<Compile Include="Patches\MoneyBagPatches.cs" />
+		<Compile Include="Patches\TaxiPhonePatches.cs" />
 		<Compile Include="PipArchMod.cs" />
 		<Compile Include="Patches\CorePatches.cs" />
 		<Compile Include="Patches\DialoguePanelPatches.cs" />
 		<Compile Include="Patches\InstructionPanelPatches.cs" />
-		<Compile Include="RoomConnections.cs" />
+		<Compile Include="Generate\RoomConnections.cs" />
 		<Compile Include="Patches\MainMenuPatches.cs" />
 		<Compile Include="Patches\UIPatches.cs" />
 		<Compile Include="Utils.cs" />
@@ -296,6 +300,8 @@
 	<ItemGroup>
 	  <EmbeddedResource Include="Images\arch_medium.png" />
 	  <EmbeddedResource Include="Images\arch_small.png" />
+	  <EmbeddedResource Include="Images\moneyBag_medium.png" />
+	  <EmbeddedResource Include="Images\moneyBag_small.png" />
 	  <EmbeddedResource Include="object_id_mapping.json" />
 	</ItemGroup>
 

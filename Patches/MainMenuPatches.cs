@@ -21,7 +21,6 @@ public static class MainMenuPatches
     public static void MainMenuPatch(UIDialog __result)
     {
         // Force reconnection every time main menu is reached.
-        //var session = SaveState.Session;
         ArchipelagoSession session = null;
 
         var elements = __result.rootElement.subElements;
@@ -47,6 +46,7 @@ public static class MainMenuPatches
         };
         _connectionStatus = label;
 
+        // Wrap connection status label in a panel.
         var panel = new UIPanel()
         {
             childrenCenterH = true
@@ -180,8 +180,8 @@ public static class MainMenuPatches
 
     private static string GetSuccessfulConnectionStatus()
     {
-        var slot = SaveState.Session.ConnectionInfo.Slot;
-        var slotName = SaveState.Session.Players.GetPlayerName(slot);
+        var slot = Global.State.Session.ConnectionInfo.Slot;
+        var slotName = Global.State.Session.Players.GetPlayerName(slot);
         return $"Connected: {ModSettings.Host.Value}:{ModSettings.Port.Value}\nSlot: {slotName}";
     }
 

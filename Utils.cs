@@ -11,36 +11,12 @@ static class Constants
     public static string ArchItemObjectIdSuffix = "_architem";
     public static string ArchMediumSpriteName = "arch_medium";
     public static string ArchSmallSpriteName = "arch_small";
+    public static string MoneyBagMediumSpriteName = "moneyBag_medium";
+    public static string MoneyBagSmallSpriteName = "moneyBag_small";
 
     public static string FLAG_ARCHIPELAGO = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static string FLAG_LAST_ITEM_INDEX = $"{FLAG_ARCHIPELAGO}:lastItemIndex";
-}
-
-public static class GlobalState
-{
-    public static Director Director = null;
-    public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
-    public static Dictionary<string, string> LocationNameToGlobalObjectId = null;
-}
-
-public static class SaveState
-{
-    public static ArchipelagoSession Session = null;
-    public static Dictionary<string, object> SlotData = null;
-    public static Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
-
-    public static ScoutedItemInfo AcquiredPhysicalItem = null;
-    public static Queue<string> Messages = new();
-
-    public static void Reset()
-    {
-        Session = null;
-        SlotData = null;
-        ScoutedLocations = null;
-
-        AcquiredPhysicalItem = null;
-        Messages = new();
-    }
+    public static string FLAG_INTERACT_SUFFIX = ":interacted";
 }
 
 static class ModSettings
@@ -50,6 +26,14 @@ static class ModSettings
     public static MelonPreferences_Entry<int> Port;
     public static MelonPreferences_Entry<string> SlotName;
     public static MelonPreferences_Entry<string> Password;
+}
+
+static class Global
+{
+    public static Director Director = null;
+    public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
+    public static Dictionary<string, string> LocationNameToGlobalObjectId = null;
+    public static State State = new();
 }
 
 static class Utils
@@ -66,34 +50,115 @@ static class Utils
 
     public static bool IsArchItemId(string id)
     {
-        return id != null && id.Contains(Constants.ArchItemObjectIdSuffix);
+        return id != null && id.EndsWith(Constants.ArchItemObjectIdSuffix);
+    }
+
+    public static long ObjectIdToLocationId(string globalObjectId)
+    {
+        var locationName = Global.GlobalObjectIdToLocationName[globalObjectId];
+        var game = Global.State.Session.ConnectionInfo.Game;
+        return Global.State.Session.Locations.GetLocationIdFromName(game, locationName);
+    }
+
+    public static string LocationIdToObjectId(long locationId)
+    {
+        var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
+        return Global.LocationNameToGlobalObjectId[locationName];
+    }
+
+    public static bool IsObjectIdActiveLocation(string globalObjectId)
+    {
+        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) && !existingValue)
+        {
+            return false;
+        }
+
+        // Check if location is eligible for replacement.
+        var objLocationName = Global.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
+        if (objLocationName == null)
+        {
+            return false;
+        }
+
+        // Check if location is actually replaced.
+        var game = Global.State.Session.ConnectionInfo.Game;
+        var locationId = Global.State.Session.Locations.GetLocationIdFromName(game, objLocationName);
+        var active = Global.State.ScoutedLocations.ContainsKey(locationId);
+        Global.State.IsObjectIdActiveLocationCache[globalObjectId] = active;
+        return active;
+    }
+
+    public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
+    {
+        var parts = globalObjectIdString.Split('/');
+        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == parts[0]);
+        var room = map?.rooms.ToArray().FirstOrDefault(r => r.id == parts[1]);
+        var obj = room?.objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == parts[2]);
+        return obj;
+    }
+
+    public static T? GetObject<T>(Mapvania.Object mapObject)
+        where T : Il2CppPipistrello.Object
+    {
+        if (mapObject == null)
+        {
+            return null;
+        }
+
+        var result = Global.Director.objects.ToArray().FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
+        return result?.Cast<T>();
     }
 
     public static void SendLocationCheck(string globalObjectId)
     {
-        var locationId = GlobalObjectIdToLocationId(globalObjectId);
-        SaveState.AcquiredPhysicalItem = SaveState.ScoutedLocations[locationId];
+        // Send location check to Archipelago.
+        var locationId = ObjectIdToLocationId(globalObjectId);
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
         try
         {
-            SaveState.Session.Locations.CompleteLocationChecks([locationId]);
+            Global.State.Session.Locations.CompleteLocationChecks([locationId]);
         }
         catch (ArchipelagoSocketClosedException ex)
         {
             Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
+            return;
+        }
+
+        // Create the text to show the player.
+        var item = Global.State.ScoutedLocations[locationId];
+        var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
+        var playerName = item.Player.Name.Replace(" ", "[nbsp]");
+        var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot 
+            ? $"[instant|You found your [c:blue|{itemName}]!][w:2]"
+            : $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
+
+        // Determine if text should replace dialogue or be queued for later.
+        var mapObject = GetMapvaniaObject(globalObjectId);
+        if (mapObject?.objectDefName == "moneyBag")
+        {
+            Global.State.Messages.Enqueue(text);
+        }
+        else
+        {
+            Global.State.DialogueText = text;
+            Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
         }
     }
-
-    public static long GlobalObjectIdToLocationId(string globalObjectId)
-    {
-        var locationName = GlobalState.GlobalObjectIdToLocationName[globalObjectId];
-        var game = SaveState.Session.ConnectionInfo.Game;
-        return SaveState.Session.Locations.GetLocationIdFromName(game, locationName);
-    }
-
-    public static string LocationIdToGlobalObjectId(long locationId)
-    {
-        var locationName = SaveState.Session.Locations.GetLocationNameFromId(locationId);
-        return GlobalState.LocationNameToGlobalObjectId[locationName];
-    }
 }
+
+class State
+{
+    public ArchipelagoSession Session = null;
+    public Dictionary<string, object> SlotData = null;
+    public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
+
+    public Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
+
+    public bool SaveFileLoaded = false;
+    public bool ReplaceMoneyBagSprite = false;
+
+    public string DialogueText = null;
+    public Queue<string> Messages = new();
+    public bool ShowRemainingDialogue = true;
+}
+

@@ -12,7 +12,7 @@ public static class CorePatches
     [HarmonyPostfix]
     public static void DirectorInitPatch(Director __instance)
     {
-        GlobalState.Director = __instance;
+        Global.Director = __instance;
     }
 
     /// <summary>
@@ -24,13 +24,14 @@ public static class CorePatches
     {
         // Reload project to reset Mapvania objects.
         // This crashes the game if called twice before loading, but it shouldn't happen here.
-        GlobalState.Director.LoadProject();
+        Global.Director.LoadProject();
 
         // If record exists, we're loading from existing save file.
-        var savefileRecord = GlobalState.Director.savefileRecords[savefileIndex];
+        var savefileRecord = Global.Director.savefileRecords[savefileIndex];
         if (savefileRecord != null)
         {
-            ArchipelagoHelper.InitialHandler();
+            Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
+            ArchipelagoHelper.HandleInitial();
             return;
         }
 
@@ -43,10 +44,10 @@ public static class CorePatches
                 var record = Game.DeserializeRecord(scenario.serializedRecord);
                 record.flags[Game.FLAG_ABILITY_THROW] = 0;  // Remove Offstring Throw (obtained in Abandoned Tunnels).
                 record.flags[Constants.FLAG_ARCHIPELAGO] = 1;  // Mark as an Archipelago save.
-                GlobalState.Director.InitFromRecord(record);
+                Global.Director.InitFromRecord(record);
 
-                SaveState.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
-                ArchipelagoHelper.InitialHandler();
+                Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
+                ArchipelagoHelper.HandleInitial();
             }
         }
     }
@@ -58,17 +59,13 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
     {
-        // Check if item could to be swapped (excluding taxi phones).
-        var objLocationName = GlobalState.GlobalObjectIdToLocationName.GetValueOrDefault(mapObj.globalObjectId.AsString);
-        if (objLocationName == null || objLocationName.ToLower().Contains("taxi"))
+        // Don't replace taxi phones or money bags.
+        if (mapObj.objectDefName == "taxiPhone" || mapObj.objectDefName == "moneyBag")
         {
             return;
         }
 
-        // Check if item should actually be swapped.
-        var game = SaveState.Session.ConnectionInfo.Game;
-        var locationId = SaveState.Session.Locations.GetLocationIdFromName(game, objLocationName);
-        if (!SaveState.ScoutedLocations.ContainsKey(locationId))
+        if (!Utils.IsObjectIdActiveLocation(mapObj.globalObjectId.AsString))
         {
             return;
         }
@@ -77,9 +74,11 @@ public static class CorePatches
         mapObj.objectDefId = "lor313";
         mapObj.objectDefName = "bpContainer";
 
+        // Object id must be edited like this, instead of assigned directly for some reason.
         var globalObjectId = mapObj.globalObjectId;
         globalObjectId.objectId = Utils.IdToArchItemId(globalObjectId.objectId);
         mapObj.globalObjectId = globalObjectId;
+
         // TODO: Swap items with each other.
     }
 
@@ -98,14 +97,25 @@ public static class CorePatches
     }
 
     /// <summary>
+    /// Patch to handle post InitRoom().
+    /// </summary>
+    [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
+    [HarmonyPostfix]
+    public static void InitRoomPatch()
+    {
+        // Check if Director is null, since apparently this can run before the main menu appears.
+        // Ensure map pins are stored properly after being added/modified.
+        // This way, if a player returns to the safehouse, the map pins are still saved.
+        Global.Director?.PrepareCheckpoint(false);
+    }
+
+    /// <summary>
     /// Patch for handling physical Archipelago items (disguised as BP containers).
     /// </summary>
     [HarmonyPatch(typeof(Game), nameof(Game.SetBpContainerAcquired))]
     [HarmonyPrefix]
     public static bool HandlePhysicalArchItemPatch(string id, ref bool __result)
     {
-        // If this is an physical Archipelago item pretending to be a BP container,
-        // don't actually pick up the BP container.
         if (Utils.IsArchItemId(id))
         {
             var objectId = Utils.ArchItemIdToId(id);
@@ -176,19 +186,18 @@ public static class CorePatches
     /// <summary>
     /// Patch for goal state.
     /// </summary>
+
     [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
-    public class DirectorInitRoomPatch
+    [HarmonyPrefix]
+    public static void GoalPatch(string mapId, string roomId)
     {
-        public static void Prefix(string mapId, string roomId)
+        if (mapId == "city" && roomId == "ren4872")
         {
-            if (mapId == "city" && roomId == "ren4872")
-            {
-                Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
-                var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
-                SaveState.Messages.Enqueue(text);
-                SaveState.Session.SetClientState(
-                    Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
-            }
+            Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
+            var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
+            Global.State.Messages.Enqueue(text);
+            Global.State.Session.SetClientState(
+                Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
         }
     }
 }
