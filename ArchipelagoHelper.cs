@@ -2,7 +2,6 @@
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
-using Il2Cpp;
 using Il2CppPipistrello;
 using Il2CppSystem.Linq;
 using Il2CppUtil;
@@ -138,12 +137,13 @@ public static class ArchipelagoHelper
                     mapPins.Remove(moneyBagMapPin);
                 }
 
-                // Attempt to destroy object if it is instantiated.
+                // Destroy object if it is instantiated.
                 var moneyBag = Utils.GetObject<ObjectMoneyBag>(mapObject);
                 if (moneyBag != null)
                 {
                     director.DestroyObject(moneyBag);
                 }
+
                 continue;
             }
 
@@ -164,10 +164,14 @@ public static class ArchipelagoHelper
                 mapPins.Remove(mapPin);
             }
 
-            // Attempt to destroy object if it is instantiated.
+            // Destroy object if it is instantiated and not being held by the player.
             mapObject = Utils.GetMapvaniaObject(archObjectId);
             var archItem = Utils.GetObject<ObjectBpContainer>(mapObject);
-            if (archItem != null)
+            var playerAcquiringState = Global.Director.player.state == ObjectPlayer.State.AcquiringItem
+                || Global.Director.player.state == ObjectPlayer.State.AcquiringMegaBattery;
+            MelonLogger.Msg(playerAcquiringState);
+            // TODO: Figure out more robust condition to determine if arch item is being acquired right now.
+            if (archItem != null && !playerAcquiringState)
             {
                 director.DestroyObject(archItem);
             }
