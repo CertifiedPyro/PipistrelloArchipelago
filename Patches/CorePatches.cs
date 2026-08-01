@@ -31,7 +31,7 @@ public static class CorePatches
         if (savefileRecord != null)
         {
             Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
-            ArchipelagoHelper.InitialHandler();
+            ArchipelagoHelper.HandleInitial();
             return;
         }
 
@@ -47,7 +47,7 @@ public static class CorePatches
                 Global.Director.InitFromRecord(record);
 
                 Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
-                ArchipelagoHelper.InitialHandler();
+                ArchipelagoHelper.HandleInitial();
             }
         }
     }

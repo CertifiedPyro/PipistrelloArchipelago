@@ -31,6 +31,12 @@ public static class ArchipelagoHelper
         { "Mega-Battery 3", Game.FLAG_MEGABATTERY3 },
         { "Mega-Battery 4", Game.FLAG_MEGABATTERY4 },
     };
+    private static readonly Dictionary<string, Game.Upgrade> _itemToUpgrade = Game.upgrades
+        .ToArray()
+        .ToDictionary(u => Localization.Get($"upgrade_name_{u.id}", lang: "en_US"));
+    private static readonly Dictionary<string, Game.Equip> _itemToEquip = Game.equips
+        .ToArray()
+        .ToDictionary(e => Localization.Get($"equip_name_{e.id}", lang: "en_US"));
 
     /// <summary>
     /// Handle connection to Archipelago server.
@@ -222,7 +228,7 @@ public static class ArchipelagoHelper
     /// Handle the received items packet that's received after connection.
     /// This method must be called after a save file has been selected already.
     /// </summary>
-    public static void InitialHandler()
+    public static void HandleInitial()
     {
         try
         {
@@ -235,6 +241,7 @@ public static class ArchipelagoHelper
             var index = itemsHelper.Index;
             var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
             Melon<PipArchMod>.Logger.Msg($"Current index: {index} | Stored index: {lastIndex}");
+
             var i = 0;
             while (itemsHelper.Any() && ++i <= index)
             {
@@ -342,41 +349,10 @@ public static class ArchipelagoHelper
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
 
-            var itemToUpgrade = Game.upgrades
-                .ToArray()
-                .ToDictionary(u => Localization.Get($"upgrade_name_{u.id}", lang: "en_US"));
-            var itemToEquip = Game.equips
-                .ToArray()
-                .ToDictionary(e => Localization.Get($"equip_name_{e.id}", lang: "en_US"));
-
             if (_itemToFlag.ContainsKey(itemName))
             {
                 director.SetFlagBool(_itemToFlag[itemName], true);
                 Melon<PipArchMod>.Logger.Msg($"Set flag: {_itemToFlag[itemName]}");
-            }
-            else if (itemToUpgrade.ContainsKey(itemName))
-            {
-                var upgrade = itemToUpgrade[itemName];
-                Game.SetUpgradeAcquired(director, upgrade, true);
-                Melon<PipArchMod>.Logger.Msg("Added upgrade");
-            }
-            else if (itemToEquip.Any((pair) => itemName.Contains(pair.Key)))
-            {
-                Game.equips.ToArray().ToDictionary(e => Localization.Get(e.id, lang: "en_US"));
-                var equip = itemToEquip.FirstOrDefault(
-                    (pair) => itemName.Contains(pair.Key)).Value;
-                var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
-                if (!equipAcquired)
-                {
-                    Game.SetEquipAcquired(director, equip, true, true);
-                    Melon<PipArchMod>.Logger.Msg("Added equip");
-                }
-                else
-                {
-                    Game.SetEquipRefined(director, equip, true);
-                    Melon<PipArchMod>.Logger.Msg("Refined equip");
-                }
-
             }
             else if (itemName.Contains("Petal Container"))
             {
@@ -397,10 +373,34 @@ public static class ArchipelagoHelper
                 Global.Director.CollectCoin(money);
                 Melon<PipArchMod>.Logger.Msg("Added $" + money);
             }
+            else if (_itemToUpgrade.TryGetValue(itemName, out var upgrade))
+            {
+                Game.SetUpgradeAcquired(director, upgrade, true);
+                Melon<PipArchMod>.Logger.Msg("Added upgrade");
+            }
             else
             {
-                result = false;
-                Melon<PipArchMod>.Logger.Error($"Could not handle item: {itemName}");
+                var equipMatch = _itemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key));
+                if (equipMatch.Key != null)
+                {
+                    var equip = equipMatch.Value;
+                    var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
+                    if (!equipAcquired)
+                    {
+                        Game.SetEquipAcquired(director, equip, true, true);
+                        Melon<PipArchMod>.Logger.Msg("Added equip");
+                    }
+                    else
+                    {
+                        Game.SetEquipRefined(director, equip, true);
+                        Melon<PipArchMod>.Logger.Msg("Refined equip");
+                    }
+                }
+                else
+                {
+                    result = false;
+                    Melon<PipArchMod>.Logger.Error($"Could not handle item: {itemName}");
+                }
             }
 
             if (result && item.Player.Slot != Global.State.Session.ConnectionInfo.Slot)
