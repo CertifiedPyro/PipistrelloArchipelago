@@ -104,12 +104,9 @@ public static class CorePatches
     public static void InitRoomPatch()
     {
         // Check if Director is null, since apparently this can run before the main menu appears.
-        if (Global.Director != null)
-        {
-            // To ensure map pins are stored properly after being added/modified, prepare a checkpoint.
-            // This way, if a player returns to the safehouse, the map pins are still saved.
-            Global.Director.PrepareCheckpoint(false);
-        }
+        // Ensure map pins are stored properly after being added/modified.
+        // This way, if a player returns to the safehouse, the map pins are still saved.
+        Global.Director?.PrepareCheckpoint(false);
     }
 
     /// <summary>
@@ -189,19 +186,18 @@ public static class CorePatches
     /// <summary>
     /// Patch for goal state.
     /// </summary>
+
     [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
-    public class DirectorInitRoomPatch
+    [HarmonyPrefix]
+    public static void GoalPatch(string mapId, string roomId)
     {
-        public static void Prefix(string mapId, string roomId)
+        if (mapId == "city" && roomId == "ren4872")
         {
-            if (mapId == "city" && roomId == "ren4872")
-            {
-                Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
-                var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
-                Global.State.Messages.Enqueue(text);
-                Global.State.Session.SetClientState(
-                    Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
-            }
+            Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
+            var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
+            Global.State.Messages.Enqueue(text);
+            Global.State.Session.SetClientState(
+                Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
         }
     }
 }
