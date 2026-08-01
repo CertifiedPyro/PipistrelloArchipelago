@@ -27,20 +27,14 @@ public class PipArchMod : MelonMod
         try
         {
             var file = "object_id_mapping.json";
-            var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}");
-            if (data != null)
-            {
-                Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
-                Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
-            }
-            else
-            {
-                Melon<PipArchMod>.Logger.Error($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
-            }
+            var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}") 
+                ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
+            Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
+            Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
         }
         catch (Exception e)
         {
-            Melon<PipArchMod>.Logger.Error($"Failed to read object id mapping: {e.Message}");
+            Melon<PipArchMod>.Logger.BigError($"Failed to read object id mapping: {e.Message}");
         }
     }
 
@@ -58,21 +52,15 @@ public class PipArchMod : MelonMod
             foreach (var (path, file) in filesToPaths)
             {
                 var fullPath = Path.Combine(path, file);
-                var data = LoadBytesFromResource($"PipistrelloArchipelago.Images.{file}");
-                if (data != null)
-                {
-                    File.WriteAllBytes(fullPath, data);
-                    Melon<PipArchMod>.Logger.Msg($"Archipelago sprite deployed to: {fullPath}");
-                }
-                else
-                {
-                    Melon<PipArchMod>.Logger.Error($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
-                }
+                var data = LoadBytesFromResource($"PipistrelloArchipelago.Images.{file}")
+                    ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
+                File.WriteAllBytes(fullPath, data);
+                Melon<PipArchMod>.Logger.Msg($"Archipelago sprite deployed to: {fullPath}");
             }
         }
         catch (Exception e)
         {
-            Melon<PipArchMod>.Logger.Error($"Failed to export sprite: {e.Message}");
+            Melon<PipArchMod>.Logger.Error($"Failed to export Archipelago sprite: {e.Message}");
         }
     }
 
