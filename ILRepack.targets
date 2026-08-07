@@ -1,0 +1,20 @@
+﻿<Project>
+  <Target Name="ILRepacker" AfterTargets="Build">
+    <ItemGroup>
+      <InputAssemblies Include="$(TargetPath)" />
+      <InputAssemblies Include="$(TargetDir)Archipelago.MultiClient.Net.dll" />
+
+      <!-- Folders ILRepack searches to RESOLVE (not merge) references like UnityEngine.CoreModule -->
+      <LibraryPath Include="$(TargetDir)" />
+    </ItemGroup>
+
+    <ILRepack
+        Parallel="true"
+        Internalize="true"
+        InputAssemblies="@(InputAssemblies)"
+        TargetKind="SameAsPrimaryAssembly"
+        LibraryPath="@(LibraryPath)"
+        OutputFile="$(TargetPath)"
+    />
+  </Target>
+</Project>

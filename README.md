@@ -111,3 +111,4 @@ The item is instantly granted to you, and a message appears on the bottom of the
 
 ## Credits
 - Scipio for the Archipelago sprites used in-game
+- CrusherRL for how to bundle `Archipelago.MultiClient.Net.dll` with the mod
