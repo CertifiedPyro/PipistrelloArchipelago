@@ -100,7 +100,6 @@ public static class CorePatches
     {
         if (Utils.IsArchItemId(__result?.globalObjectId?.objectId))
         {
-            // Replace sprite.
             __result.spriteName = Constants.ArchMediumSpriteName;
         }
     }
@@ -113,7 +112,7 @@ public static class CorePatches
     public static void InitRoomPatch()
     {
         // Check if Director is null, since apparently this can run before the main menu appears.
-        // Normally, PrepareCheckpoint() runs before ProcessObjects().
+        // Normally, PrepareCheckpoint() runs before ProcessObjects() within Director.InitRoom().
         // However, since we're adding map pins to money bags in ProcessObjects(), we need to save those map pins.
         // This way, if a player returns to the safehouse, the map pins are still saved.
         Global.Director?.PrepareCheckpoint(false);
