@@ -9,7 +9,7 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 public static class InstructionPanelPatch
 {
-    private const long TextShowTimeMs = 3000;
+    private const long TextShowTimeMs = 2500;
     private const long TextCooldownTimeMs = 250;
     private const long IdleStateMs = 750;
 
@@ -95,9 +95,11 @@ public static class InstructionPanelPatch
             return;
         }
 
-        var text = Global.State.Messages.Dequeue();
-        TextShowStartMs = currentTime;
-        __instance.SetInstruction(text, true);
+        if (Global.State.Messages.TryDequeue(out var text))
+        {
+            TextShowStartMs = currentTime;
+            __instance.SetInstruction(text, true);
+        }
     }
 
     [HarmonyPatch(typeof(InstructionPanel), nameof(InstructionPanel.GetInstructionText))]
@@ -116,7 +118,7 @@ public static class InstructionPanelPatch
     private static bool CanShowTextDuringState(ObjectPlayer.State state)
     {
         // Show text if player is not in cutscene, not in menu, and not in dialogue.
-        return !InvalidStates.Contains(state) 
+        return !InvalidStates.Contains(state)
             && Global.Director.uiDialog == null
             && Global.Director.dialoguePanel?.IsOver() != false;
     }

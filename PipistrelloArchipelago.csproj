@@ -320,4 +320,12 @@
 	<Target Name="PostBuild" AfterTargets="ILRepacker">
 		<Exec Command="COPY &quot;$(TargetPath)&quot; &quot;C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\Mods&quot;" />
 	</Target>
+	
+	<ItemGroup>
+	  <EditorConfigFiles Remove="C:\Users\dwang\Documents\git\PipistrelloArchipelago\.editorconfig" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <None Include="C:\Users\dwang\Documents\git\PipistrelloArchipelago\.editorconfig" />
+	</ItemGroup>
 </Project>

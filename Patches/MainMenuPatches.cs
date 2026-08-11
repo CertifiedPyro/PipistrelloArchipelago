@@ -13,6 +13,13 @@ public static class MainMenuPatches
     private static UILabel _connectionStatus = null;
     private static UIButton _loadGameButton = null;
 
+    [HarmonyPatch(typeof(Director), nameof(Director.QuitToTitleScreen))]
+    [HarmonyPrefix]
+    public static void QuitToTitleScreenPatch()
+    {
+        Global.State.SaveFileLoaded = false;
+    }
+
     /// <summary>
     /// Add extra buttons/labels to main menu for Archipelago connections.
     /// </summary>
@@ -21,6 +28,7 @@ public static class MainMenuPatches
     public static void MainMenuPatch(UIDialog __result)
     {
         // Force reconnection every time main menu is reached.
+        Global.State.SaveFileLoaded = false;
         ArchipelagoSession session = null;
 
         var elements = __result.rootElement.subElements;

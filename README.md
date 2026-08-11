@@ -14,8 +14,8 @@
 ### Prerequisites
 1. Run the MelonLoader installer, select "Pipistrello and the Cursed Yoyo", and click "Install".
 2. If you're running Linux:
-   1. Export the following environment variable: `WINEDLLOVERRIDES="version=n,b"`
-   2. On Steam, you can set the launch options to: `WINEDLLOVERRIDES="version=n,b" %command%`
+    1. Export the following environment variable: `WINEDLLOVERRIDES="version=n,b"`
+    2. On Steam, you can set the launch options to: `WINEDLLOVERRIDES="version=n,b" %command%`
 3. Launch the game to create the required mod folders.
 4. Navigate to your game's installation installation folder.
     1. You can find this in Steam by right-clicking > Manage > Browse Local Files.
@@ -25,14 +25,13 @@
 
 ### Archipelago mod
 
-1. Download `PipistrelloArchipelago.zip` from the latest release.
-2. Extract the .zip file's contents directly into the game's installation folder.
-    1. Make sure `PipistrelloArchipelago.dll` is in `Mods/` and `Archipelago.MultiClient.Net.dll` is in `UserLibs/`.
-3. Launch the game, and you should see a Connect button on the main menu.
+1. Download `PipistrelloArchipelago.dll` from the latest release.
+2. Place the dll file into the `Mods/` folder under the game's installation folder.
+3. Launch the game. The mod is installed correclty if a **Connect** button appears on the main menu.
 
 ### Archipelago tools
 
-1. Make sure Archipelago is installed.
+1. Make sure the Archipelago software is installed.
 2. Download `pipistrello.apworld` from the latest release.
 3. Double-click on `pipistrello.apworld`. Archipelago should install the apworld automatically.
 4. Open the Archipelago Launcher and run "Generate Template Options" to create the options template file.
@@ -45,26 +44,30 @@ Follow [the official instructions](https://archipelago.gg/tutorial/Archipelago/s
 ## Joining a multiworld game
 1. Start the game after installing all necessary mods.
 2. Press F5 to open MelonPreferencesManager and input your connection information.
+    1. Note: the password field is **not protected** and is fully visible.
 3. Press the **Connect** button in-game.
 4. Once connected, you can press **Load Game**.
 5. Start with a *new* save file. The game will stall for a few seconds before loading.
-6. You should now be starting in South Plaza!
+6. You should now be loaded directly into South Plaza!
 
 ## Hints and trackers
 
-If you need to interact with the server, you can use the Archipelago Text Client. There is no visual tracker yet, so
-please use Universal Tracker for now.
+There is no visual tracker yet, so please use Universal Tracker for now. In Universal Tracker. locations are sorted by
+area (in logical order).
+
+# Gameplay info
 
 ## What does randomization do to this game?
 
-Currently, the randomizer is in early alpha, so only the South Plaza is randomized.
+The randomizer is still in early alpha, so only South Plaza and Faria (excluding the mini-dungeon and dungeon)
+are randomized.
 Most items and rewards are randomized and replaced with location checks.
 
-The upgrade tree and badge refinements *are not* currently randomized.
+The goal of the randomizer is to reach the North Plaa.
 
 ## What items get shuffled?
 
-By default, the following items are shuffled:
+By default, the following items are in the item pool:
 - Abilities
 - Badges
   - Badges are progressive. The first item will be the base badge, and the second item will be the refined badge.
@@ -72,38 +75,36 @@ By default, the following items are shuffled:
 - Charged moves
 - Petal containers
 - Special moves
+- Special progression items (e.g. Staff ID for Faria dungeon)
 - Upgrades
 
 Money bags are given as filler items.
-
-Due to the small location pool in South Plaza, there are no upgrades in the item pool.
-There may also be no charged moves if only the basic checks are enabled.
 
 ## What locations get shuffled?
 
 By default, the following locations are enabled:
 - Badges
-- BP Shards
-- Combats (required)
-- Musical Notes
-- Petal containers
-- Quests (burger, etc.)
-- Taxi phones unlock
-
-Additionally, the following locations can be optionally included:
-- Combats (optional)
-- Money bags (standalone)
-  - Money bags from combats/quests/etc are always enabled as locations
-
-The following locations are **not** enabled:
+- BP shards
+- Combat rewards (required)
 - Diamonds
-  - Excluded because turn-in is in 2nd half of the game
+- Musical notes rewards
+- Petal containers
+- Quest rewards
+- Taxi phone unlocks
+
+Additionally, the following options can be enabled:
+
+- Moneysanity - Adds standalone money bags and money bags from optional combat encounters as checks
+  - Note: Money bags from combats/quests/etc are always enabled as locations, regardless of this setting
+
+The upgrade tree and badge refinements *are not* currently randomized.
 
 ## What does another world's item look like in Pipistrello and the Cursed Yoyo?
 
-Items from other worlds show up as an Archipelago sprite in the game world.
-An Archipelago sprite is also shown on the map.
-When you collect another world's item, you'll get a message showing the item name and recipient.
+Items from other worlds show up as Archipelago sprites in the game world, with corresponding Archipelago icons for map
+pins. If the location was originally a money bag, the Archipelago sprite will be green instead.
+
+When you collect another world's item, you will get a message showing the item name and recipient.
 
 ## When the player receives an item, what happens?
 
@@ -111,4 +112,4 @@ The item is instantly granted to you, and a message appears on the bottom of the
 
 ## Credits
 - Scipio for the Archipelago sprites used in-game
-- CrusherRL for how to bundle `Archipelago.MultiClient.Net.dll` with the mod
+- CrusherRL for inspiration on how to bundle `Archipelago.MultiClient.Net.dll` with the mod

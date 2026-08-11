@@ -3,6 +3,7 @@ using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
+using System.Collections.Concurrent;
 
 namespace PipistrelloArchipelago;
 
@@ -68,6 +69,7 @@ static class Utils
 
     public static bool IsObjectIdActiveLocation(string globalObjectId)
     {
+        // Check cache before checking scouted locations.
         if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) && !existingValue)
         {
             return false;
@@ -84,6 +86,8 @@ static class Utils
         var game = Global.State.Session.ConnectionInfo.Game;
         var locationId = Global.State.Session.Locations.GetLocationIdFromName(game, objLocationName);
         var active = Global.State.ScoutedLocations.ContainsKey(locationId);
+
+        // Cache lookup for future queries.
         Global.State.IsObjectIdActiveLocationCache[globalObjectId] = active;
         return active;
     }
@@ -114,8 +118,17 @@ static class Utils
         // Send location check to Archipelago.
         var locationId = ObjectIdToLocationId(globalObjectId);
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
+
+        // Duplicate locations should never happen, but this is here just to be safe.
+        if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
+        {
+            Melon<PipArchMod>.Logger.Warning($"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
+            return;
+        }
+
         try
         {
+            Global.State.LocalCheckedLocations.TryAdd(locationId, 1);
             Global.State.Session.Locations.CompleteLocationChecks([locationId]);
         }
         catch (ArchipelagoSocketClosedException ex)
@@ -128,7 +141,7 @@ static class Utils
         var item = Global.State.ScoutedLocations[locationId];
         var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
         var playerName = item.Player.Name.Replace(" ", "[nbsp]");
-        var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot 
+        var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot
             ? $"[instant|You found your [c:blue|{itemName}]!][w:2]"
             : $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
 
@@ -153,12 +166,13 @@ class State
     public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
 
     public Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
+    public ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
 
     public bool SaveFileLoaded = false;
     public bool ReplaceMoneyBagSprite = false;
 
     public string DialogueText = null;
-    public Queue<string> Messages = new();
     public bool ShowRemainingDialogue = true;
+    public ConcurrentQueue<string> Messages = new();
 }
 

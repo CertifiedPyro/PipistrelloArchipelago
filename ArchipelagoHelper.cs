@@ -1,6 +1,5 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Exceptions;
-using Archipelago.MultiClient.Net.Helpers;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using Il2CppSystem.Linq;
@@ -37,6 +36,7 @@ public static class ArchipelagoHelper
     private static readonly Dictionary<string, Game.Equip> _itemToEquip = Game.equips
         .ToArray()
         .ToDictionary(e => Localization.Get($"equip_name_{e.id}", lang: "en_US"));
+    private static bool _isItemHandlerEnabled = false;
 
     /// <summary>
     /// Handle connection to Archipelago server.
@@ -46,8 +46,7 @@ public static class ArchipelagoHelper
     {
         if (Global.State.Session != null)
         {
-            Global.State.Session.Locations.CheckedLocationsUpdated -= CheckedLocationsHandler;
-            Global.State.Session.Items.ItemReceived -= ItemReceivedHandler;
+            Global.State.Session.Locations.CheckedLocationsUpdated -= HandleCheckedLocations;
             if (Global.State.Session.Socket.Connected)
             {
                 await Global.State.Session.Socket.DisconnectAsync();
@@ -59,8 +58,7 @@ public static class ArchipelagoHelper
         var host = ModSettings.Host.Value;
         var port = ModSettings.Port.Value;
         var session = ArchipelagoSessionFactory.CreateSession(host, port);
-        session.Locations.CheckedLocationsUpdated += CheckedLocationsHandler;
-        session.Items.ItemReceived += ItemReceivedHandler;
+        session.Locations.CheckedLocationsUpdated += HandleCheckedLocations;
         Global.State.Session = session;
 
         LoginResult result;
@@ -83,6 +81,11 @@ public static class ArchipelagoHelper
             Global.State.SlotData = loginSuccess.SlotData;
             Global.State.ScoutedLocations = await session.Locations.ScoutLocationsAsync(
                 [.. session.Locations.AllLocations]);
+            if (!_isItemHandlerEnabled)
+            {
+                HandleReceivedItemsAsync();
+            }
+
             return true;
         }
         else
@@ -102,21 +105,22 @@ public static class ArchipelagoHelper
     /// Handle checked locations.
     /// </summary>
     /// <param name="newCheckedLocations">The list of location ids checked.</param>
-    public static void CheckedLocationsHandler(ReadOnlyCollection<long> newCheckedLocations)
+    public static void HandleCheckedLocations(ReadOnlyCollection<long> newCheckedLocations)
     {
-        // Ignore if save file isn't selected yet.
-        var director = Global.Director;
-        if (director.selectedSavefileIndex == -1)
+        if (!Global.State.SaveFileLoaded)
         {
             return;
         }
 
+        var director = Global.Director;
         foreach (var locationId in newCheckedLocations)
         {
             var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
             var objectId = Utils.LocationIdToObjectId(locationId);
             var mapObject = Utils.GetMapvaniaObject(objectId);
-            var mapPins = director.playerRecord.mapPins;
+            // We remove from playerRecord.mapPins so that Minimap.RefreshPins() sees the pin removed.
+            // We remove from playerPendingCheckpoint.mapPins so that the removed map pin is eventually saved.
+            var mapPinsList = new[] { director.playerRecord.mapPins, director.playerPendingCheckpoint.mapPins };
             Melon<PipArchMod>.Logger.Msg($"Location checked: {locationName}, {objectId}, {mapObject?.objectDefName}");
 
             if (mapObject?.objectDefName == "taxiPhone")
@@ -137,10 +141,13 @@ public static class ArchipelagoHelper
 
                 // Remove the map pin.
                 // We must check if the resulting map pin is null, or the game can crash.
-                var moneyBagMapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == objectId);
-                if (moneyBagMapPin != null)
+                foreach (var mapPins in mapPinsList)
                 {
-                    mapPins.Remove(moneyBagMapPin);
+                    var moneyBagMapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == objectId);
+                    if (moneyBagMapPin != null)
+                    {
+                        mapPins.Remove(moneyBagMapPin);
+                    }
                 }
 
                 // Destroy object if it is instantiated.
@@ -164,17 +171,20 @@ public static class ArchipelagoHelper
 
             // Remove map pin.
             // We must check if the resulting map pin is null, or the game can crash.
-            var mapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == archObjectId);
-            if (mapPin != null)
+            foreach (var mapPins in mapPinsList)
             {
-                mapPins.Remove(mapPin);
+                var archMapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == archObjectId);
+                if (archMapPin != null)
+                {
+                    mapPins.Remove(archMapPin);
+                }
             }
 
             // Destroy object if it is instantiated and not being held by the player.
             mapObject = Utils.GetMapvaniaObject(archObjectId);
             var archItem = Utils.GetObject<ObjectBpContainer>(mapObject);
-            var playerAcquiringState = Global.Director.player.state == ObjectPlayer.State.AcquiringItem
-                || Global.Director.player.state == ObjectPlayer.State.AcquiringMegaBattery;
+            var playerAcquiringState = director.player.state == ObjectPlayer.State.AcquiringItem
+                || director.player.state == ObjectPlayer.State.AcquiringMegaBattery;
             // TODO: Figure out more robust condition to determine if arch item is being acquired right now.
             if (archItem != null && !playerAcquiringState)
             {
@@ -182,91 +192,88 @@ public static class ArchipelagoHelper
             }
         }
 
-        // Ensure map pin changes are saved.
-        Global.Director.PrepareCheckpoint(false);
+        // Ensure map pin changes are queued for a save.
+        director.PrepareCheckpoint(false);
     }
 
     /// <summary>
-    /// The received item event listener.
+    /// The received item event loop.
     /// </summary>
-    public static void ItemReceivedHandler(ReceivedItemsHelper helper)
+    public static async Task HandleReceivedItemsAsync()
     {
+        _isItemHandlerEnabled = true;
+        var director = Global.Director;
         try
         {
-            var director = Global.Director;
-            if (director.selectedSavefileIndex != -1)
+            while (true)
             {
-                // If a save file is selected, handle item normally.
-                var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
-                if (helper.Index == lastIndex + 1)
+                if (Global.State.SaveFileLoaded)
                 {
-                    var result = HandleItem(helper.PeekItem());
-                    if (result)
+                    var helper = Global.State.Session.Items;
+                    var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
+                    if (lastIndex > helper.AllItemsReceived.Count)
                     {
-                        director.SetFlag(Constants.FLAG_LAST_ITEM_INDEX, lastIndex + 1);
-                        helper.DequeueItem();
-                    }
-                }
-                else
-                {
-                    Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
-                    Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
+                        Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
+                        Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
 
-                    var text = $"[instant|[c:red|Network error - Please reconnect.]][w:2]";
-                    Global.State.Messages.Enqueue(text);
+                        var text = $"[instant|[c:red|Network error - Please reconnect.]][w:2]";
+                        Global.State.Messages.Enqueue(text);
+                        return;
+                    }
+
+                    while (lastIndex < helper.AllItemsReceived.Count)
+                    {
+                        var item = helper.AllItemsReceived[lastIndex];
+                        var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
+                        var result = HandleItem(item, queueMessage: !isLocalLocation);
+                        if (result)
+                        {
+                            lastIndex++;
+                            director.SetFlag(Constants.FLAG_LAST_ITEM_INDEX, lastIndex);
+                            director.PrepareCheckpoint(false);
+                        }
+                        else
+                        {
+                            var text = $"[instant|[c:red|Error - Cannot handle item: {item.ItemDisplayName}.]][w:2]";
+                            Global.State.Messages.Enqueue(text);
+                            return;
+                        }
+                    }
+
+                    // Dequeue all items.
+                    while (helper.DequeueItem() != null) { }
                 }
+
+                await Task.Delay(1000);
             }
         }
         catch (Exception ex)
         {
             Melon<PipArchMod>.Logger.Error($"Exception receiving item: {ex}");
         }
+        finally
+        {
+            _isItemHandlerEnabled = false;
+        }
     }
 
     /// <summary>
-    /// Handle the received items packet that's received after connection.
+    /// Handle Archipelago items and locations after connection.
     /// This method must be called after a save file has been selected already.
     /// </summary>
     public static void HandleInitial()
     {
         try
         {
-            // Handle initial received items.
-            // Archipelago sends every received item on connection.
-            // Note: this assumes that player must reconnect every time from main menu.
-            Melon<PipArchMod>.Logger.Msg("Handling initial received items...");
+            // Set SaveFileLoaded at the start, so HandleCheckedLocations() will run as expected.
+            Global.State.SaveFileLoaded = true;
             var director = Global.Director;
-            var itemsHelper = Global.State.Session.Items;
-            var index = itemsHelper.Index;
-            var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
-            Melon<PipArchMod>.Logger.Msg($"Current index: {index} | Stored index: {lastIndex}");
-
-            var i = 0;
-            while (itemsHelper.Any() && ++i <= index)
-            {
-                if (i <= lastIndex)
-                {
-                    itemsHelper.DequeueItem();
-                    continue;
-                }
-
-                var result = HandleItem(itemsHelper.PeekItem());
-                if (result)
-                {
-                    director.SetFlag(Constants.FLAG_LAST_ITEM_INDEX, i);
-                    itemsHelper.DequeueItem();
-                }
-                else
-                {
-                    break;
-                }
-            }
 
             // Handle remote-checked locations.
             // Archipelago sends every checked location on connection.
             Melon<PipArchMod>.Logger.Msg("Handling remote checked locations...");
             var locationsHelper = Global.State.Session.Locations;
-            CheckedLocationsHandler(locationsHelper.AllLocationsChecked);
+            HandleCheckedLocations(locationsHelper.AllLocationsChecked);
 
             // Handle missed local-checked locations.
             Melon<PipArchMod>.Logger.Msg("Handling local checked locations...");
@@ -314,8 +321,7 @@ public static class ArchipelagoHelper
 
             if (missedLocalLocations.Count > 0)
             {
-                Melon<PipArchMod>.Logger.Msg(
-                    $"Found unsent location check ids: {string.Join(',', missedLocalLocations)}");
+                Melon<PipArchMod>.Logger.Msg($"Found unsent location check ids: {string.Join(',', missedLocalLocations)}");
                 try
                 {
                     locationsHelper.CompleteLocationChecks([.. missedLocalLocations]);
@@ -326,7 +332,8 @@ public static class ArchipelagoHelper
                 }
             }
 
-            Global.State.SaveFileLoaded = true;
+            // Prepare checkpoint to ensure any missing items or locations will be saved.
+            director.PrepareCheckpoint(false);
         }
         catch (Exception ex)
         {
@@ -338,13 +345,15 @@ public static class ArchipelagoHelper
     /// Handles a received item from Archipelago.
     /// </summary>
     /// <param name="item">The received item.</param>
+    /// <param name="queueMessage">Whether to always queue a message.</param>
     /// <returns>true if the item was handled successfully, false otherwise.</returns>
-    private static bool HandleItem(ItemInfo item)
+    private static bool HandleItem(ItemInfo item, bool queueMessage = false)
     {
         try
         {
-            var director = Global.Director;
             var itemName = item.ItemName;
+            var director = Global.Director;
+            var followingObjects = director.player.followingObjects.ToArray();
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
 
@@ -353,19 +362,19 @@ public static class ArchipelagoHelper
                 director.SetFlagBool(_itemToFlag[itemName], true);
                 Melon<PipArchMod>.Logger.Msg($"Set flag: {_itemToFlag[itemName]}");
             }
-            else if (itemName.Contains("Petal Container"))
+            else if (itemName == "Petal Container")
             {
                 Game.SetPetalContainerAcquired(director, "filler_pc", 1, true);
                 Game.SetPetalContainerAcquired(director, "filler_pc", 0, false);
                 Melon<PipArchMod>.Logger.Msg("Added petal container");
             }
-            else if (itemName.Contains("BP Shard"))
+            else if (itemName == "BP Shard")
             {
                 Game.SetBpContainerAcquired(director, "filler_bp", 1, true);
                 Game.SetBpContainerAcquired(director, "filler_bp", 0, false);
                 Melon<PipArchMod>.Logger.Msg("Added BP shard");
             }
-            else if (itemName.Contains('$') 
+            else if (itemName.Contains('$')
                 && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
             {
                 // CollectCoin properly handles debts.
@@ -377,32 +386,41 @@ public static class ArchipelagoHelper
                 Game.SetUpgradeAcquired(director, upgrade, true);
                 Melon<PipArchMod>.Logger.Msg("Added upgrade");
             }
-            else
+            else if (_itemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key)) is var equipMatch && equipMatch.Key != null)
             {
-                var equipMatch = _itemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key));
-                if (equipMatch.Key != null)
+                var equip = equipMatch.Value;
+                var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
+                if (!equipAcquired)
                 {
-                    var equip = equipMatch.Value;
-                    var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
-                    if (!equipAcquired)
-                    {
-                        Game.SetEquipAcquired(director, equip, true, true);
-                        Melon<PipArchMod>.Logger.Msg("Added equip");
-                    }
-                    else
-                    {
-                        Game.SetEquipRefined(director, equip, true);
-                        Melon<PipArchMod>.Logger.Msg("Refined equip");
-                    }
+                    Game.SetEquipAcquired(director, equip, true, true);
+                    Melon<PipArchMod>.Logger.Msg("Added equip");
                 }
                 else
                 {
-                    result = false;
-                    Melon<PipArchMod>.Logger.Error($"Could not handle item: {itemName}");
+                    Game.SetEquipRefined(director, equip, true);
+                    Melon<PipArchMod>.Logger.Msg("Refined equip");
                 }
             }
+            else if (itemName.Contains("Staff ID"))
+            {
+                var staffIdObject = Utils.GetMapvaniaObject("yugo3_dev/yug4006/yug4042");
+                // Check that the staff ID isn't already turned in for dungeon access or following the player.
+                if (!director.GetFlagBool($"{Game.GLOBAL_FLAG_PREFIX}fariaLimeDungeonAccess")
+                    && !followingObjects.Any(o => o.objectDefName == staffIdObject.objectDefName))
+                {
+                    // Use Staff ID from a dev map that we know won't be changed.
+                    // TODO: Find better way to add following object that activates immediately.
+                    director.playerRecord.followingObjectIds.Add(staffIdObject.globalObjectId);
+                    Melon<PipArchMod>.Logger.Msg("Added Staff ID to following objects");
+                }
+            }
+            else
+            {
+                result = false;
+                Melon<PipArchMod>.Logger.Error($"Could not handle item: {itemName}");
+            }
 
-            if (result && item.Player.Slot != Global.State.Session.ConnectionInfo.Slot)
+            if (result && queueMessage)
             {
                 var itemDisplayName = item.ItemDisplayName.Replace(" ", "[nbsp]");
                 var playerName = item.Player.Name.Replace(" ", "[nbsp]");
