@@ -54,7 +54,3 @@ TestResult.xml
 nunit-*.xml
 
 .vs/
-
-# Custom
-*.zip
-*.dll

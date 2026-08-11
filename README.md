@@ -111,5 +111,5 @@ When you collect another world's item, you will get a message showing the item n
 The item is instantly granted to you, and a message appears on the bottom of the screen showing the item name and sender.
 
 ## Credits
-- Scipio for the Archipelago sprites used in-game
-- CrusherRL for inspiration on how to bundle `Archipelago.MultiClient.Net.dll` with the mod
+- **Scipio** for the original Archipelago sprites used in-game
+- **CrusherRL** for inspiration on how to bundle `Archipelago.MultiClient.Net.dll` with the mod

@@ -39,7 +39,7 @@ public static class ArchipelagoHelper
     private static bool _isItemHandlerEnabled = false;
 
     /// <summary>
-    /// Handle connection to Archipelago server.
+    /// Handles the connection to the Archipelago server.
     /// </summary>
     /// <returns>true if the connection succeeded, false otherwise.</returns>
     public static async Task<bool> ConnectAsync()
@@ -53,13 +53,10 @@ public static class ArchipelagoHelper
             }
         }
 
-        Global.State = new();
-
         var host = ModSettings.Host.Value;
         var port = ModSettings.Port.Value;
         var session = ArchipelagoSessionFactory.CreateSession(host, port);
         session.Locations.CheckedLocationsUpdated += HandleCheckedLocations;
-        Global.State.Session = session;
 
         LoginResult result;
         try
@@ -78,12 +75,16 @@ public static class ArchipelagoHelper
 
         if (result is LoginSuccessful loginSuccess)
         {
-            Global.State.SlotData = loginSuccess.SlotData;
-            Global.State.ScoutedLocations = await session.Locations.ScoutLocationsAsync(
-                [.. session.Locations.AllLocations]);
+            Global.State = new()
+            {
+                Session = session,
+                SlotData = loginSuccess.SlotData,
+                ScoutedLocations = await session.Locations.ScoutLocationsAsync(
+                    [.. session.Locations.AllLocations])
+            };
             if (!_isItemHandlerEnabled)
             {
-                HandleReceivedItemsAsync();
+                _ = StartReceivedItemsLoop();
             }
 
             return true;
@@ -96,9 +97,9 @@ public static class ArchipelagoHelper
             {
                 Melon<PipArchMod>.Logger.Error(error);
             }
-        }
 
-        return false;
+            return false;
+        }
     }
 
     /// <summary>
@@ -118,8 +119,8 @@ public static class ArchipelagoHelper
             var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
             var objectId = Utils.LocationIdToObjectId(locationId);
             var mapObject = Utils.GetMapvaniaObject(objectId);
-            // We remove from playerRecord.mapPins so that Minimap.RefreshPins() sees the pin removed.
-            // We remove from playerPendingCheckpoint.mapPins so that the removed map pin is eventually saved.
+            // Remove from playerRecord.mapPins so that Minimap.RefreshPins() sees the pin removed.
+            // Remove from playerPendingCheckpoint.mapPins so that the removed map pin is eventually saved.
             var mapPinsList = new[] { director.playerRecord.mapPins, director.playerPendingCheckpoint.mapPins };
             Melon<PipArchMod>.Logger.Msg($"Location checked: {locationName}, {objectId}, {mapObject?.objectDefName}");
 
@@ -199,7 +200,7 @@ public static class ArchipelagoHelper
     /// <summary>
     /// The received item event loop.
     /// </summary>
-    public static async Task HandleReceivedItemsAsync()
+    public static async Task StartReceivedItemsLoop()
     {
         _isItemHandlerEnabled = true;
         var director = Global.Director;
@@ -207,44 +208,46 @@ public static class ArchipelagoHelper
         {
             while (true)
             {
-                if (Global.State.SaveFileLoaded)
-                {
-                    var helper = Global.State.Session.Items;
-                    var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
-                    if (lastIndex > helper.AllItemsReceived.Count)
-                    {
-                        Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
-                        Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
+                await Task.Delay(1000);
 
-                        var text = $"[instant|[c:red|Network error - Please reconnect.]][w:2]";
+                if (!Global.State.SaveFileLoaded)
+                {
+                    continue;
+                }
+
+                var helper = Global.State.Session.Items;
+                var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
+                if (lastIndex > helper.AllItemsReceived.Count)
+                {
+                    Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
+                    Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
+
+                    var text = $"[instant|[c:red|Network error - Please reconnect.]][w:2]";
+                    Global.State.Messages.Enqueue(text);
+                    return;
+                }
+
+                while (lastIndex < helper.AllItemsReceived.Count)
+                {
+                    var item = helper.AllItemsReceived[lastIndex];
+                    var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
+                    var result = HandleItem(item, queueMessage: !isLocalLocation);
+                    if (result)
+                    {
+                        lastIndex++;
+                        director.SetFlag(Constants.FLAG_LAST_ITEM_INDEX, lastIndex);
+                        director.PrepareCheckpoint(false);
+                    }
+                    else
+                    {
+                        var text = $"[instant|[c:red|Error - Cannot handle item: {item.ItemDisplayName}.]][w:2]";
                         Global.State.Messages.Enqueue(text);
                         return;
                     }
-
-                    while (lastIndex < helper.AllItemsReceived.Count)
-                    {
-                        var item = helper.AllItemsReceived[lastIndex];
-                        var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
-                        var result = HandleItem(item, queueMessage: !isLocalLocation);
-                        if (result)
-                        {
-                            lastIndex++;
-                            director.SetFlag(Constants.FLAG_LAST_ITEM_INDEX, lastIndex);
-                            director.PrepareCheckpoint(false);
-                        }
-                        else
-                        {
-                            var text = $"[instant|[c:red|Error - Cannot handle item: {item.ItemDisplayName}.]][w:2]";
-                            Global.State.Messages.Enqueue(text);
-                            return;
-                        }
-                    }
-
-                    // Dequeue all items.
-                    while (helper.DequeueItem() != null) { }
                 }
 
-                await Task.Delay(1000);
+                // Dequeue all items.
+                while (helper.DequeueItem() != null) { }
             }
         }
         catch (Exception ex)
