@@ -1,8 +1,9 @@
 ﻿using MelonLoader;
+using PipistrelloArchipelago;
 using System.Reflection;
 using System.Text.Json;
 
-[assembly: MelonInfo(typeof(PipistrelloArchipelago.PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
+[assembly: MelonInfo(typeof(PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
 
 namespace PipistrelloArchipelago;
@@ -15,8 +16,8 @@ public class PipArchMod : MelonMod
         ModSettings.Category = MelonPreferences.CreateCategory("Archipelago");
         ModSettings.Host = ModSettings.Category.CreateEntry("Host", "archipelago.gg");
         ModSettings.Port = ModSettings.Category.CreateEntry("Port", 0);
-        ModSettings.SlotName = ModSettings.Category.CreateEntry("Slot Name", string.Empty);
-        ModSettings.Password = ModSettings.Category.CreateEntry("Password", string.Empty);
+        ModSettings.SlotName = ModSettings.Category.CreateEntry("Slot Name", "");
+        ModSettings.Password = ModSettings.Category.CreateEntry("Password", "");
 
         ReadObjectIdMapping();
         ExportArchipelagoSprites();
@@ -26,9 +27,8 @@ public class PipArchMod : MelonMod
     {
         try
         {
-            const string file = "object_id_mapping.json";
-            var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}") 
-                       ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
+            const string file = $"{nameof(PipistrelloArchipelago)}object_id_mapping.json";
+            var data = LoadBytesFromResource(file) ?? throw new Exception($"Missing embedded resource: {file}");
             Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
             Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName
                 .ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
@@ -43,16 +43,14 @@ public class PipArchMod : MelonMod
     {
         try
         {
-            var filesToPaths = new List<Tuple<string, string>>()
+            var spritesFolder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites");
+            var mapPinsFolder = Path.Combine(spritesFolder, "ui", "mapPins");
+            var filesToPaths = new List<Tuple<string, string>>
             {
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"),
-                    $"{Constants.ArchMediumSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"),
-                    $"{Constants.ArchSmallSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"),
-                    $"{Constants.MoneyBagMediumSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"),
-                    $"{Constants.MoneyBagSmallSpriteName}.png"),
+                new(spritesFolder, $"{Constants.ArchMediumSpriteName}.png"),
+                new(mapPinsFolder, $"{Constants.ArchSmallSpriteName}.png"),
+                new(spritesFolder, $"{Constants.MoneyBagMediumSpriteName}.png"),
+                new(mapPinsFolder, $"{Constants.MoneyBagSmallSpriteName}.png")
             };
             foreach (var (path, file) in filesToPaths)
             {
