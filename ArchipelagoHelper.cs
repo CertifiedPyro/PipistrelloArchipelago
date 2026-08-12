@@ -2,7 +2,6 @@
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
-using Il2CppSystem.Linq;
 using Il2CppUtil;
 using MelonLoader;
 using PipistrelloArchipelago.Handlers;
@@ -11,7 +10,7 @@ namespace PipistrelloArchipelago;
 
 public static class ArchipelagoHelper
 {
-    private static readonly Dictionary<string, string> _itemToFlag = new()
+    private static readonly Dictionary<string, string> ItemToFlag = new()
     {
         { "Offstring Throw", Game.FLAG_ABILITY_THROW },
         { "Walk-the-Dog", Game.FLAG_ABILITY_WALKTHEDOG },
@@ -30,13 +29,16 @@ public static class ArchipelagoHelper
         { "Mega-Battery 3", Game.FLAG_MEGABATTERY3 },
         { "Mega-Battery 4", Game.FLAG_MEGABATTERY4 },
     };
-    private static readonly Dictionary<string, Game.Upgrade> _itemToUpgrade = Game.upgrades
+
+    private static readonly Dictionary<string, Game.Upgrade> ItemToUpgrade = Game.upgrades
         .ToArray()
         .ToDictionary(u => Localization.Get($"upgrade_name_{u.id}", lang: "en_US"));
-    private static readonly Dictionary<string, Game.Equip> _itemToEquip = Game.equips
+
+    private static readonly Dictionary<string, Game.Equip> ItemToEquip = Game.equips
         .ToArray()
         .ToDictionary(e => Localization.Get($"equip_name_{e.id}", lang: "en_US"));
-    private static bool _isItemHandlerEnabled = false;
+
+    private static bool _isItemHandlerEnabled;
 
     /// <summary>
     /// Handles the connection to the Archipelago server.
@@ -135,7 +137,8 @@ public static class ArchipelagoHelper
                 while (lastIndex < helper.AllItemsReceived.Count)
                 {
                     var item = helper.AllItemsReceived[lastIndex];
-                    var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
+                    var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot &&
+                                          Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
                     var result = HandleItem(item, queueMessage: !isLocalLocation);
                     if (result)
                     {
@@ -152,7 +155,9 @@ public static class ArchipelagoHelper
                 }
 
                 // Dequeue all items.
-                while (helper.DequeueItem() != null) { }
+                while (helper.DequeueItem() != null)
+                {
+                }
             }
         }
         catch (Exception ex)
@@ -205,7 +210,8 @@ public static class ArchipelagoHelper
                     continue;
                 }
 
-                var moneyBagDespawnFlag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
+                var moneyBagDespawnFlag =
+                    $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
                 if (director.GetFlag(moneyBagDespawnFlag) != 0)
                 {
                     missedLocalLocations.Add(locationId);
@@ -229,7 +235,8 @@ public static class ArchipelagoHelper
 
             if (missedLocalLocations.Count > 0)
             {
-                Melon<PipArchMod>.Logger.Msg($"Found unsent location check ids: {string.Join(',', missedLocalLocations)}");
+                Melon<PipArchMod>.Logger.Msg(
+                    $"Found unsent location check ids: {string.Join(',', missedLocalLocations)}");
                 try
                 {
                     locationsHelper.CompleteLocationChecks([.. missedLocalLocations]);
@@ -265,10 +272,10 @@ public static class ArchipelagoHelper
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
 
-            if (_itemToFlag.ContainsKey(itemName))
+            if (ItemToFlag.ContainsKey(itemName))
             {
-                director.SetFlagBool(_itemToFlag[itemName], true);
-                Melon<PipArchMod>.Logger.Msg($"Set flag: {_itemToFlag[itemName]}");
+                director.SetFlagBool(ItemToFlag[itemName], true);
+                Melon<PipArchMod>.Logger.Msg($"Set flag: {ItemToFlag[itemName]}");
             }
             else if (itemName == "Petal Container")
             {
@@ -283,20 +290,19 @@ public static class ArchipelagoHelper
                 Melon<PipArchMod>.Logger.Msg("Added BP shard");
             }
             else if (itemName.Contains('$')
-                && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
+                     && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
             {
                 // CollectCoin properly handles debts.
                 Global.Director.CollectCoin(money);
                 Melon<PipArchMod>.Logger.Msg("Added $" + money);
             }
-            else if (_itemToUpgrade.TryGetValue(itemName, out var upgrade))
+            else if (ItemToUpgrade.TryGetValue(itemName, out var upgrade))
             {
                 Game.SetUpgradeAcquired(director, upgrade, true);
                 Melon<PipArchMod>.Logger.Msg("Added upgrade");
             }
-            else if (_itemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key)) is var equipMatch && equipMatch.Key != null)
+            else if (ItemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key)) is (not null, var equip))
             {
-                var equip = equipMatch.Value;
                 var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
                 if (!equipAcquired)
                 {
@@ -311,10 +317,10 @@ public static class ArchipelagoHelper
             }
             else if (itemName.Contains("Staff ID"))
             {
-                var staffIdObject = Utils.GetMapvaniaObject("yugo3_dev/yug4006/yug4042");
+                var staffIdObject = Utils.GetMapvaniaObject("yugo3_dev/yug4006/yug4042")!;
                 // Check that the staff ID isn't already turned in for dungeon access or following the player.
                 if (!director.GetFlagBool($"{Game.GLOBAL_FLAG_PREFIX}fariaLimeDungeonAccess")
-                    && !followingObjects.Any(o => o.objectDefName == staffIdObject.objectDefName))
+                    && followingObjects.All(o => o.objectDefName != staffIdObject.objectDefName))
                 {
                     // Use Staff ID from a dev map that we know won't be changed.
                     // TODO: Find better way to add following object that activates immediately.

@@ -4,7 +4,7 @@ using System.Collections.ObjectModel;
 
 namespace PipistrelloArchipelago.Handlers;
 
-public class LocationHandler
+public static class LocationHandler
 {
     /// <summary>
     /// Handles checked locations.

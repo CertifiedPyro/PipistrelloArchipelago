@@ -41,17 +41,18 @@ public static class CorePatches
             var southPlazaNames = Localization.GetEntries("location_plaza1").ToArray().Select(e => e.contents);
             var scenario = Game.GetNewGameScenarios().ToArray().First(s => southPlazaNames.Contains(s.name));
             var record = Game.DeserializeRecord(scenario.serializedRecord);
-            record.flags[Constants.FLAG_ARCHIPELAGO] = 1;  // Mark as an Archipelago save.
-            record.flags[Game.FLAG_ABILITY_THROW] = 0;  // Remove Offstring Throw (obtained in Abandoned Tunnels).
+            record.flags[Constants.FLAG_ARCHIPELAGO] = 1; // Mark as an Archipelago save.
+            record.flags[Game.FLAG_ABILITY_THROW] = 0; // Remove Offstring Throw (obtained in Abandoned Tunnels).
 
             /* Disable various yoyo trick tutorials. */
             // Disable Around-the-World tutorial.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city/yug1405{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1;  // Disable trigger area.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}tutorialSpin"] = 1;  // Disable tutorial.
+            var gFlag = Game.GLOBAL_FLAG_PREFIX;
+            record.flags[$"{gFlag}city/yug1405{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
+            record.flags[$"{gFlag}tutorialSpin"] = 1; // Disable tutorial.
             // Disable Sleeper tutorial.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city_underground/lor813{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1;  // Disable trigger area.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city_underground/lor779:finished"] = 1;  // Disable NPC.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city_underground/lor779:barrier"] = 1;  // Lower barrier to south room.
+            record.flags[$"{gFlag}city_underground/lor813{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
+            record.flags[$"{gFlag}city_underground/lor779:finished"] = 1; // Disable NPC.
+            record.flags[$"{gFlag}city_underground/lor779:barrier"] = 1; // Lower barrier to south room.
 
             Global.Director.InitFromRecord(record);
         }
@@ -68,7 +69,7 @@ public static class CorePatches
     public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
     {
         // Don't replace taxi phones or money bags.
-        if (mapObj.objectDefName == "taxiPhone" || mapObj.objectDefName == "moneyBag")
+        if (mapObj.objectDefName is "taxiPhone" or "moneyBag")
         {
             return;
         }
@@ -98,7 +99,7 @@ public static class CorePatches
     [HarmonyPostfix]
     public static void InstantiateFromMapPostfixPatch(Il2CppPipistrello.Object __result)
     {
-        if (Utils.IsArchItemId(__result?.globalObjectId?.objectId))
+        if (__result != null && Utils.IsArchItemId(__result.globalObjectId?.objectId))
         {
             __result.spriteName = Constants.ArchMediumSpriteName;
         }
@@ -125,16 +126,16 @@ public static class CorePatches
     [HarmonyPrefix]
     public static bool HandlePhysicalArchItemPatch(string id, ref bool __result)
     {
-        if (Utils.IsArchItemId(id))
+        if (!Utils.IsArchItemId(id))
         {
-            var objectId = Utils.ArchItemIdToId(id);
-            Utils.SendLocationCheck(objectId);
-
-            __result = false;
-            return false;
+            return true;
         }
 
-        return true;
+        var objectId = Utils.ArchItemIdToId(id);
+        Utils.SendLocationCheck(objectId);
+
+        __result = false;
+        return false;
     }
 
     /// <summary>
@@ -144,7 +145,8 @@ public static class CorePatches
     [HarmonyPrefix]
     public static bool HousePuzzlePatch(ObjectWarpArea __instance, ref bool __result)
     {
-        if (!Global.Director.currentProject.housePuzzleFlags.TryGetValue(__instance.globalObjectId.AsString, out var houseFlags))
+        if (!Global.Director.currentProject.housePuzzleFlags.TryGetValue(
+                __instance.globalObjectId.AsString, out var houseFlags))
         {
             return true;
         }
@@ -158,7 +160,8 @@ public static class CorePatches
             // Convert the badge to a global object id first.
             if (flagSplit[1] == "equip")
             {
-                var equipMeta = Global.Director.currentProject.equipMeta.ToArray().First(e => e.equipId == flagSplit[2]);
+                var equipMeta = Global.Director.currentProject.equipMeta.ToArray()
+                    .First(e => e.equipId == flagSplit[2]);
                 flagSplit[2] = equipMeta.globalObjectId.AsString;
             }
 
@@ -192,20 +195,20 @@ public static class CorePatches
     [HarmonyPrefix]
     public static void GoalPatch(string mapId, string roomId)
     {
-        if (mapId == "city" && roomId == "ren4872")
+        if (mapId != "city" || roomId != "ren4872")
         {
-            Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
-            var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
-            Global.State.Messages.Enqueue(text);
-            Global.State.Session.SetClientState(
-                Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
+            return;
         }
+
+        Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
+        Global.State.Messages.Enqueue("[instant|You reached your goal of [c:red|North Plaza]!][w:2]");
+        Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
     }
 
-    public static void MakeArchMapChanges()
+    private static void MakeArchMapChanges()
     {
-        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "city");
-        var room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren223");
+        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "city")!;
+        var room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren223")!;
         var objects = room.objects;
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier1") == null)
         {
@@ -227,7 +230,7 @@ public static class CorePatches
             });
         }
 
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4152");
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4152")!;
         objects = room.objects;
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier2") == null)
         {
@@ -249,7 +252,7 @@ public static class CorePatches
             });
         }
 
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4064");
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4064")!;
         objects = room.objects;
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier3") == null)
         {
@@ -272,7 +275,7 @@ public static class CorePatches
         }
 
         // Remove door to skyscraper mini-dungeon.
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug2741");
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug2741")!;
         objects = room.objects;
         var objectToRemove = objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "yug2747");
         if (objectToRemove != null)
@@ -281,7 +284,7 @@ public static class CorePatches
         }
 
         // Remove slime NPC in front of Faria dungeon.
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug108");
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug108")!;
         objects = room.objects;
         objectToRemove = objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "yug3097");
         if (objectToRemove != null)
