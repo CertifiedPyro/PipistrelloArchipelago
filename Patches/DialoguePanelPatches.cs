@@ -9,7 +9,7 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 public class DialoguePanelPatch
 {
-    private const string _ARCH_DIALOGUE_SHOWN = "ARCH_DIALOGUE_SHOWN";
+    private const string ArchDialogueShown = "ARCH_DIALOGUE_SHOWN";
 
     /// <summary>
     /// Patch to handle overwriting dialogue text if physical Archipelago item is picked up.
@@ -18,21 +18,19 @@ public class DialoguePanelPatch
     [HarmonyPrefix]
     public static bool InjectTextPatch(ref string text)
     {
-        // Check if there is Archipelago dialogue to show.
-        if (Global.State.DialogueText == null)
+        switch (Global.State.DialogueText)
         {
-            return true;
+            // Check if there is Archipelago dialogue to show.
+            case null:
+                return true;
+            case ArchDialogueShown:
+                return Global.State.ShowRemainingDialogue;
+            default:
+                // Replace the first message with the desired text.
+                text = Global.State.DialogueText;
+                Global.State.DialogueText = ArchDialogueShown;
+                return true;
         }
-
-        if (Global.State.DialogueText == _ARCH_DIALOGUE_SHOWN)
-        {
-            return Global.State.ShowRemainingDialogue;
-        }
-
-        // Replace the first message with the desired text.
-        text = Global.State.DialogueText;
-        Global.State.DialogueText = _ARCH_DIALOGUE_SHOWN;
-        return true;
     }
 
     /// <summary>

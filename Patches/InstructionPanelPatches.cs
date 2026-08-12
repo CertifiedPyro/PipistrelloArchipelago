@@ -21,10 +21,10 @@ public static class InstructionPanelPatch
         ObjectPlayer.State.Cutscene,
     ];
 
-    private static long? TextShowStartMs;
-    private static long? TextCooldownStartMs;
-    private static long? IdleStartMs;
-    private static bool validPreviousState;
+    private static long? _textShowStartMs;
+    private static long? _textCooldownStartMs;
+    private static long? _idleStartMs;
+    private static bool _validPreviousState;
 
     /// <summary>
     /// If loading save, reset global state.
@@ -33,10 +33,10 @@ public static class InstructionPanelPatch
     [HarmonyPostfix]
     public static void InitFromSavefilePatch()
     {
-        TextShowStartMs = null;
-        TextCooldownStartMs = null;
-        IdleStartMs = null;
-        validPreviousState = false;
+        _textShowStartMs = null;
+        _textCooldownStartMs = null;
+        _idleStartMs = null;
+        _validPreviousState = false;
     }
 
     /// <summary>
@@ -49,16 +49,16 @@ public static class InstructionPanelPatch
     {
         // Check if InstructionPanel is off cooldown.
         var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        if (TextCooldownStartMs.HasValue && currentTime - TextCooldownStartMs > TextCooldownTimeMs)
+        if (_textCooldownStartMs.HasValue && currentTime - _textCooldownStartMs > TextCooldownTimeMs)
         {
-            TextCooldownStartMs = null;
+            _textCooldownStartMs = null;
         }
 
         // Check if InstructionPanel should be on cooldown.
-        if (currentTime - TextShowStartMs > TextShowTimeMs)
+        if (currentTime - _textShowStartMs > TextShowTimeMs)
         {
-            TextShowStartMs = null;
-            TextCooldownStartMs = currentTime;
+            _textShowStartMs = null;
+            _textCooldownStartMs = currentTime;
             __instance.SetInstruction(null, true);
             return;
         }
@@ -66,38 +66,38 @@ public static class InstructionPanelPatch
         // Check that player is in valid state for long enough.
         if (!CanShowTextDuringState(Global.Director.player.state))
         {
-            validPreviousState = false;
+            _validPreviousState = false;
             return;
         }
 
-        if (!validPreviousState)
+        if (!_validPreviousState)
         {
-            validPreviousState = true;
-            IdleStartMs = currentTime;
+            _validPreviousState = true;
+            _idleStartMs = currentTime;
             return;
         }
 
         // Check that valid state is off cooldown.
-        if (IdleStartMs.HasValue && currentTime - IdleStartMs > IdleStateMs)
+        if (_idleStartMs.HasValue && currentTime - _idleStartMs > IdleStateMs)
         {
-            IdleStartMs = null;
+            _idleStartMs = null;
         }
 
         // Check that no cooldowns are active.
-        if (TextShowStartMs.HasValue || TextCooldownStartMs.HasValue || IdleStartMs.HasValue)
+        if (_textShowStartMs.HasValue || _textCooldownStartMs.HasValue || _idleStartMs.HasValue)
         {
             return;
         }
 
         // Check that there are messages to show.
-        if (Global.State.Messages.Count == 0)
+        if (Global.State.Messages.IsEmpty)
         {
             return;
         }
 
         if (Global.State.Messages.TryDequeue(out var text))
         {
-            TextShowStartMs = currentTime;
+            _textShowStartMs = currentTime;
             __instance.SetInstruction(text, true);
         }
     }
@@ -106,7 +106,7 @@ public static class InstructionPanelPatch
     public static bool Prefix(string id, ref string __result)
     {
         // If queued message should show, use the id as the text.
-        if (TextShowStartMs != null)
+        if (_textShowStartMs != null)
         {
             __result = id;
             return false;

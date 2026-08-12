@@ -1,5 +1,4 @@
-﻿using Archipelago.MultiClient.Net;
-using HarmonyLib;
+﻿using HarmonyLib;
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
@@ -10,8 +9,8 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 public static class MainMenuPatches
 {
-    private static UILabel _connectionStatus = null;
-    private static UIButton _loadGameButton = null;
+    private static UILabel _connectionStatus;
+    private static UIButton _loadGameButton;
 
     [HarmonyPatch(typeof(Director), nameof(Director.QuitToTitleScreen))]
     [HarmonyPrefix]
@@ -29,7 +28,6 @@ public static class MainMenuPatches
     {
         // Force reconnection every time main menu is reached.
         Global.State.SaveFileLoaded = false;
-        ArchipelagoSession session = null;
 
         var elements = __result.rootElement.subElements;
         var loadGameButton = elements[0].Cast<UIButton>();
@@ -41,10 +39,7 @@ public static class MainMenuPatches
         elements.Insert(0, connectButton);
 
         // Add connection status label.
-        var labelText = session == null
-            ? "<Waiting for connection>\n---"
-            : GetSuccessfulConnectionStatus();
-        var labelTextFn = () => labelText;
+        var labelTextFn = () => "<Waiting for connection>\n---";
         var label = new UILabel(labelTextFn)
         {
             labelHalign = TextRenderer.Halign.Center,
@@ -55,23 +50,15 @@ public static class MainMenuPatches
         _connectionStatus = label;
 
         // Wrap connection status label in a panel.
-        var panel = new UIPanel()
+        var panel = new UIPanel
         {
             childrenCenterH = true
         };
         panel.subElements.Add(label);
         elements.Insert(0, panel);
 
-        // Enable/disable load game button.
         _loadGameButton = loadGameButton;
-        if (session == null)
-        {
-            DisableLoadGameButton();
-        }
-        else
-        {
-            EnableLoadGameButton();
-        }
+        DisableLoadGameButton();
 
         // Fix offset and assign every row to its correct index.
         __result.rootElement.offset = new Vector3(0, 24, 0);
@@ -98,7 +85,7 @@ public static class MainMenuPatches
         var labelText = () => "Connecting...\n---";
         _connectionStatus.textFn = labelText;
 
-        ArchipelagoHelper.ConnectAsync().ContinueWith(t => OnConnection(t)).ConfigureAwait(false);
+        ArchipelagoHelper.ConnectAsync().ContinueWith(OnConnection).ConfigureAwait(false);
         return false;
     }
 
