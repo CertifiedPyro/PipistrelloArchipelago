@@ -19,6 +19,10 @@
 	</PropertyGroup>
 
 	<ItemGroup>
+	  <Compile Remove="Generate\RoomConnections.cs" />
+	</ItemGroup>
+
+	<ItemGroup>
 	  <None Remove="arch_medium.png" />
 	  <None Remove="arch_small.png" />
 	  <None Remove="Images\moneyBag_medium.png" />
@@ -278,26 +282,6 @@
 
 	</ItemGroup>
 
-	<PropertyGroup>
-		<AllowUnsafeBlocks>True</AllowUnsafeBlocks>
-		<EnableDefaultCompileItems>false</EnableDefaultCompileItems>
-	</PropertyGroup>
-
-	<ItemGroup>
-		<Compile Include="ArchipelagoHelper.cs" />
-		<Compile Include="Handlers\LocationHandler.cs" />
-		<Compile Include="Patches\MoneyBagPatches.cs" />
-		<Compile Include="Patches\TaxiPhonePatches.cs" />
-		<Compile Include="PipArchMod.cs" />
-		<Compile Include="Patches\CorePatches.cs" />
-		<Compile Include="Patches\DialoguePanelPatches.cs" />
-		<Compile Include="Patches\InstructionPanelPatches.cs" />
-		<Compile Include="Generate\RoomConnections.cs" />
-		<Compile Include="Patches\MainMenuPatches.cs" />
-		<Compile Include="Patches\UIPatches.cs" />
-		<Compile Include="Utils.cs" />
-	</ItemGroup>
-
 	<ItemGroup>
 	  <EmbeddedResource Include="Images\arch_medium.png" />
 	  <EmbeddedResource Include="Images\arch_small.png" />
@@ -328,5 +312,6 @@
 	
 	<ItemGroup>
 	  <None Include="C:\Users\dwang\Documents\git\PipistrelloArchipelago\.editorconfig" />
+	  <None Include="Generate\RoomConnections.cs" />
 	</ItemGroup>
 </Project>
