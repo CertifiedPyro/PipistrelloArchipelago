@@ -7,20 +7,20 @@ using System.Collections.Concurrent;
 
 namespace PipistrelloArchipelago;
 
-static class Constants
+internal static class Constants
 {
-    public static string ArchItemObjectIdSuffix = "_architem";
-    public static string ArchMediumSpriteName = "arch_medium";
-    public static string ArchSmallSpriteName = "arch_small";
-    public static string MoneyBagMediumSpriteName = "moneyBag_medium";
-    public static string MoneyBagSmallSpriteName = "moneyBag_small";
+    public const string ArchItemObjectIdSuffix = "_architem";
+    public const string ArchMediumSpriteName = "arch_medium";
+    public const string ArchSmallSpriteName = "arch_small";
+    public const string MoneyBagMediumSpriteName = "moneyBag_medium";
+    public const string MoneyBagSmallSpriteName = "moneyBag_small";
 
-    public static string FLAG_ARCHIPELAGO = $"{Game.GLOBAL_FLAG_PREFIX}arch";
-    public static string FLAG_LAST_ITEM_INDEX = $"{FLAG_ARCHIPELAGO}:lastItemIndex";
-    public static string FLAG_INTERACT_SUFFIX = ":interacted";
+    public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
+    public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
+    public const string FlagInteractSuffix = ":interacted";
 }
 
-static class ModSettings
+internal static class ModSettings
 {
     public static MelonPreferences_Category Category;
     public static MelonPreferences_Entry<string> Host;
@@ -29,7 +29,7 @@ static class ModSettings
     public static MelonPreferences_Entry<string> Password;
 }
 
-static class Global
+internal static class Global
 {
     public static Director Director = null;
     public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
@@ -37,7 +37,7 @@ static class Global
     public static State State = new();
 }
 
-static class Utils
+internal static class Utils
 {
     public static string IdToArchItemId(string id)
     {
@@ -70,7 +70,8 @@ static class Utils
     public static bool IsObjectIdActiveLocation(string globalObjectId)
     {
         // Check cache before checking scouted locations.
-        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) && !existingValue)
+        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) &&
+            !existingValue)
         {
             return false;
         }
@@ -109,7 +110,8 @@ static class Utils
             return null;
         }
 
-        var result = Global.Director.objects.ToArray().FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
+        var result = Global.Director.objects.ToArray()
+            .FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
         return result?.Cast<T>();
     }
 
@@ -122,7 +124,8 @@ static class Utils
         // Duplicate locations should never happen, but this is here just to be safe.
         if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
         {
-            Melon<PipArchMod>.Logger.Warning($"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
+            Melon<PipArchMod>.Logger.Warning(
+                $"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
             return;
         }
 
@@ -159,20 +162,19 @@ static class Utils
     }
 }
 
-class State
+internal class State
 {
     public ArchipelagoSession Session = null;
     public Dictionary<string, object> SlotData = null;
     public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
 
-    public Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
-    public ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
+    public readonly Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
+    public readonly ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
 
     public bool SaveFileLoaded = false;
     public bool ReplaceMoneyBagSprite = false;
 
     public string DialogueText = null;
     public bool ShowRemainingDialogue = true;
-    public ConcurrentQueue<string> Messages = new();
+    public readonly ConcurrentQueue<string> Messages = new();
 }
-

@@ -113,7 +113,7 @@ public static class MainMenuPatches
         var record = __result.director.savefileRecords[saveFile.savefileIndex];
 
         // Check that save file has Archipelago flag.
-        if (record?.flags?.ContainsKey(Constants.FLAG_ARCHIPELAGO) == true)
+        if (record?.flags?.ContainsKey(Constants.FlagArchipelago) == true)
         {
             return;
         }

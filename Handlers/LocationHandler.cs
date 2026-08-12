@@ -49,7 +49,7 @@ public static class LocationHandler
     private static void HandleTaxiPhone(Mapvania.Object mapObject)
     {
         // Mark taxi phone interaction.
-        var flag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsString}{Constants.FLAG_INTERACT_SUFFIX}";
+        var flag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsString}{Constants.FlagInteractSuffix}";
         if (!Global.Director.GetFlagBool(flag))
         {
             Global.Director.SetFlagBool(flag, true);

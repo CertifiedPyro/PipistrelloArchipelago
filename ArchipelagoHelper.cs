@@ -123,7 +123,7 @@ public static class ArchipelagoHelper
                 }
 
                 var helper = Global.State.Session.Items;
-                var lastIndex = director.GetFlag(Constants.FLAG_LAST_ITEM_INDEX);
+                var lastIndex = director.GetFlag(Constants.FlagLastItemIndex);
                 if (lastIndex > helper.AllItemsReceived.Count)
                 {
                     Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
@@ -143,7 +143,7 @@ public static class ArchipelagoHelper
                     if (result)
                     {
                         lastIndex++;
-                        director.SetFlag(Constants.FLAG_LAST_ITEM_INDEX, lastIndex);
+                        director.SetFlag(Constants.FlagLastItemIndex, lastIndex);
                         director.PrepareCheckpoint(false);
                     }
                     else

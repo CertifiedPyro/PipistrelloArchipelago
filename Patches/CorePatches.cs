@@ -41,7 +41,7 @@ public static class CorePatches
             var southPlazaNames = Localization.GetEntries("location_plaza1").ToArray().Select(e => e.contents);
             var scenario = Game.GetNewGameScenarios().ToArray().First(s => southPlazaNames.Contains(s.name));
             var record = Game.DeserializeRecord(scenario.serializedRecord);
-            record.flags[Constants.FLAG_ARCHIPELAGO] = 1; // Mark as an Archipelago save.
+            record.flags[Constants.FlagArchipelago] = 1; // Mark as an Archipelago save.
             record.flags[Game.FLAG_ABILITY_THROW] = 0; // Remove Offstring Throw (obtained in Abandoned Tunnels).
 
             /* Disable various yoyo trick tutorials. */
