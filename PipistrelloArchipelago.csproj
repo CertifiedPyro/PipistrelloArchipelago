@@ -285,6 +285,7 @@
 
 	<ItemGroup>
 		<Compile Include="ArchipelagoHelper.cs" />
+		<Compile Include="Handlers\LocationHandler.cs" />
 		<Compile Include="Patches\MoneyBagPatches.cs" />
 		<Compile Include="Patches\TaxiPhonePatches.cs" />
 		<Compile Include="PipArchMod.cs" />

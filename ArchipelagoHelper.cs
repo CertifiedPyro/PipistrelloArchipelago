@@ -46,7 +46,7 @@ public static class ArchipelagoHelper
     {
         if (Global.State.Session != null)
         {
-            Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.HandleCheckedLocations;
+            Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
             if (Global.State.Session.Socket.Connected)
             {
                 await Global.State.Session.Socket.DisconnectAsync();
@@ -56,7 +56,7 @@ public static class ArchipelagoHelper
         var host = ModSettings.Host.Value;
         var port = ModSettings.Port.Value;
         var session = ArchipelagoSessionFactory.CreateSession(host, port);
-        session.Locations.CheckedLocationsUpdated += LocationHandler.HandleCheckedLocations;
+        session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
 
         LoginResult result;
         try
@@ -181,7 +181,7 @@ public static class ArchipelagoHelper
             // Archipelago sends every checked location on connection.
             Melon<PipArchMod>.Logger.Msg("Handling remote checked locations...");
             var locationsHelper = Global.State.Session.Locations;
-            LocationHandler.HandleCheckedLocations(locationsHelper.AllLocationsChecked);
+            LocationHandler.Process(locationsHelper.AllLocationsChecked);
 
             // Handle missed local-checked locations.
             Melon<PipArchMod>.Logger.Msg("Handling local checked locations...");
