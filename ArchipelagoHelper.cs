@@ -77,7 +77,7 @@ public static class ArchipelagoHelper
 
         if (result is LoginSuccessful loginSuccess)
         {
-            Global.State = new()
+            Global.State = new State
             {
                 Session = session,
                 SlotData = loginSuccess.SlotData,
@@ -91,21 +91,19 @@ public static class ArchipelagoHelper
 
             return true;
         }
-        else
-        {
-            Melon<PipArchMod>.Logger.Error($"Failed to connect: {host}:{port}");
-            var loginFailure = (LoginFailure)result;
-            foreach (var error in loginFailure.Errors)
-            {
-                Melon<PipArchMod>.Logger.Error(error);
-            }
 
-            return false;
+        Melon<PipArchMod>.Logger.Error($"Failed to connect: {host}:{port}");
+        var loginFailure = (LoginFailure)result;
+        foreach (var error in loginFailure.Errors)
+        {
+            Melon<PipArchMod>.Logger.Error(error);
         }
+
+        return false;
     }
 
     /// <summary>
-    /// The received item event loop.
+    /// Starts the received item event loop.
     /// </summary>
     public static async Task StartReceivedItemsLoop()
     {

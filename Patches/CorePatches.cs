@@ -1,7 +1,10 @@
-﻿using HarmonyLib;
+﻿using Archipelago.MultiClient.Net.Enums;
+using HarmonyLib;
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
+using UnityEngine;
+using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago.Patches;
 
@@ -57,7 +60,7 @@ public static class CorePatches
             Global.Director.InitFromRecord(record);
         }
 
-        Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
+        Global.State.Session.SetClientState(ArchipelagoClientState.ClientPlaying);
         ArchipelagoHelper.HandleInitial();
     }
 
@@ -97,7 +100,7 @@ public static class CorePatches
     /// </summary>
     [HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     [HarmonyPostfix]
-    public static void InstantiateFromMapPostfixPatch(Il2CppPipistrello.Object __result)
+    public static void InstantiateFromMapPostfixPatch(Object __result)
     {
         if (__result != null && Utils.IsArchItemId(__result.globalObjectId?.objectId))
         {
@@ -202,7 +205,7 @@ public static class CorePatches
 
         Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
         Global.State.Messages.Enqueue("[instant|You reached your goal of [c:red|North Plaza]!][w:2]");
-        Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
+        Global.State.Session.SetClientState(ArchipelagoClientState.ClientGoal);
     }
 
     private static void MakeArchMapChanges()
@@ -212,66 +215,69 @@ public static class CorePatches
         var objects = room.objects;
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier1") == null)
         {
-            room.objects.Add(new Mapvania.Object()
-            {
-                objectDefId = "lor15",
-                objectDefName = "barrier",
-                globalObjectId = new Game.GlobalObjectId
+            room.objects.Add(
+                new Mapvania.Object
                 {
-                    mapId = "city",
-                    roomId = "ren223",
-                    objectId = "archBarrier1"
-                },
-                position = new UnityEngine.Vector2(0, 22 * 16),
-                width = 16,
-                height = 7 * 16,
-                properties = JsonValue.Parse("{\"activationFlag\": true}"),
-                usesFlags = true
-            });
+                    objectDefId = "lor15",
+                    objectDefName = "barrier",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city",
+                        roomId = "ren223",
+                        objectId = "archBarrier1"
+                    },
+                    position = new Vector2(0, 22 * 16),
+                    width = 16,
+                    height = 7 * 16,
+                    properties = JsonValue.Parse("{\"activationFlag\": true}"),
+                    usesFlags = true
+                });
         }
 
         room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4152")!;
         objects = room.objects;
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier2") == null)
         {
-            room.objects.Add(new Mapvania.Object()
-            {
-                objectDefId = "lor15",
-                objectDefName = "barrier",
-                globalObjectId = new Game.GlobalObjectId
+            room.objects.Add(
+                new Mapvania.Object
                 {
-                    mapId = "city",
-                    roomId = "ren4152",
-                    objectId = "archBarrier2"
-                },
-                position = new UnityEngine.Vector2(0, 2 * 16),
-                width = 16,
-                height = 7 * 16,
-                properties = JsonValue.Parse("{\"activationFlag\": true}"),
-                usesFlags = true
-            });
+                    objectDefId = "lor15",
+                    objectDefName = "barrier",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city",
+                        roomId = "ren4152",
+                        objectId = "archBarrier2"
+                    },
+                    position = new Vector2(0, 2 * 16),
+                    width = 16,
+                    height = 7 * 16,
+                    properties = JsonValue.Parse("{\"activationFlag\": true}"),
+                    usesFlags = true
+                });
         }
 
         room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4064")!;
         objects = room.objects;
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier3") == null)
         {
-            room.objects.Add(new Mapvania.Object()
-            {
-                objectDefId = "lor15",
-                objectDefName = "barrier",
-                globalObjectId = new Game.GlobalObjectId
+            room.objects.Add(
+                new Mapvania.Object
                 {
-                    mapId = "city",
-                    roomId = "ren4064",
-                    objectId = "archBarrier3"
-                },
-                position = new UnityEngine.Vector2(0, 4 * 16),
-                width = 16,
-                height = 2 * 16,
-                properties = JsonValue.Parse("{\"activationFlag\": true}"),
-                usesFlags = true
-            });
+                    objectDefId = "lor15",
+                    objectDefName = "barrier",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city",
+                        roomId = "ren4064",
+                        objectId = "archBarrier3"
+                    },
+                    position = new Vector2(0, 4 * 16),
+                    width = 16,
+                    height = 2 * 16,
+                    properties = JsonValue.Parse("{\"activationFlag\": true}"),
+                    usesFlags = true
+                });
         }
 
         // Remove door to skyscraper mini-dungeon.

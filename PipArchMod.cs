@@ -2,7 +2,7 @@
 using System.Reflection;
 using System.Text.Json;
 
-[assembly: MelonInfo(typeof(PipistrelloArchipelago.PipArchMod), "PipistrelloArchipelago", "0.1.0", "CertifiedPyro", null)]
+[assembly: MelonInfo(typeof(PipistrelloArchipelago.PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
 
 namespace PipistrelloArchipelago;
@@ -26,11 +26,12 @@ public class PipArchMod : MelonMod
     {
         try
         {
-            var file = "object_id_mapping.json";
-            var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}")
-                ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
+            const string file = "object_id_mapping.json";
+            var data = LoadBytesFromResource($"PipistrelloArchipelago.{file}") 
+                       ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
             Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
-            Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+            Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName
+                .ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
         }
         catch (Exception e)
         {
@@ -44,16 +45,20 @@ public class PipArchMod : MelonMod
         {
             var filesToPaths = new List<Tuple<string, string>>()
             {
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.ArchMediumSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.ArchSmallSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"), $"{Constants.MoneyBagMediumSpriteName}.png"),
-                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"), $"{Constants.MoneyBagSmallSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"),
+                    $"{Constants.ArchMediumSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"),
+                    $"{Constants.ArchSmallSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites"),
+                    $"{Constants.MoneyBagMediumSpriteName}.png"),
+                new(Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Maps", "Sprites", "ui", "mapPins"),
+                    $"{Constants.MoneyBagSmallSpriteName}.png"),
             };
             foreach (var (path, file) in filesToPaths)
             {
                 var fullPath = Path.Combine(path, file);
                 var data = LoadBytesFromResource($"PipistrelloArchipelago.Images.{file}")
-                    ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
+                           ?? throw new Exception($"Could not find embedded resource 'PipistrelloArchipelago.{file}'");
                 File.WriteAllBytes(fullPath, data);
                 Melon<PipArchMod>.Logger.Msg($"Archipelago sprite deployed to: {fullPath}");
             }
@@ -66,14 +71,14 @@ public class PipArchMod : MelonMod
 
     private static byte[] LoadBytesFromResource(string path)
     {
-        using Stream stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path);
+        using var stream = Assembly.GetExecutingAssembly().GetManifestResourceStream(path);
         if (stream == null)
         {
             return null;
         }
 
         var buffer = new byte[stream.Length];
-        stream.Read(buffer, 0, buffer.Length);
-        return buffer;
+        var bytesRead = stream.Read(buffer, 0, buffer.Length);
+        return bytesRead == buffer.Length ? buffer : null;
     }
 }

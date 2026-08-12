@@ -39,7 +39,6 @@ public static class LocationHandler
                     HandleArchItem(archMapObject);
                     break;
             }
-            
         }
 
         // Ensure map pin changes are queued for a save.
@@ -61,7 +60,8 @@ public static class LocationHandler
     {
         // Mark money bag as despawned.
         var director = Global.Director;
-        var despawnFlag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
+        var despawnFlag =
+            $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
         if (director.GetFlag(despawnFlag) != Game.FLAGVALUE_OBJECT_DESPAWN_PERMANENT)
         {
             director.SetFlag(despawnFlag, Game.FLAGVALUE_OBJECT_DESPAWN_PERMANENT);
@@ -93,9 +93,7 @@ public static class LocationHandler
 
         // Don't destroy the object if it's being held by the player.
         // TODO: Figure out more robust condition to determine if arch item is being acquired right now.
-        var playerAcquiringState = director.player.state == ObjectPlayer.State.AcquiringItem
-            || director.player.state == ObjectPlayer.State.AcquiringMegaBattery;
-        if (playerAcquiringState)
+        if (director.player.state is ObjectPlayer.State.AcquiringItem or ObjectPlayer.State.AcquiringMegaBattery)
         {
             return;
         }
