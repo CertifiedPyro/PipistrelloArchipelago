@@ -1,23 +1,21 @@
 ﻿using Il2CppPipistrello;
 using MelonLoader;
-using System.Collections.ObjectModel;
 
 namespace PipistrelloArchipelago.Handlers;
 
-public static class LocationHandler
+internal static class LocationHandler
 {
     /// <summary>
     /// Handles checked locations.
     /// </summary>
     /// <param name="newCheckedLocations">The list of location ids checked.</param>
-    public static void Process(ReadOnlyCollection<long> newCheckedLocations)
+    public static void Process(IEnumerable<long> newCheckedLocations)
     {
         if (!Global.State.SaveFileLoaded)
         {
             return;
         }
 
-        var director = Global.Director;
         foreach (var locationId in newCheckedLocations)
         {
             var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
@@ -42,7 +40,7 @@ public static class LocationHandler
         }
 
         // Ensure map pin changes are queued for a save.
-        director.PrepareCheckpoint(false);
+        Global.Director.PrepareCheckpoint(false);
     }
 
     private static void HandleTaxiPhone(Mapvania.Object mapObject)
