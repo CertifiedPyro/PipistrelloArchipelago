@@ -27,7 +27,7 @@ public class PipArchMod : MelonMod
     {
         try
         {
-            const string file = $"{nameof(PipistrelloArchipelago)}object_id_mapping.json";
+            const string file = $"{nameof(PipistrelloArchipelago)}.object_id_mapping.json";
             var data = LoadBytesFromResource(file) ?? throw new Exception($"Missing embedded resource: {file}");
             Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
             Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName

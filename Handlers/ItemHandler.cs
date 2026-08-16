@@ -29,11 +29,11 @@ public static class ItemHandler
 
     private static readonly Dictionary<string, Game.Upgrade> ItemToUpgrade = Game.upgrades
         .ToArray()
-        .ToDictionary(u => Localization.Get($"upgrade_name_{u.id}", lang: "en_US"));
+        .ToDictionary(u => Localization.Get($"upgrade_name_{u.id}", "en_US"));
 
     private static readonly Dictionary<string, Game.Equip> ItemToEquip = Game.equips
         .ToArray()
-        .ToDictionary(e => Localization.Get($"equip_name_{e.id}", lang: "en_US"));
+        .ToDictionary(e => Localization.Get($"equip_name_{e.id}", "en_US"));
 
     private static bool _isItemHandlerEnabled;
 
@@ -64,11 +64,9 @@ public static class ItemHandler
                 var lastIndex = director.GetFlag(Constants.FlagLastItemIndex);
                 if (lastIndex > helper.AllItemsReceived.Count)
                 {
+                    Global.State.Messages.Enqueue("[instant|[c:red|Unexpected item index. Please reconnect.]][w:2]");
                     Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
                     Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
-
-                    var text = "[instant|[c:red|Network error - Please reconnect.]][w:2]";
-                    Global.State.Messages.Enqueue(text);
                     return;
                 }
 
@@ -77,19 +75,14 @@ public static class ItemHandler
                     var item = helper.AllItemsReceived[lastIndex];
                     var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot &&
                                           Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
-                    var result = HandleItem(item, queueMessage: !isLocalLocation);
-                    if (result)
+                    var result = HandleItem(item, !isLocalLocation);
+                    if (!result)
                     {
-                        lastIndex++;
-                        director.SetFlag(Constants.FlagLastItemIndex, lastIndex);
-                        director.PrepareCheckpoint(false);
-                    }
-                    else
-                    {
-                        var text = $"[instant|[c:red|Error - Cannot handle item: {item.ItemDisplayName}.]][w:2]";
-                        Global.State.Messages.Enqueue(text);
                         return;
                     }
+
+                    director.SetFlag(Constants.FlagLastItemIndex, ++lastIndex);
+                    director.PrepareCheckpoint(false);
                 }
 
                 // Dequeue all items.
@@ -109,10 +102,10 @@ public static class ItemHandler
     }
 
     /// <summary>
-    /// Handles a received item from Archipelago.
+    /// Handles a received Archipelago item.
     /// </summary>
     /// <param name="item">The received item.</param>
-    /// <param name="queueMessage">Whether to always queue a message.</param>
+    /// <param name="queueMessage">Whether to queue a message.</param>
     /// <returns>true if the item was handled successfully, false otherwise.</returns>
     private static bool HandleItem(ItemInfo item, bool queueMessage = false)
     {
@@ -124,10 +117,35 @@ public static class ItemHandler
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
 
-            if (ItemToFlag.ContainsKey(itemName))
+            if (ItemToFlag.TryGetValue(itemName, out var itemFlag))
             {
-                director.SetFlagBool(ItemToFlag[itemName], true);
+                director.SetFlagBool(itemFlag, true);
                 Melon<PipArchMod>.Logger.Msg($"Set flag: {ItemToFlag[itemName]}");
+            }
+            else if (ItemToUpgrade.TryGetValue(itemName, out var upgrade))
+            {
+                Game.SetUpgradeAcquired(director, upgrade, true);
+                Melon<PipArchMod>.Logger.Msg("Added upgrade");
+            }
+            else if (ItemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key)) is (not null, var equip))
+            {
+                if (Game.IsEquipAcquired(director.playerRecord, equip))
+                {
+                    Game.SetEquipRefined(director, equip, true);
+                    Melon<PipArchMod>.Logger.Msg("Refined equip");
+                }
+                else
+                {
+                    Game.SetEquipAcquired(director, equip, true, true);
+                    Melon<PipArchMod>.Logger.Msg("Added equip");
+                }
+            }
+            else if (itemName.Contains('$')
+                     && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
+            {
+                // CollectCoin properly handles debts.
+                Global.Director.CollectCoin(money);
+                Melon<PipArchMod>.Logger.Msg("Added $" + money);
             }
             else if (itemName == "Petal Container")
             {
@@ -141,40 +159,14 @@ public static class ItemHandler
                 Game.SetBpContainerAcquired(director, "filler_bp", 0, false);
                 Melon<PipArchMod>.Logger.Msg("Added BP shard");
             }
-            else if (itemName.Contains('$')
-                     && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
+            else if (itemName == "Staff ID")
             {
-                // CollectCoin properly handles debts.
-                Global.Director.CollectCoin(money);
-                Melon<PipArchMod>.Logger.Msg("Added $" + money);
-            }
-            else if (ItemToUpgrade.TryGetValue(itemName, out var upgrade))
-            {
-                Game.SetUpgradeAcquired(director, upgrade, true);
-                Melon<PipArchMod>.Logger.Msg("Added upgrade");
-            }
-            else if (ItemToEquip.FirstOrDefault(pair => itemName.Contains(pair.Key)) is (not null, var equip))
-            {
-                var equipAcquired = Game.IsEquipAcquired(director.playerRecord, equip);
-                if (!equipAcquired)
-                {
-                    Game.SetEquipAcquired(director, equip, true, true);
-                    Melon<PipArchMod>.Logger.Msg("Added equip");
-                }
-                else
-                {
-                    Game.SetEquipRefined(director, equip, true);
-                    Melon<PipArchMod>.Logger.Msg("Refined equip");
-                }
-            }
-            else if (itemName.Contains("Staff ID"))
-            {
+                // Use Staff ID from a dev map that we know won't be changed.
                 var staffIdObject = Utils.GetMapvaniaObject("yugo3_dev/yug4006/yug4042")!;
                 // Check that the staff ID isn't already turned in for dungeon access or following the player.
                 if (!director.GetFlagBool($"{Game.GLOBAL_FLAG_PREFIX}fariaLimeDungeonAccess")
                     && followingObjects.All(o => o.objectDefName != staffIdObject.objectDefName))
                 {
-                    // Use Staff ID from a dev map that we know won't be changed.
                     // TODO: Find better way to add following object that activates immediately.
                     director.playerRecord.followingObjectIds.Add(staffIdObject.globalObjectId);
                     Melon<PipArchMod>.Logger.Msg("Added Staff ID to following objects");
@@ -192,6 +184,11 @@ public static class ItemHandler
                 var playerName = item.Player.Name.Replace(" ", "[nbsp]");
 
                 var text = $"[instant|You received [c:blue|{itemDisplayName}] from [c:red|{playerName}]!][w:2]";
+                Global.State.Messages.Enqueue(text);
+            }
+            else if (!result)
+            {
+                var text = $"[instant|[c:red|Unexpected item: {item.ItemDisplayName}. Please reconnect]][w:2]";
                 Global.State.Messages.Enqueue(text);
             }
 
