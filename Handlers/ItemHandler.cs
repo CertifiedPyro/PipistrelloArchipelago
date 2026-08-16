@@ -5,7 +5,7 @@ using MelonLoader;
 
 namespace PipistrelloArchipelago.Handlers;
 
-public static class ItemHandler
+internal static class ItemHandler
 {
     private static readonly Dictionary<string, string> ItemToFlag = new()
     {

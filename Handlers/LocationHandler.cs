@@ -34,13 +34,24 @@ internal static class LocationHandler
                 default:
                     var archObjectId = Utils.IdToArchItemId(objectId);
                     var archMapObject = Utils.GetMapvaniaObject(archObjectId);
-                    HandleArchItem(archMapObject);
+                    HandleGenericLocation(archMapObject);
                     break;
             }
         }
 
         // Ensure map pin changes are queued for a save.
         Global.Director.PrepareCheckpoint(false);
+    }
+
+    public static List<long> CheckUnsentLocalLocations()
+    {
+        Melon<PipArchMod>.Logger.Msg("Checking for unsent local locations...");
+        return
+        [
+            .. CheckUnsentTaxiPhonesLocations(),
+            .. CheckUnsentMoneyBagLocations(),
+            .. CheckUnsentGenericLocations()
+        ];
     }
 
     private static void HandleTaxiPhone(Mapvania.Object mapObject)
@@ -53,6 +64,28 @@ internal static class LocationHandler
             Melon<PipArchMod>.Logger.Msg($"Set flag {flag}");
         }
     }
+
+    private static List<long> CheckUnsentTaxiPhonesLocations()
+    {
+        var missingLocations = new HashSet<long>(Global.State.Session.Locations.AllMissingLocations);
+        var locations = new List<long>();
+        foreach (var objectId in Global.Director.playerRecord.taxiPhonesUnlocked)
+        {
+            if (!Utils.IsObjectIdActiveLocation(objectId.AsString))
+            {
+                continue;
+            }
+
+            var locationId = Utils.ObjectIdToLocationId(objectId.AsString);
+            if (missingLocations.Contains(locationId))
+            {
+                locations.Add(locationId);
+            }
+        }
+
+        return locations;
+    }
+
 
     private static void HandleMoneyBag(Mapvania.Object mapObject)
     {
@@ -76,9 +109,32 @@ internal static class LocationHandler
         }
     }
 
-    private static void HandleArchItem(Mapvania.Object mapObject)
+    private static List<long> CheckUnsentMoneyBagLocations()
     {
-        // Flag the item as acquired, so it doesn't show up again.
+        var locations = new List<long>();
+        foreach (var locationId in Global.State.Session.Locations.AllMissingLocations)
+        {
+            var objectId = Utils.LocationIdToObjectId(locationId);
+            var mapObject = Utils.GetMapvaniaObject(objectId);
+            if (mapObject == null)
+            {
+                continue;
+            }
+
+            var moneyBagDespawnFlag =
+                $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
+            if (Global.Director.GetFlag(moneyBagDespawnFlag) != 0)
+            {
+                locations.Add(locationId);
+            }
+        }
+
+        return locations;
+    }
+
+    private static void HandleGenericLocation(Mapvania.Object mapObject)
+    {
+        // Flag the physical Archipelago item as acquired, so it doesn't show up again.
         var director = Global.Director;
         var flag = Game.FlagBpContainerAcquired(mapObject.globalObjectId.AsString);
         if (!director.GetFlagBool(flag))
@@ -102,6 +158,24 @@ internal static class LocationHandler
         {
             director.DestroyObject(obj);
         }
+    }
+
+    private static List<long> CheckUnsentGenericLocations()
+    {
+        var locations = new List<long>();
+        foreach (var locationId in Global.State.Session.Locations.AllMissingLocations)
+        {
+            // Check physical Archipelago items.
+            var objectId = Utils.LocationIdToObjectId(locationId);
+            var archObjectId = Utils.IdToArchItemId(objectId);
+            var bpFlag = Game.FlagBpContainerAcquired(archObjectId);
+            if (Global.Director.GetFlagBool(bpFlag))
+            {
+                locations.Add(locationId);
+            }
+        }
+
+        return locations;
     }
 
     private static void RemoveMapPin(string globalObjectId)

@@ -1,7 +1,6 @@
 ﻿using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Exceptions;
-using Il2CppPipistrello;
 using MelonLoader;
 using PipistrelloArchipelago.Handlers;
 
@@ -72,10 +71,10 @@ public static class ArchipelagoHelper
     }
 
     /// <summary>
-    /// Handle Archipelago items and locations after connection.
-    /// This method must be called after a save file has been selected already.
+    /// Handles Archipelago items and locations after a save file is loaded.
+    /// This method must be called after a save file has already been loaded.
     /// </summary>
-    public static void HandleInitial()
+    public static void HandleSaveFileLoad()
     {
         try
         {
@@ -89,58 +88,14 @@ public static class ArchipelagoHelper
             var locationsHelper = Global.State.Session.Locations;
             LocationHandler.Process(locationsHelper.AllLocationsChecked);
 
-            // Handle missed local-checked locations.
-            Melon<PipArchMod>.Logger.Msg("Handling local checked locations...");
-            var checkedLocationsSet = new HashSet<long>(locationsHelper.AllLocationsChecked);
-            var missedLocalLocations = new List<long>();
-            foreach (var locationId in locationsHelper.AllMissingLocations)
+            // Check for any unsent local location checks.
+            var unsentLocations = LocationHandler.CheckUnsentLocalLocations();
+            if (unsentLocations.Count > 0)
             {
-                // Check physical Archipelago items.
-                var objectId = Utils.LocationIdToObjectId(locationId);
-                var archObjectId = Utils.IdToArchItemId(objectId);
-                var bpFlag = Game.FlagBpContainerAcquired(archObjectId);
-                if (director.GetFlagBool(bpFlag))
-                {
-                    missedLocalLocations.Add(locationId);
-                }
-
-                // Check money bags
-                var mapObject = Utils.GetMapvaniaObject(objectId);
-                if (mapObject == null)
-                {
-                    continue;
-                }
-
-                var moneyBagDespawnFlag =
-                    $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
-                if (director.GetFlag(moneyBagDespawnFlag) != 0)
-                {
-                    missedLocalLocations.Add(locationId);
-                }
-            }
-
-            // Check missed taxi phones.
-            foreach (var objectId in director.playerRecord.taxiPhonesUnlocked)
-            {
-                if (!Utils.IsObjectIdActiveLocation(objectId.AsString))
-                {
-                    continue;
-                }
-
-                var locationId = Utils.ObjectIdToLocationId(objectId.AsString);
-                if (!checkedLocationsSet.Contains(locationId))
-                {
-                    missedLocalLocations.Add(locationId);
-                }
-            }
-
-            if (missedLocalLocations.Count > 0)
-            {
-                Melon<PipArchMod>.Logger.Msg(
-                    $"Found unsent location check ids: {string.Join(',', missedLocalLocations)}");
+                Melon<PipArchMod>.Logger.Msg($"Found unsent location check ids: {string.Join(',', unsentLocations)}");
                 try
                 {
-                    locationsHelper.CompleteLocationChecks([.. missedLocalLocations]);
+                    locationsHelper.CompleteLocationChecks([.. unsentLocations]);
                 }
                 catch (ArchipelagoSocketClosedException ex)
                 {

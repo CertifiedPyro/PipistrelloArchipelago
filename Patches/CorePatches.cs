@@ -61,7 +61,7 @@ public static class CorePatches
         }
 
         Global.State.Session.SetClientState(ArchipelagoClientState.ClientPlaying);
-        ArchipelagoHelper.HandleInitial();
+        ArchipelagoHelper.HandleSaveFileLoad();
     }
 
     /// <summary>
