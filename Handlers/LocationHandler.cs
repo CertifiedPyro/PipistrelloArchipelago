@@ -32,9 +32,7 @@ internal static class LocationHandler
                     HandleMoneyBag(mapObject);
                     break;
                 default:
-                    var archObjectId = Utils.IdToArchItemId(objectId);
-                    var archMapObject = Utils.GetMapvaniaObject(archObjectId);
-                    HandleGenericLocation(archMapObject);
+                    HandleGenericLocation(mapObject);
                     break;
             }
         }
@@ -136,14 +134,15 @@ internal static class LocationHandler
     {
         // Flag the physical Archipelago item as acquired, so it doesn't show up again.
         var director = Global.Director;
-        var flag = Game.FlagBpContainerAcquired(mapObject.globalObjectId.AsString);
+        var archObjectId = Utils.IdToArchItemId(mapObject.globalObjectId.AsString);
+        var flag = Game.FlagBpContainerAcquired(archObjectId);
         if (!director.GetFlagBool(flag))
         {
             director.SetFlagBool(flag, true);
             Melon<PipArchMod>.Logger.Msg($"Set flag {flag}");
         }
 
-        RemoveMapPin(mapObject.globalObjectId.AsString);
+        RemoveMapPin(archObjectId);
 
         // Don't destroy the object if it's being held by the player.
         // TODO: Figure out more robust condition to determine if arch item is being acquired right now.
@@ -153,7 +152,15 @@ internal static class LocationHandler
         }
 
         // Destroy object if it is instantiated.
-        var obj = Utils.GetObject<ObjectBpContainer>(mapObject);
+        var archMapObject = Utils.GetMapvaniaObject(archObjectId);
+        var obj = Utils.GetObject<ObjectBpContainer>(archMapObject);
+        if (obj != null)
+        {
+            director.DestroyObject(obj);
+        }
+
+        // In weird scenarios, the original (non-Archipelago) object may still exist, so destroy it too.
+        obj = Utils.GetObject<ObjectBpContainer>(mapObject);
         if (obj != null)
         {
             director.DestroyObject(obj);

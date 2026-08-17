@@ -1,9 +1,10 @@
-﻿using Archipelago.MultiClient.Net;
+﻿using System.Collections.Concurrent;
+using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
-using System.Collections.Concurrent;
+using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago;
 
@@ -14,10 +15,10 @@ internal static class Constants
     public const string ArchSmallSpriteName = "arch_small";
     public const string MoneyBagMediumSpriteName = "moneyBag_medium";
     public const string MoneyBagSmallSpriteName = "moneyBag_small";
+    public const string FlagInteractSuffix = ":interacted";
 
     public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
-    public const string FlagInteractSuffix = ":interacted";
 }
 
 internal static class ModSettings
@@ -103,7 +104,7 @@ internal static class Utils
     }
 
     public static T? GetObject<T>(Mapvania.Object mapObject)
-        where T : Il2CppPipistrello.Object
+        where T : Object
     {
         if (mapObject == null)
         {
@@ -121,18 +122,18 @@ internal static class Utils
         var locationId = ObjectIdToLocationId(globalObjectId);
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
 
-        // Duplicate locations should never happen, but this is here just to be safe.
+        // Duplicate locations should never happen, but log just in case.
+        // We still want the rest of the function to run so the dialogue can get replaced.
         if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
         {
             Melon<PipArchMod>.Logger.Warning(
                 $"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
-            return;
         }
 
         try
         {
             Global.State.LocalCheckedLocations.TryAdd(locationId, 1);
-            Global.State.Session.Locations.CompleteLocationChecks([locationId]);
+            Global.State.Session.Locations.CompleteLocationChecks(locationId);
         }
         catch (ArchipelagoSocketClosedException ex)
         {
@@ -164,17 +165,17 @@ internal static class Utils
 
 internal class State
 {
-    public ArchipelagoSession Session = null;
-    public Dictionary<string, object> SlotData = null;
-    public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
-
     public readonly Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
     public readonly ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
+    public readonly ConcurrentQueue<string> Messages = new();
 
     public bool SaveFileLoaded = false;
     public bool ReplaceMoneyBagSprite = false;
 
-    public string DialogueText = null;
+    public string DialogueText;
     public bool ShowRemainingDialogue = true;
-    public readonly ConcurrentQueue<string> Messages = new();
+
+    public ArchipelagoSession Session { get; init; }
+    public Dictionary<string, object> SlotData { get; init; }
+    public Dictionary<long, ScoutedItemInfo> ScoutedLocations { get; init; }
 }
