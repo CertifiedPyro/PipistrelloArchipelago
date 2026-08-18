@@ -32,7 +32,7 @@ internal static class LocationHandler
                     HandleMoneyBag(mapObject);
                     break;
                 default:
-                    HandleGenericLocation(mapObject);
+                    HandleGenericLocation(objectId);
                     break;
             }
         }
@@ -130,11 +130,11 @@ internal static class LocationHandler
         return locations;
     }
 
-    private static void HandleGenericLocation(Mapvania.Object mapObject)
+    private static void HandleGenericLocation(string globalObjectId)
     {
         // Flag the physical Archipelago item as acquired, so it doesn't show up again.
         var director = Global.Director;
-        var archObjectId = Utils.IdToArchItemId(mapObject.globalObjectId.AsString);
+        var archObjectId = Utils.IdToArchItemId(globalObjectId);
         var flag = Game.FlagBpContainerAcquired(archObjectId);
         if (!director.GetFlagBool(flag))
         {
@@ -160,6 +160,7 @@ internal static class LocationHandler
         }
 
         // In weird scenarios, the original (non-Archipelago) object may still exist, so destroy it too.
+        var mapObject = Utils.GetMapvaniaObject(globalObjectId);
         obj = Utils.GetObject<ObjectBpContainer>(mapObject);
         if (obj != null)
         {
