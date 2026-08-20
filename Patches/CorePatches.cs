@@ -168,18 +168,24 @@ public static class CorePatches
                 flagSplit[2] = equipMeta.globalObjectId.AsString;
             }
 
+            // Check that flag matches expected format. Some flags are just regular (e.g. "g:mirrorHousePrize").
             // Check that the global object id's item is actually swapped.
-            if (!Utils.IsObjectIdActiveLocation(flagSplit[2]))
+            var newFlag = flag;
+            if (flagSplit.Length >= 3 && Utils.IsObjectIdActiveLocation(flagSplit[2]))
             {
-                continue;
+                // Swap flag with corresponding Archipelago item flag.
+                flagSplit[1] = "bpContainer";
+                flagSplit[2] = Utils.IdToArchItemId(flagSplit[2]);
+                // Some equips use the :blueprint flag instead of the :acquired flag.
+                if (flagSplit.Length == 4)
+                {
+                    flagSplit[3] = "acquired";
+                }
+
+                // Rejoin flag parts.
+                newFlag = string.Join(':', flagSplit);
             }
 
-            // Swap flag with corresponding Archipelago item flag.
-            flagSplit[1] = "bpContainer";
-            flagSplit[2] = Utils.IdToArchItemId(flagSplit[2]);
-
-            // Rejoin flag parts.
-            var newFlag = string.Join(':', flagSplit);
             if (!Global.Director.GetFlagBool(newFlag))
             {
                 __result = false;
