@@ -175,6 +175,10 @@ internal class State
     public string DialogueText;
     public bool ShowRemainingDialogue = true;
 
+    public int DeathLinkAmnesty = 1;
+    public int CurrentDeaths = 0;
+    public double LastSentDeathLinkTimestamp = 0;
+
     public ArchipelagoSession Session { get; init; }
     public Dictionary<string, object> SlotData { get; init; }
     public Dictionary<long, ScoutedItemInfo> ScoutedLocations { get; init; }

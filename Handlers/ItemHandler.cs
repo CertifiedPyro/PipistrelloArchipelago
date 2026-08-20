@@ -91,9 +91,9 @@ internal static class ItemHandler
                 }
             }
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Melon<PipArchMod>.Logger.Error($"Exception receiving item: {ex}");
+            Melon<PipArchMod>.Logger.Error($"Exception receiving item: {e}");
         }
         finally
         {
@@ -194,9 +194,9 @@ internal static class ItemHandler
 
             return result;
         }
-        catch (Exception ex)
+        catch (Exception e)
         {
-            Melon<PipArchMod>.Logger.Error($"Exception handling item: {ex}");
+            Melon<PipArchMod>.Logger.Error($"Exception handling item: {e}");
             return false;
         }
     }

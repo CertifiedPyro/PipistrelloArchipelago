@@ -1,4 +1,5 @@
 ﻿using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Exceptions;
 using MelonLoader;
@@ -55,6 +56,25 @@ public static class ArchipelagoHelper
             if (!ItemHandler.IsStarted())
             {
                 _ = ItemHandler.Start();
+            }
+
+            // Handle death link.
+            // var deathLinkEnabled = loginSuccess.SlotData.TryGetValue("death_link", out var deathLinkValue)
+            //                        && bool.TryParse(deathLinkValue?.ToString(), out var parsedDeathLinkValue)
+            //                        && parsedDeathLinkValue;
+            var deathLinkEnabled = true;
+            if (loginSuccess.SlotData.TryGetValue("death_link_amnesty", out var deathLinkAmnestyValue)
+                && int.TryParse(deathLinkAmnestyValue.ToString(), out var parsedDeathLinkAmnestyValue))
+            {
+                Global.State.DeathLinkAmnesty = parsedDeathLinkAmnestyValue;
+            }
+
+            if (deathLinkEnabled)
+            {
+                var deathLinkService = session.CreateDeathLinkService();
+                deathLinkService.EnableDeathLink();
+                deathLinkService.OnDeathLinkReceived += DeathLinkHandler.HandleDeathLink;
+                _ = DeathLinkHandler.Start();
             }
 
             return true;
