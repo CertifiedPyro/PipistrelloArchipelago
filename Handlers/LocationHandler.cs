@@ -67,14 +67,16 @@ internal static class LocationHandler
     {
         var missingLocations = new HashSet<long>(Global.State.Session.Locations.AllMissingLocations);
         var locations = new List<long>();
-        foreach (var objectId in Global.Director.playerRecord.taxiPhonesUnlocked)
+        foreach (var taxiPhoneMeta in Global.Director.currentProject.taxiPhoneMeta)
         {
-            if (!Utils.IsObjectIdActiveLocation(objectId.AsString))
+            var globalObjectId = taxiPhoneMeta.globalObjectId.AsString;
+            var flag = $"{Game.GLOBAL_FLAG_PREFIX}{globalObjectId}{Constants.FlagInteractSuffix}";
+            if (!Utils.IsObjectIdActiveLocation(globalObjectId) || !Global.Director.GetFlagBool(flag))
             {
                 continue;
             }
 
-            var locationId = Utils.ObjectIdToLocationId(objectId.AsString);
+            var locationId = Utils.ObjectIdToLocationId(globalObjectId);
             if (missingLocations.Contains(locationId))
             {
                 locations.Add(locationId);
