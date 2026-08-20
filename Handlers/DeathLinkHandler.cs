@@ -19,45 +19,72 @@ internal static class DeathLinkHandler
     ];
 
     private static bool _handlingDeathLinkDeath;
+    private static bool _isDeathLinkHandlerEnabled;
+
+    public static bool IsStarted()
+    {
+        return _isDeathLinkHandlerEnabled;
+    }
 
     public static void HandleDeathLink(DeathLink deathLink)
     {
-        if (Math.Abs(deathLink.Timestamp.ToUnixTimeStamp() - Global.State.LastSentDeathLinkTimestamp) <= 1)
-        {
-            return;
-        }
-
-        Global.State.CurrentDeaths += 1;
+        Melon<PipArchMod>.Logger.Msg($"Received death link: {deathLink.Source}, {deathLink.Cause}");
+        Global.State.QueuedDeath = true;
     }
 
     public static async Task Start()
     {
+        _isDeathLinkHandlerEnabled = true;
         try
         {
             while (true)
             {
                 await Task.Delay(1000);
 
-                if (!Global.State.SaveFileLoaded)
+                if (!Global.State.SaveFileLoaded ||
+                    !Global.State.QueuedDeath ||
+                    !CanKillPlayer(Global.Director.player.state) ||
+                    _handlingDeathLinkDeath)
                 {
                     continue;
                 }
 
-                if (Global.State.CurrentDeaths < Global.State.DeathLinkAmnesty ||
-                    !CanKillPlayer(Global.Director.player.state))
-                {
-                    continue;
-                }
-
-                Global.State.CurrentDeaths = 0;
+                Melon<PipArchMod>.Logger.Msg("Killing player...");
                 _handlingDeathLinkDeath = true;
                 Global.Director.player.Kill();
-                _handlingDeathLinkDeath = false;
             }
         }
         catch (Exception e)
         {
             Melon<PipArchMod>.Logger.Error($"Exception receiving item: {e}");
+        }
+        finally
+        {
+            _handlingDeathLinkDeath = false;
+            _isDeathLinkHandlerEnabled = false;
+        }
+    }
+
+    [HarmonyPatch(typeof(Director), nameof(Director.HandleDeath))]
+    [HarmonyPrefix]
+    public static void HandleDeathPatch()
+    {
+        if (Global.State.QueuedDeath)
+        {
+            Global.State.QueuedDeath = false;
+            _handlingDeathLinkDeath = false;
+            return;
+        }
+
+        Global.State.CurrentDeaths += 1;
+        if (Global.State.CurrentDeaths >= Global.State.DeathLinkAmnesty)
+        {
+            Global.State.CurrentDeaths = 0;
+
+            var playerName = Global.State.Session.Players.GetPlayerAlias(Global.State.Session.ConnectionInfo.Slot);
+            var cause = $"{playerName} died.";
+            Melon<PipArchMod>.Logger.Msg($"Sending death link: {cause}");
+            Global.State.DeathLinkService.SendDeathLink(new DeathLink(playerName, cause));
         }
     }
 

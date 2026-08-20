@@ -18,6 +18,11 @@ public static class ArchipelagoHelper
         if (Global.State.Session != null)
         {
             Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
+            if (Global.State.DeathLinkService != null)
+            {
+                Global.State.DeathLinkService.OnDeathLinkReceived -= DeathLinkHandler.HandleDeathLink;
+            }
+
             if (Global.State.Session.Socket.Connected)
             {
                 await Global.State.Session.Socket.DisconnectAsync();
@@ -71,10 +76,14 @@ public static class ArchipelagoHelper
 
             if (deathLinkEnabled)
             {
-                var deathLinkService = session.CreateDeathLinkService();
-                deathLinkService.EnableDeathLink();
-                deathLinkService.OnDeathLinkReceived += DeathLinkHandler.HandleDeathLink;
-                _ = DeathLinkHandler.Start();
+                Global.State.DeathLinkService = session.CreateDeathLinkService();
+                Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.HandleDeathLink;
+                if (!DeathLinkHandler.IsStarted())
+                {
+                    _ = DeathLinkHandler.Start();
+                }
+
+                Global.State.DeathLinkService.EnableDeathLink();
             }
 
             return true;

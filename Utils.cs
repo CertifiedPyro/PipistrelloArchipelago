@@ -1,5 +1,6 @@
 ﻿using System.Collections.Concurrent;
 using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
@@ -175,9 +176,10 @@ internal class State
     public string DialogueText;
     public bool ShowRemainingDialogue = true;
 
+    public DeathLinkService DeathLinkService;
+    public bool QueuedDeath = false;
     public int DeathLinkAmnesty = 1;
     public int CurrentDeaths = 0;
-    public double LastSentDeathLinkTimestamp = 0;
 
     public ArchipelagoSession Session { get; init; }
     public Dictionary<string, object> SlotData { get; init; }
