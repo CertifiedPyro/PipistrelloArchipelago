@@ -148,13 +148,6 @@ internal static class DeathLinkHandler
     [HarmonyPostfix]
     public static void PlayerReceiveHitPatch(HitboxManager.OnReceiveHitData data)
     {
-        Melon<PipArchMod>.Logger.Msg(
-            $"PlayerReceiveHit: {Global.Director.player.life}, {data.hitbox.id}, {data.hitbox.type}");
-        Melon<PipArchMod>.Logger.Msg(
-            $"{data.hitbox.obj != null}, {data.hitbox.obj?.objectDefName}, {data.hitbox.obj?.GetIl2CppType().Name}");
-        Melon<PipArchMod>.Logger.Msg(
-            $"{data.hitbox.obj?.TryCast<ObjectEnemyProjectile>()?.reflectTarget?.objectDefName}, {data.hitbox.obj?.TryCast<ObjectEnemyProjectile>()?.spriteName}");
-
         if (Global.Director.player.life > 0 || data.hitbox.obj == null)
         {
             return;
@@ -173,84 +166,76 @@ internal static class DeathLinkHandler
             return;
         }
 
-        _deathCause = data.hitbox.obj?.GetIl2CppType().Name switch
-        {
-            "EnemyHockeyPuck" => "a hockey puck", // ✅
-            "EnemyMadameHand" => "Madame Pipistrello's batteries",
-            "EnemyMistProjectile" => "a ghost's mist", // ✅
-            "EnemyRatDroneCar" => "an RC car", // ✅
-            "EnemySoccerCurveBall" => "an electric soccer ball", // ✅
-            "EnemySoccerFireBall" => "a fiery soccer ball", // ✅
-            "FireTrail" => "fire", // ✅
-            "ObjectExplosion" => "an explosion", // ✅
-            "ObjectPigeon" => "a pigeon", // ✅
-            "ObjectSpikeRoller" => "a spike roller",
-            "ObjectTurtleShell" => "a turtle shell", // ✅
-            _ => null
-        };
-        if (_deathCause != null)
-        {
-            _deathCause = $"died to {_deathCause}.";
-            return;
-        }
-
         var projectile = data.hitbox.obj.TryCast<ObjectEnemyProjectile>();
         if (projectile != null)
         {
             _deathCause = projectile.spriteName switch
             {
-                "enemies/beeShoot/bullet" => "a gunner bee's bullet", // ✅
-                "enemies/cosplayNinja/kunai" => "a ninja's kunai", // ✅
-                "enemies/cosplayNinja/shuriken" => "a ninja's shuriken", // ✅
+                "enemies/beeShoot/bullet" => "a gunner bee's bullet",
+                "enemies/cosplayNinja/kunai" => "a ninja's kunai",
+                "enemies/cosplayNinja/shuriken" => "a ninja's shuriken",
                 "enemies/foodBandit/1_projectile1" or "enemies/foodBandit/1_projectile2" =>
-                    "a nacho food bandit's projectile", // ✅
+                    "a nacho food bandit's projectile",
                 "enemies/foodBandit/2_projectile1" or "enemies/foodBandit/2_projectile2" =>
-                    "a guacamole food bandit's projectile", // ✅
+                    "a guacamole food bandit's projectile",
                 "enemies/madameBoss/madameProjectile" => "Madame Pipistrello's projectiles",
-                "enemies/swimmer/bubble" => "a swimmer's bubble", // ✅
+                "enemies/swimmer/bubble" => "a swimmer's bubble",
                 _ => "a projectile"
             };
             _deathCause = $"died to {_deathCause}.";
             return;
         }
 
-        _deathCause = data.hitbox.obj.objectDefName switch
+        // Check obj type, since obj.objectDefName might be empty for enemies that spawn in a boss arena.
+        _deathCause = data.hitbox.obj?.GetIl2CppType().Name switch
         {
-            "beeDash" => "a cop bee", // ✅
-            "beeShoot" => "a gunner bee", // ✅
-            "cosplayBoss" => "Linkoln",  // ✅
-            "cosplayHelix" => "Bat-Guy", // ✅
-            "cosplayMist1" or "cosplayMist2" => "a ghost", // ✅
-            "cosplayNinja" => "a ninja", // ✅
-            "cosplayProtect" => "a protector", // ✅
-            "cosplaySamurai" => "a samurai", // ✅
-            "fairyToxy" => "Toxy",
-            "foodBandit1" => "a nacho food bandit", // ✅
-            "foodBandit2" => "a guacamole food bandit", // ✅
-            "groundSpikeTrap" => "a turtle's spike trap",
-            "hammerSwinger" => "a hammer swinger", // ✅
-            "madameBoss" => "Madame Pipistrello",
-            "ratBoss" => "Don Maretti",
-            "ratDrone" => "an RC car rat", // Rethink name
-            "ratMelee" => "an melee rat", // ✅
-            "ratScooter" => "a scooter rat", // ✅
-            "ratShoot" => "a gunner rat",
-            "slimeBig" => "a big slime", // ✅
-            "slimeBlue" => "a blue slime", // ✅
-            "slimeBomb" => "a bomber slime",
-            "slimeDrill" => "a driller slime", // ✅
-            "slimePunch" => "a puncher slime", // ✅
-            "slimeRed" => "a red slime", // ✅
-            "slimeShield" => "a shield slime", // ✅
-            "slimeTycoon" => "the Slime Tycoon",
-            "sportsBatter" => "a batter", // ✅
-            "sportsCarrara" => "Cuca Carrara",
-            "sportsCharger" => "Cuca Carrara's football players", // ✅
-            "sportsHockey" => "a hockey player", // ✅
-            "sportsSkater" => "a skater", // ✅
-            "sportsSoccer" => "a soccer player", // ✅
-            "swimmer" => "a swimmer",
-            "turtle" => "a turtle", // ✅
+            nameof(EnemyBeeDash) => "a cop bee",
+            nameof(EnemyBeeShoot) => "a gunner bee",
+            nameof(EnemyCosplayBoss) => "Linkoln",
+            nameof(EnemyCosplayBossBoomerang) => "Linkoln's boomerang",
+            nameof(EnemyCosplayHelix) => "Bat-Guy",
+            nameof(EnemyCosplayMist) => "a ghost",
+            nameof(EnemyCosplayNinja) => "a ninja",
+            nameof(EnemyCosplayProtect) => "a protector",
+            nameof(EnemyCosplaySamurai) => "a samurai",
+            nameof(EnemyFairyToxy) => "Toxy",
+            nameof(EnemyFoodBanditGuacamole) => "a guacamole food bandit",
+            nameof(EnemyFoodBanditNacho) => "a nacho food bandit",
+            nameof(EnemyHammerSwinger) => "a hammer swinger",
+            nameof(EnemyHockeyPuck) => "a hockey puck",
+            nameof(EnemyMadameBoss) => "Madame Pipistrello",
+            nameof(EnemyMadameHand) => "Madame Pipistrello's batteries",
+            nameof(EnemyMistProjectile) => "a ghost's mist",
+            nameof(EnemyRatBoss) => "Don Maretti",
+            nameof(EnemyRatDrone) => "an RC car rat",
+            nameof(EnemyRatDroneCar) => "an RC car",
+            nameof(EnemyRatMelee) => "a melee rat",
+            nameof(EnemyRatScooter) => "a scooter rat",
+            nameof(EnemyRatShoot) => "a gunner rat",
+            nameof(EnemySlime) when data.hitbox.obj.Cast<EnemySlime>().kind == EnemySlime.Kind.Red => "a red slime",
+            nameof(EnemySlime) when data.hitbox.obj.Cast<EnemySlime>().kind == EnemySlime.Kind.Blue => "a blue slime",
+            nameof(EnemySlime) when data.hitbox.obj.Cast<EnemySlime>().kind == EnemySlime.Kind.Big => "a big slime",
+            nameof(EnemySlimeBomb) => "a bomber slime",
+            nameof(EnemySlimeDrill) => "a driller slime",
+            nameof(EnemySlimePunch) => "a puncher slime",
+            nameof(EnemySlimeShield) => "a shield slime",
+            nameof(EnemySlimeTycoon) => "the Slime Tycoon",
+            nameof(EnemySoccerCurveBall) => "an electric soccer ball",
+            nameof(EnemySoccerFireBall) => "a fiery soccer ball",
+            nameof(EnemySportsBatter) => "a batter",
+            nameof(EnemySportsCarrara) => "Cuca Carrara",
+            nameof(EnemySportsCharger) => "Cuca Carrara's football players",
+            nameof(EnemySportsHockey) => "a hockey player",
+            nameof(EnemySportsSkater) => "a skater",
+            nameof(EnemySportsSoccer) => "a soccer player",
+            nameof(EnemySwimmer) => "a swimmer",
+            nameof(EnemyTurtle) => "a turtle",
+            nameof(FireTrail) => "fire",
+            nameof(ObjectExplosion) => "an explosion",
+            nameof(ObjectGroundSpikeTrap) => "a turtle's spike trap",
+            nameof(ObjectPigeon) => "a pigeon",
+            nameof(ObjectSpikeRoller) => "a spike roller",
+            nameof(ObjectTurtleShell) => "a turtle shell",
             _ => null
         };
         _deathCause = _deathCause != null ? $"died to {_deathCause}." : "died.";
