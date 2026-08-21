@@ -177,9 +177,7 @@ internal class State
     public bool ShowRemainingDialogue = true;
 
     public DeathLinkService DeathLinkService;
-    public bool QueuedDeath = false;
     public int DeathLinkAmnesty = 1;
-    public int CurrentDeaths = 0;
 
     public ArchipelagoSession Session { get; init; }
     public Dictionary<string, object> SlotData { get; init; }
