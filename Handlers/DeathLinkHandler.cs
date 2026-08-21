@@ -21,7 +21,7 @@ internal static class DeathLinkHandler
 
     private static bool _isDeathLinkHandlerEnabled;
 
-    private static bool _queuedDeath;
+    private static DeathLink _queuedDeath;
     private static bool _handlingDeathLinkDeath;
 
     private static int _currentDeaths;
@@ -35,7 +35,7 @@ internal static class DeathLinkHandler
     public static void HandleDeathLink(DeathLink deathLink)
     {
         Melon<PipArchMod>.Logger.Msg($"Received death link: {deathLink.Source}, {deathLink.Cause}");
-        _queuedDeath = true;
+        _queuedDeath = deathLink;
     }
 
     public static async Task Start()
@@ -48,7 +48,7 @@ internal static class DeathLinkHandler
                 await Task.Delay(1000);
 
                 if (!Global.State.SaveFileLoaded ||
-                    !_queuedDeath ||
+                    _queuedDeath == null ||
                     !CanKillPlayer(Global.Director.player.state) ||
                     _handlingDeathLinkDeath)
                 {
@@ -75,9 +75,14 @@ internal static class DeathLinkHandler
     [HarmonyPrefix]
     public static void HandleDeathPatch()
     {
-        if (_queuedDeath)
+        if (Global.State.DeathLinkService == null)
         {
-            _queuedDeath = false;
+            return;
+        }
+
+        if (_queuedDeath != null)
+        {
+            _queuedDeath = null;
             _handlingDeathLinkDeath = false;
             return;
         }

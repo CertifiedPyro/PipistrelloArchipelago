@@ -3,6 +3,7 @@ using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Exceptions;
 using MelonLoader;
+using Newtonsoft.Json.Linq;
 using PipistrelloArchipelago.Handlers;
 
 namespace PipistrelloArchipelago;
@@ -64,26 +65,29 @@ public static class ArchipelagoHelper
             }
 
             // Handle death link.
-            // var deathLinkEnabled = loginSuccess.SlotData.TryGetValue("death_link", out var deathLinkValue)
-            //                        && bool.TryParse(deathLinkValue?.ToString(), out var parsedDeathLinkValue)
-            //                        && parsedDeathLinkValue;
-            var deathLinkEnabled = true;
-            if (loginSuccess.SlotData.TryGetValue("death_link_amnesty", out var deathLinkAmnestyValue)
-                && int.TryParse(deathLinkAmnestyValue.ToString(), out var parsedDeathLinkAmnestyValue))
+            if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) &&
+                optionsObj is JObject options)
             {
-                Global.State.DeathLinkAmnesty = parsedDeathLinkAmnestyValue;
-            }
-
-            if (deathLinkEnabled)
-            {
-                Global.State.DeathLinkService = session.CreateDeathLinkService();
-                Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.HandleDeathLink;
-                if (!DeathLinkHandler.IsStarted())
+                var deathLinkEnabled = options.TryGetValue("death_link", out var deathLinkValue)
+                                       && deathLinkValue.ToString() == "1";
+                if (loginSuccess.SlotData.TryGetValue("death_link_amnesty", out var deathLinkAmnestyValue)
+                    && int.TryParse(deathLinkAmnestyValue.ToString(), out var parsedDeathLinkAmnestyValue))
                 {
-                    _ = DeathLinkHandler.Start();
+                    Global.State.DeathLinkAmnesty = parsedDeathLinkAmnestyValue;
                 }
 
-                Global.State.DeathLinkService.EnableDeathLink();
+                if (deathLinkEnabled)
+                {
+                    Melon<PipArchMod>.Logger.Msg("Enabling death link.");
+                    Global.State.DeathLinkService = session.CreateDeathLinkService();
+                    Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.HandleDeathLink;
+                    if (!DeathLinkHandler.IsStarted())
+                    {
+                        _ = DeathLinkHandler.Start();
+                    }
+
+                    Global.State.DeathLinkService.EnableDeathLink();
+                }
             }
 
             return true;

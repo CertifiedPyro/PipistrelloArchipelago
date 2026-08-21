@@ -135,5 +135,14 @@
   "city_underground/yug382/yug1067": "Faria Sewers (X+6,Y+3): Musical Notes - Reward 2",
   "city_underground/yug382/lor990": "Faria Sewers (X+6,Y+3): Musical Notes - Reward 3",
   "city_underground/ren1477/ren1512": "Faria Sewers (X+2,Y-1): Petal Container",
-  "city_underground/yug23/yug25": "Faria Sewers (X+8,Y-1): Petal Container"
+  "city_underground/yug23/yug25": "Faria Sewers (X+8,Y-1): Petal Container",
+  "skyscraper/lor54/yug20": "Skyscraper (X+4,Y-1): Stun Badge",
+  "skyscraper/lor97/yug19": "Skyscraper (X+3,Y-4) (Southeast): BP Shard",
+  "skyscraper/lor16/lor318": "Skyscraper (X+2,Y+0): Money Bag",
+  "skyscraper/lor133/lor382": "Skyscraper (X+1,Y-5): Money Bag",
+  "skyscraper/lor104/lor111": "Skyscraper (X+4,Y-5): Money Bag",
+  "skyscraper/lor2/lor271": "Skyscraper (X+0,Y-2) (West): Musical Notes - Reward",
+  "skyscraper/lor97/lor274": "Skyscraper (X+3,Y-4) (North): Musical Notes - Reward",
+  "skyscraper/lor151/lor375": "Skyscraper (X+0,Y-5): Petal Container",
+  "skyscraper/lor187/yug1": "Skyscraper (X+0,Y-4): Staff ID"
 }
