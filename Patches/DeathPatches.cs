@@ -55,52 +55,47 @@ internal class DeathPatches
         Global.State.DeathLinkService.SendDeathLink(new DeathLink(playerName, cause));
     }
 
-    [HarmonyPatch(typeof(Object), nameof(Object.PlayFallInHoleParticle))]
-    [HarmonyPostfix]
-    public static void FallInHolePatch(Object __instance)
-    {
-        if (__instance.TryCast<ObjectPlayer>() == null)
-        {
-            return;
-        }
-
-        var causes = new[]
-        {
-            "fell into a hole.",
-            "slipped into a pit.",
-            "misjudged a step.",
-            "discovered gravity for the first time."
-        };
-        _deathCause = causes[Random.Range(0, causes.Length)];
-    }
-
-    [HarmonyPatch(typeof(Object), nameof(Object.PlayFallInLiquidParticle))]
-    [HarmonyPostfix]
-    public static void FallInLiquidPatch(Object __instance)
-    {
-        if (__instance.TryCast<ObjectPlayer>() == null)
-        {
-            return;
-        }
-
-        var causes = new[]
-        {
-            "fell into some liquid.",
-            "drowned.",
-            "forgot how to swim.",
-            "went for an unscheduled swim."
-        };
-        _deathCause = causes[Random.Range(0, causes.Length)];
-    }
-
     [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.OnFallEnd))]
     [HarmonyPostfix]
     public static void FallEndPatch()
     {
         if (Global.Director.player.life > 0)
         {
-            _deathCause = null;
+            return;
         }
+
+        var floor = Global.Director.player.currentFloorAttributes;
+        if (floor.hasLiquid)
+        {
+            var liquidCauses = new[]
+            {
+                "fell into",
+                "drowned in",
+                "swam in",
+            };
+            var liquid = floor.materialLiquid switch
+            {
+                Mapvania.TileMaterial.LiquidStart or Mapvania.TileMaterial.LiquidWater => "water",
+                Mapvania.TileMaterial.LiquidOil => "frying oil",
+                Mapvania.TileMaterial.LiquidPetroleum => "petroleum",
+                Mapvania.TileMaterial.LiquidSewers => "sewer water",
+                Mapvania.TileMaterial.LiquidPoison => "poison water",
+                Mapvania.TileMaterial.LiquidLava => "lava",
+                Mapvania.TileMaterial.LiquidRose or Mapvania.TileMaterial.LiquidRose2 => "rose water",
+                _ => "unknown liquid"
+            };
+            _deathCause = $"{liquidCauses[Random.Range(0, liquidCauses.Length)]} {liquid}.";
+            return;
+        }
+        
+        var holeCauses = new[]
+        {
+            "fell into a hole.",
+            "slipped into a pit.",
+            "misjudged a step.",
+            "discovered gravity for the first time."
+        };
+        _deathCause = holeCauses[Random.Range(0, holeCauses.Length)];
     }
 
     [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.PlayerReceiveHit))]
