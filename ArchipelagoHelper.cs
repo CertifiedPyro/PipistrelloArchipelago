@@ -57,17 +57,19 @@ public static class ArchipelagoHelper
                 Session = session,
                 SlotData = loginSuccess.SlotData,
                 ScoutedLocations = await session.Locations.ScoutLocationsAsync(
-                    [.. session.Locations.AllLocations])
+                    [.. session.Locations.AllLocations]),
+                RaceMode = await session.DataStorage.GetRaceModeAsync()
             };
             if (!ItemHandler.IsStarted())
             {
                 _ = ItemHandler.Start();
             }
 
-            // Handle death link.
+            // Get the options from the slot data.
             if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) &&
                 optionsObj is JObject options)
             {
+                // Handle death link.
                 var deathLinkEnabled = options.TryGetValue("death_link", out var deathLinkValue)
                                        && deathLinkValue.ToString() == "1";
                 if (loginSuccess.SlotData.TryGetValue("death_link_amnesty", out var deathLinkAmnestyValue)
@@ -87,6 +89,7 @@ public static class ArchipelagoHelper
                     }
 
                     Global.State.DeathLinkService.EnableDeathLink();
+                    ModSettings.DeathLink.Value = true;
                 }
             }
 

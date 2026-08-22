@@ -22,8 +22,6 @@ internal static class DeathLinkHandler
     private static bool _isDeathLinkHandlerEnabled;
 
     private static DeathLink _queuedDeath;
-    private static bool _handlingDeathLinkDeath;
-
     private static int _currentDeaths;
     private static string _deathCause;
 
@@ -34,13 +32,19 @@ internal static class DeathLinkHandler
 
     public static void HandleDeathLink(DeathLink deathLink)
     {
-        Melon<PipArchMod>.Logger.Msg($"Received death link: {deathLink.Source}, {deathLink.Cause}");
-        if (Global.Director.IsPlayerDead())
+        if (!ModSettings.DeathLink.Value)
         {
-            Melon<PipArchMod>.Logger.Msg("Player is already dead, skipping death link.");
+            Melon<PipArchMod>.Logger.Msg("Ignoring death link: death link is disabled.");
             return;
         }
 
+        if (Global.Director.IsPlayerDead())
+        {
+            Melon<PipArchMod>.Logger.Msg("Ignoring death link: player is already dead.");
+            return;
+        }
+
+        Melon<PipArchMod>.Logger.Msg($"Received death link: {deathLink.Source}, {deathLink.Cause}");
         _queuedDeath = deathLink;
     }
 
@@ -54,15 +58,14 @@ internal static class DeathLinkHandler
                 await Task.Delay(1000);
 
                 if (!Global.State.SaveFileLoaded ||
+                    !ModSettings.DeathLink.Value ||
                     _queuedDeath == null ||
-                    !CanKillPlayer(Global.Director.player.state) ||
-                    _handlingDeathLinkDeath)
+                    !CanKillPlayer(Global.Director.player.state))
                 {
                     continue;
                 }
 
                 Melon<PipArchMod>.Logger.Msg("Killing player...");
-                _handlingDeathLinkDeath = true;
                 Global.Director.player.Kill();
                 Global.State.Messages.Enqueue(_queuedDeath.Cause);
             }
@@ -74,7 +77,6 @@ internal static class DeathLinkHandler
         finally
         {
             _isDeathLinkHandlerEnabled = false;
-            _handlingDeathLinkDeath = false;
         }
     }
 
@@ -82,8 +84,8 @@ internal static class DeathLinkHandler
     [HarmonyPrefix]
     public static void HandleDeathPatch()
     {
-        // Check that death link is enabled.
-        if (Global.State.DeathLinkService == null)
+        // Check if death link is enabled.
+        if (!ModSettings.DeathLink.Value)
         {
             return;
         }
@@ -92,7 +94,6 @@ internal static class DeathLinkHandler
         if (_queuedDeath != null)
         {
             _queuedDeath = null;
-            _handlingDeathLinkDeath = false;
             return;
         }
 
@@ -105,7 +106,7 @@ internal static class DeathLinkHandler
         // Send death link.
         _currentDeaths = 0;
         var playerName = Global.State.Session.Players.GetPlayerAlias(Global.State.Session.ConnectionInfo.Slot);
-        var cause = !string.IsNullOrEmpty(_deathCause) ? _deathCause : "died.";
+        var cause = _deathCause ?? "died.";
         cause = $"{playerName} {cause}";
         Melon<PipArchMod>.Logger.Msg($"Sending death link: {cause}");
         Global.State.DeathLinkService.SendDeathLink(new DeathLink(playerName, cause));
@@ -258,9 +259,10 @@ internal static class DeathLinkHandler
 
     private static bool CanKillPlayer(ObjectPlayer.State state)
     {
-        // Kill if player is not in cutscene, not in menu, and not in dialogue.
+        // Kill if player is not in cutscene, not in menu, not in dialogue, and is not dead.
         return !InvalidStates.Contains(state)
                && Global.Director.uiDialog == null
-               && Global.Director.dialoguePanel?.IsOver() != false;
+               && Global.Director.dialoguePanel?.IsOver() != false
+               && !Global.Director.IsPlayerDead();
     }
 }

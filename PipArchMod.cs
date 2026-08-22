@@ -1,7 +1,7 @@
-﻿using MelonLoader;
-using PipistrelloArchipelago;
-using System.Reflection;
+﻿using System.Reflection;
 using System.Text.Json;
+using MelonLoader;
+using PipistrelloArchipelago;
 
 [assembly: MelonInfo(typeof(PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
@@ -17,7 +17,18 @@ public class PipArchMod : MelonMod
         ModSettings.Host = ModSettings.Category.CreateEntry("Host", "archipelago.gg");
         ModSettings.Port = ModSettings.Category.CreateEntry("Port", 0);
         ModSettings.SlotName = ModSettings.Category.CreateEntry("Slot Name", "");
-        ModSettings.Password = ModSettings.Category.CreateEntry("Password", "");
+        ModSettings.Password = ModSettings.Category.CreateEntry(
+            "Password", "", description: "CAUTION: Password is not hidden");
+
+        const string deathLinkDescription = """
+                                            Once connected, toggles death link if it was originally enabled.
+                                            Note: You cannot disable death link in race mode.
+                                            """;
+        ModSettings.DeathLink = ModSettings.Category.CreateEntry(
+            "Death Link",
+            false,
+            description: deathLinkDescription,
+            validator: new ModSettings.DeathLinkValidator());
 
         ReadObjectIdMapping();
         ExportArchipelagoSprites();

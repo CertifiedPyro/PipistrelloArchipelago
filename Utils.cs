@@ -5,6 +5,7 @@ using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
+using MelonLoader.Preferences;
 using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago;
@@ -29,6 +30,33 @@ internal static class ModSettings
     public static MelonPreferences_Entry<int> Port;
     public static MelonPreferences_Entry<string> SlotName;
     public static MelonPreferences_Entry<string> Password;
+    public static MelonPreferences_Entry<bool> DeathLink;
+
+    internal class DeathLinkValidator : ValueValidator
+    {
+        public override bool IsValid(object value)
+        {
+            return value.Equals(EnsureValid(value));
+        }
+
+        public override object EnsureValid(object value)
+        {
+            if (Global.State.DeathLinkService != null)
+            {
+                // If race mode is toggled on, death link must stay on if enabled.
+                if (Global.State.RaceMode)
+                {
+                    return true;
+                }
+
+                // Death link can be toggled on/off if it was originally enabled.
+                return value;
+            }
+
+            // Otherwise, setting must stay false.
+            return false;
+        }
+    }
 }
 
 internal static class Global
@@ -182,4 +210,5 @@ internal class State
     public ArchipelagoSession Session { get; init; }
     public Dictionary<string, object> SlotData { get; init; }
     public Dictionary<long, ScoutedItemInfo> ScoutedLocations { get; init; }
+    public bool RaceMode { get; init; }
 }
