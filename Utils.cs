@@ -206,6 +206,7 @@ internal class State
 
     public DeathLinkService DeathLinkService;
     public int DeathLinkAmnesty = 1;
+    public DeathLink QueuedDeath;
 
     public ArchipelagoSession Session { get; init; }
     public Dictionary<string, object> SlotData { get; init; }
