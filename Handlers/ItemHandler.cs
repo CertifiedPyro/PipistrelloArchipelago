@@ -35,23 +35,18 @@ internal static class ItemHandler
         .ToArray()
         .ToDictionary(e => Localization.Get($"equip_name_{e.id}", "en_US"));
 
-    private static bool _isItemHandlerEnabled;
-
-    public static bool IsStarted()
-    {
-        return _isItemHandlerEnabled;
-    }
+    private static CancellationTokenSource _cancellationTokenSource;
 
     /// <summary>
     /// Starts the received item event loop.
     /// </summary>
     public static async Task Start()
     {
-        _isItemHandlerEnabled = true;
+        _cancellationTokenSource = new CancellationTokenSource();
         var director = Global.Director;
         try
         {
-            while (true)
+            while (!_cancellationTokenSource.IsCancellationRequested)
             {
                 await Task.Delay(1000);
 
@@ -97,8 +92,14 @@ internal static class ItemHandler
         }
         finally
         {
-            _isItemHandlerEnabled = false;
+            Melon<PipArchMod>.Logger.Msg($"Stopping {nameof(ItemHandler)}...");
+            _cancellationTokenSource = null;
         }
+    }
+
+    public static void End()
+    {
+        _cancellationTokenSource?.Cancel();
     }
 
     /// <summary>

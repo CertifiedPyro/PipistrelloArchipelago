@@ -16,7 +16,7 @@ public static class MainMenuPatches
     [HarmonyPrefix]
     public static void QuitToTitleScreenPatch()
     {
-        Global.State.SaveFileLoaded = false;
+        _ = ArchipelagoHelper.DisconnectAsync();
     }
 
     /// <summary>
@@ -85,6 +85,8 @@ public static class MainMenuPatches
         var labelText = () => "Connecting...\n---";
         _connectionStatus.textFn = labelText;
 
+        DisableLoadGameButton();
+
         ArchipelagoHelper.ConnectAsync().ContinueWith(OnConnection).ConfigureAwait(false);
         return false;
     }
@@ -107,7 +109,7 @@ public static class MainMenuPatches
     public static void SavefileLoadMenuPatch(UIDialog __result)
     {
         // Get record corresponding with save file menu.
-        Func<UIElement, bool> predicate = (e) => e.TryCast<UISaveFile>() != null;
+        Func<UIElement, bool> predicate = e => e.TryCast<UISaveFile>() != null;
         var saveFile = __result.FindElementInAllSubDialogs(predicate).Cast<UISaveFile>();
         // saveFile.record is null for some reason, so fetch from Director.
         var record = __result.director.savefileRecords[saveFile.savefileIndex];
@@ -119,7 +121,7 @@ public static class MainMenuPatches
         }
 
         // Get the first Load Game button.
-        predicate = (e) => e.TryCast<UIButton>() != null;
+        predicate = e => e.TryCast<UIButton>() != null;
         var button = __result.FindElementInAllSubDialogs(predicate).Cast<UIButton>();
 
         // Replace "Load Game" button to avoid loading non-Archipelago saves.

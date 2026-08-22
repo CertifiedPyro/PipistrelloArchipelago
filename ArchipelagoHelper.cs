@@ -16,19 +16,7 @@ public static class ArchipelagoHelper
     /// <returns>true if the connection succeeded, false otherwise.</returns>
     public static async Task<bool> ConnectAsync()
     {
-        if (Global.State.Session != null)
-        {
-            Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
-            if (Global.State.DeathLinkService != null)
-            {
-                Global.State.DeathLinkService.OnDeathLinkReceived -= DeathLinkHandler.HandleDeathLink;
-            }
-
-            if (Global.State.Session.Socket.Connected)
-            {
-                await Global.State.Session.Socket.DisconnectAsync();
-            }
-        }
+        await DisconnectAsync();
 
         var host = ModSettings.Host.Value;
         var port = ModSettings.Port.Value;
@@ -60,10 +48,7 @@ public static class ArchipelagoHelper
                     [.. session.Locations.AllLocations]),
                 RaceMode = await session.DataStorage.GetRaceModeAsync()
             };
-            if (!ItemHandler.IsStarted())
-            {
-                _ = ItemHandler.Start();
-            }
+            _ = ItemHandler.Start();
 
             // Get the options from the slot data.
             if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) &&
@@ -82,11 +67,8 @@ public static class ArchipelagoHelper
                 {
                     Melon<PipArchMod>.Logger.Msg("Enabling death link.");
                     Global.State.DeathLinkService = session.CreateDeathLinkService();
-                    Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.HandleDeathLink;
-                    if (!DeathLinkHandler.IsStarted())
-                    {
-                        _ = DeathLinkHandler.Start();
-                    }
+                    Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.Process;
+                    _ = DeathLinkHandler.Start();
 
                     Global.State.DeathLinkService.EnableDeathLink();
                     ModSettings.DeathLink.Value = true;
@@ -104,6 +86,23 @@ public static class ArchipelagoHelper
         }
 
         return false;
+    }
+
+    public static async Task DisconnectAsync()
+    {
+        Global.State.SaveFileLoaded = false;
+        if (Global.State.Session == null)
+        {
+            return;
+        }
+
+        Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
+        Global.State.DeathLinkService?.OnDeathLinkReceived -= DeathLinkHandler.Process;
+
+        DeathLinkHandler.End();
+        ItemHandler.End();
+
+        await Global.State.Session.Socket.DisconnectAsync();
     }
 
     /// <summary>

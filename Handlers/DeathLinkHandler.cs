@@ -19,18 +19,13 @@ internal static class DeathLinkHandler
         ObjectPlayer.State.Cutscene
     ];
 
-    private static bool _isDeathLinkHandlerEnabled;
-
     private static DeathLink _queuedDeath;
     private static int _currentDeaths;
     private static string _deathCause;
 
-    public static bool IsStarted()
-    {
-        return _isDeathLinkHandlerEnabled;
-    }
+    private static CancellationTokenSource _cancellationTokenSource;
 
-    public static void HandleDeathLink(DeathLink deathLink)
+    public static void Process(DeathLink deathLink)
     {
         if (!ModSettings.DeathLink.Value)
         {
@@ -50,10 +45,10 @@ internal static class DeathLinkHandler
 
     public static async Task Start()
     {
-        _isDeathLinkHandlerEnabled = true;
+        _cancellationTokenSource = new CancellationTokenSource();
         try
         {
-            while (true)
+            while (!_cancellationTokenSource.IsCancellationRequested)
             {
                 await Task.Delay(1000);
 
@@ -65,19 +60,25 @@ internal static class DeathLinkHandler
                     continue;
                 }
 
-                Melon<PipArchMod>.Logger.Msg("Killing player...");
+                Melon<PipArchMod>.Logger.Msg("Killing player for death link...");
                 Global.Director.player.Kill();
                 Global.State.Messages.Enqueue(_queuedDeath.Cause);
             }
         }
         catch (Exception e)
         {
-            Melon<PipArchMod>.Logger.Error($"Exception receiving item: {e}");
+            Melon<PipArchMod>.Logger.Error($"Exception handling death: {e}");
         }
         finally
         {
-            _isDeathLinkHandlerEnabled = false;
+            Melon<PipArchMod>.Logger.Msg($"Stopping {nameof(DeathLinkHandler)}...");
+            _cancellationTokenSource = null;
         }
+    }
+
+    public static void End()
+    {
+        _cancellationTokenSource?.Cancel();
     }
 
     [HarmonyPatch(typeof(Director), nameof(Director.HandleDeath))]
