@@ -22,6 +22,7 @@ public static class ArchipelagoHelper
         var port = ModSettings.Port.Value;
         var session = ArchipelagoSessionFactory.CreateSession(host, port);
         session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
+        session.MessageLog.OnMessageReceived += MessageLogHandler.Process;
 
         LoginResult result;
         try

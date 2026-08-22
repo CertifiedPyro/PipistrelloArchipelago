@@ -18,7 +18,7 @@ public class PipArchMod : MelonMod
         ModSettings.Port = ModSettings.Category.CreateEntry("Port", 0);
         ModSettings.SlotName = ModSettings.Category.CreateEntry("Slot Name", "");
         ModSettings.Password = ModSettings.Category.CreateEntry(
-            "Password", "", description: "CAUTION: Password is not hidden");
+            "Password", "", description: "WARNING: Password is not hidden");
 
         const string deathLinkDescription = """
                                             Once connected, toggles death link if it was originally enabled.
