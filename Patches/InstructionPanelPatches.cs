@@ -13,7 +13,8 @@ public static class InstructionPanelPatch
     private const long TextCooldownTimeMs = 250;
     private const long IdleStateMs = 750;
 
-    private static readonly HashSet<ObjectPlayer.State> InvalidStates = [
+    private static readonly HashSet<ObjectPlayer.State> InvalidStates =
+    [
         ObjectPlayer.State.AcquiringItem,
         ObjectPlayer.State.AcquiringMegaBattery,
         ObjectPlayer.State.AuntieFinish,
@@ -63,7 +64,7 @@ public static class InstructionPanelPatch
             return;
         }
 
-        // Check that player is in valid state for long enough.
+        // Check that player is in a valid state.
         if (!CanShowTextDuringState(Global.Director.player.state))
         {
             _validPreviousState = false;
@@ -77,7 +78,7 @@ public static class InstructionPanelPatch
             return;
         }
 
-        // Check that valid state is off cooldown.
+        // Check that player is in a valid state for long enough.
         if (_idleStartMs.HasValue && currentTime - _idleStartMs > IdleStateMs)
         {
             _idleStartMs = null;
@@ -117,9 +118,10 @@ public static class InstructionPanelPatch
 
     private static bool CanShowTextDuringState(ObjectPlayer.State state)
     {
-        // Show text if player is not in cutscene, not in menu, and not in dialogue.
+        // Show text if player is not in cutscene, not in menu, not in dialogue, and is not dead.
         return !InvalidStates.Contains(state)
-            && Global.Director.uiDialog == null
-            && Global.Director.dialoguePanel?.IsOver() != false;
+               && Global.Director.uiDialog == null
+               && Global.Director.dialoguePanel?.IsOver() != false
+               && !Global.Director.IsPlayerDead();
     }
 }

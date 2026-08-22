@@ -35,6 +35,12 @@ internal static class DeathLinkHandler
     public static void HandleDeathLink(DeathLink deathLink)
     {
         Melon<PipArchMod>.Logger.Msg($"Received death link: {deathLink.Source}, {deathLink.Cause}");
+        if (Global.Director.IsPlayerDead())
+        {
+            Melon<PipArchMod>.Logger.Msg("Player is already dead, skipping death link.");
+            return;
+        }
+
         _queuedDeath = deathLink;
     }
 
@@ -58,6 +64,7 @@ internal static class DeathLinkHandler
                 Melon<PipArchMod>.Logger.Msg("Killing player...");
                 _handlingDeathLinkDeath = true;
                 Global.Director.player.Kill();
+                Global.State.Messages.Enqueue(_queuedDeath.Cause);
             }
         }
         catch (Exception e)
@@ -75,11 +82,13 @@ internal static class DeathLinkHandler
     [HarmonyPrefix]
     public static void HandleDeathPatch()
     {
+        // Check that death link is enabled.
         if (Global.State.DeathLinkService == null)
         {
             return;
         }
 
+        // Check if death came from death link.
         if (_queuedDeath != null)
         {
             _queuedDeath = null;
@@ -93,6 +102,7 @@ internal static class DeathLinkHandler
             return;
         }
 
+        // Send death link.
         _currentDeaths = 0;
         var playerName = Global.State.Session.Players.GetPlayerAlias(Global.State.Session.ConnectionInfo.Slot);
         var cause = !string.IsNullOrEmpty(_deathCause) ? _deathCause : "died.";
