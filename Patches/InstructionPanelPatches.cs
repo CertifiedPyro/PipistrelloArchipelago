@@ -19,7 +19,7 @@ public static class InstructionPanelPatch
         ObjectPlayer.State.AcquiringMegaBattery,
         ObjectPlayer.State.AuntieFinish,
         ObjectPlayer.State.AuntieTalk,
-        ObjectPlayer.State.Cutscene,
+        ObjectPlayer.State.Cutscene
     ];
 
     private static long? _textShowStartMs;
@@ -45,75 +45,71 @@ public static class InstructionPanelPatch
     /// Message shows for a fixed time, then goes on a short cooldown before showing the next message.
     /// The player must also be idle for a set amount of time (to avoid showing during cutscenes, dialogue, etc).
     /// </summary>
-    [HarmonyPatch(typeof(InstructionPanel), nameof(InstructionPanel.Process))]
-    public static void Prefix(InstructionPanel __instance)
+    [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
+    public static void Prefix(DialoguePanel __instance)
     {
-        // Check if InstructionPanel is off cooldown.
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        if (_textCooldownStartMs.HasValue && currentTime - _textCooldownStartMs > TextCooldownTimeMs)
-        {
-            _textCooldownStartMs = null;
-        }
+        // // Check if InstructionPanel is off cooldown.
+        // var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
+        // if (_textCooldownStartMs.HasValue && currentTime - _textCooldownStartMs > TextCooldownTimeMs)
+        // {
+        //     _textCooldownStartMs = null;
+        // }
+        //
+        // // Check if InstructionPanel should be on cooldown.
+        // if (currentTime - _textShowStartMs > TextShowTimeMs)
+        // {
+        //     _textShowStartMs = null;
+        //     _textCooldownStartMs = currentTime;
+        //     // __instance.SetInstruction(null, true);
+        //     return;
+        // }
+        //
+        // // Check that player is in a valid state.
+        // if (!CanShowTextDuringState(Global.Director.player.state))
+        // {
+        //     _validPreviousState = false;
+        //     return;
+        // }
+        //
+        // if (!_validPreviousState)
+        // {
+        //     _validPreviousState = true;
+        //     _idleStartMs = currentTime;
+        //     return;
+        // }
+        //
+        // // Check that player is in a valid state for long enough.
+        // if (_idleStartMs.HasValue && currentTime - _idleStartMs > IdleStateMs)
+        // {
+        //     _idleStartMs = null;
+        // }
+        //
+        // // Check that no cooldowns are active.
+        // if (_textShowStartMs.HasValue || _textCooldownStartMs.HasValue || _idleStartMs.HasValue)
+        // {
+        //     return;
+        // }
+        //
+        // // Check that there are messages to show.
+        // if (Global.State.Messages.IsEmpty)
+        // {
+        //     return;
+        // }
+        //
+        // if (Global.State.Messages.TryDequeue(out var text))
+        // {
+        //     _textShowStartMs = currentTime;
+        //     // __instance.InjectText(Global.Director.player, text);
+        // }
 
-        // Check if InstructionPanel should be on cooldown.
-        if (currentTime - _textShowStartMs > TextShowTimeMs)
-        {
-            _textShowStartMs = null;
-            _textCooldownStartMs = currentTime;
-            __instance.SetInstruction(null, true);
-            return;
-        }
-
-        // Check that player is in a valid state.
-        if (!CanShowTextDuringState(Global.Director.player.state))
-        {
-            _validPreviousState = false;
-            return;
-        }
-
-        if (!_validPreviousState)
-        {
-            _validPreviousState = true;
-            _idleStartMs = currentTime;
-            return;
-        }
-
-        // Check that player is in a valid state for long enough.
-        if (_idleStartMs.HasValue && currentTime - _idleStartMs > IdleStateMs)
-        {
-            _idleStartMs = null;
-        }
-
-        // Check that no cooldowns are active.
-        if (_textShowStartMs.HasValue || _textCooldownStartMs.HasValue || _idleStartMs.HasValue)
-        {
-            return;
-        }
-
-        // Check that there are messages to show.
-        if (Global.State.Messages.IsEmpty)
-        {
-            return;
-        }
-
-        if (Global.State.Messages.TryDequeue(out var text))
-        {
-            _textShowStartMs = currentTime;
-            __instance.SetInstruction(text, true);
-        }
-    }
-
-    [HarmonyPatch(typeof(InstructionPanel), nameof(InstructionPanel.GetInstructionText))]
-    public static bool Prefix(string id, ref string __result)
-    {
-        // If queued message should show, use the id as the text.
-        if (_textShowStartMs != null)
-        {
-            __result = id;
-            return false;
-        }
-
-        return true;
+        // if (__instance.currentTextScroll < __instance.textScrolls.Count &&
+        //     __instance.textScrolls[__instance.currentTextScroll] is var currentTextScroll &&
+        //     currentTextScroll.isWaitingClick)
+        // {
+        //     MelonLogger.Msg(
+        //         $"{currentTextScroll.advanceTimer}, {currentTextScroll.ended}, {currentTextScroll.IsTalking()}, {currentTextScroll.IsOver()}");
+        //     currentTextScroll.AcceptClick();
+        // }
     }
 
     private static bool CanShowTextDuringState(ObjectPlayer.State state)

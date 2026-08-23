@@ -2,7 +2,6 @@
 using HarmonyLib;
 using Il2CppPipistrello;
 using MelonLoader;
-using Object = Il2CppPipistrello.Object;
 using Random = UnityEngine.Random;
 
 namespace PipistrelloArchipelago.Patches;
@@ -71,7 +70,7 @@ internal class DeathPatches
             {
                 "fell into",
                 "drowned in",
-                "swam in",
+                "swam in"
             };
             var liquid = floor.materialLiquid switch
             {
@@ -87,7 +86,7 @@ internal class DeathPatches
             _deathCause = $"{liquidCauses[Random.Range(0, liquidCauses.Length)]} {liquid}.";
             return;
         }
-        
+
         var holeCauses = new[]
         {
             "fell into a hole.",
