@@ -1,7 +1,6 @@
 ﻿using System.Text;
 using Archipelago.MultiClient.Net.Colors;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
-using MelonLoader;
 
 namespace PipistrelloArchipelago.Handlers;
 
@@ -9,7 +8,13 @@ internal static class MessageLogHandler
 {
     public static void Process(LogMessage message)
     {
-        if (message is not ChatLogMessage)
+        if (message is HintItemSendLogMessage { IsRelatedToActivePlayer: false })
+        {
+            return;
+        }
+
+        if (message is not (ChatLogMessage or GoalLogMessage or JoinLogMessage or LeaveLogMessage
+            or ReleaseLogMessage or ServerChatLogMessage))
         {
             return;
         }
@@ -17,20 +22,17 @@ internal static class MessageLogHandler
         var builder = new StringBuilder();
         foreach (var part in message.Parts)
         {
-            var color = part.PaletteColor?.ToString();
             var text = part.Text.Replace("[", "(").Replace("]", ")").Replace("\"", "'");
-            // var text = part.Text.Replace("\"", "'");
-            MelonLogger.Msg($"Message part: {color} | {text}");
-
+            var color = GetTextColor(part.PaletteColor);
             var messagePart = color == null ? text : $"[c:{color}|{text}]";
             builder.Append(messagePart);
         }
 
-        var queuedMessage = builder.ToString();
+        var queuedMessage = $"[fast|{builder}]";
         Global.State.Messages.Enqueue(queuedMessage);
     }
 
-    private static string GetTextColor(PaletteColor color)
+    private static string GetTextColor(PaletteColor? color)
     {
         return color switch
         {

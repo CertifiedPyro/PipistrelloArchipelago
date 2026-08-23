@@ -75,6 +75,13 @@ internal static class DisplayMessageHandler
         }
     }
 
+    [HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
+    [HarmonyPrefix]
+    public static bool AcceptClickPatch()
+    {
+        return !_ignoreClick;
+    }
+
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
     [HarmonyPrefix]
     public static void StartChoicesPrefix()
@@ -95,13 +102,11 @@ internal static class DisplayMessageHandler
     [HarmonyPrefix]
     public static void BuildRecursivePatch(TextRenderer.Section section, ref Color currentColor)
     {
-        // MelonLogger.Msg($"TextRenderer.BuildRecursive: {section.GetText()} {currentColor}");
         if (!_showingMessage || !_buildingDialoguePanel)
         {
             return;
         }
 
-        MelonLogger.Msg($"current color: {currentColor}");
         Archipelago.MultiClient.Net.Models.Color? newColor = null;
         if (currentColor.Equals(Il2CppPipistrello.Global.colorTextRed))
         {
@@ -111,10 +116,10 @@ internal static class DisplayMessageHandler
         {
             newColor = Archipelago.MultiClient.Net.Models.Color.Green;
         }
-        else if (currentColor.Equals(Il2CppPipistrello.Global.colorTextBlue))
-        {
-            newColor = Archipelago.MultiClient.Net.Models.Color.Blue;
-        }
+        // else if (currentColor.Equals(Il2CppPipistrello.Global.colorTextBlue))
+        // {
+        //     newColor = Archipelago.MultiClient.Net.Models.Color.Blue;
+        // }
         else if (currentColor.Equals(Il2CppPipistrello.Global.colorTextCyan))
         {
             newColor = Archipelago.MultiClient.Net.Models.Color.Cyan;
@@ -143,14 +148,6 @@ internal static class DisplayMessageHandler
         if (newColor != null)
         {
             currentColor = new Color(newColor.Value.R / 255f, newColor.Value.G / 255f, newColor.Value.B / 255f);
-            MelonLogger.Msg($"new color: {currentColor}");
         }
-    }
-
-    [HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
-    [HarmonyPrefix]
-    public static bool AcceptClickPatch()
-    {
-        return !_ignoreClick;
     }
 }
