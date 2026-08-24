@@ -175,8 +175,8 @@ internal static class Utils
         var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
         var playerName = item.Player.Name.Replace(" ", "[nbsp]");
         var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot
-            ? $"[instant|You found your [c:blue|{itemName}]!][w:2]"
-            : $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
+            ? $"You found your [c:blue|{itemName}]!"
+            : $"You sent [c:blue|{itemName}] to [c:red|{playerName}]!";
 
         // Determine if text should replace dialogue or be queued for later.
         var mapObject = GetMapvaniaObject(globalObjectId);
@@ -186,7 +186,7 @@ internal static class Utils
         }
         else
         {
-            Global.State.DialogueText = text;
+            Global.State.DialogueText = $"[fast|{text}][w:2]";
             Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
         }
     }

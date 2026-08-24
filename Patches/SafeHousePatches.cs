@@ -91,15 +91,13 @@ internal static class SafeHousePatches
                     roomId = "ren223",
                     objectId = "lor366"
                 });
-            Global.State.Messages.Enqueue(
-                "[instant|[c:green|Unstuck enabled]: Safe House exit set to South Plaza.][w:2]");
+            Global.State.Messages.Enqueue("[c:green|Unstuck enabled]: Safe House exit set to South Plaza.");
         }
         else
         {
             Global.Director.playerRecord.safehouseExitId =
                 new Il2CppSystem.Nullable<Game.GlobalObjectId>(_originalSafeHouseExitId);
-            Global.State.Messages.Enqueue(
-                "[instant|[c:red|Unstuck disabled]: Safe House exit set back to original.][w:2]");
+            Global.State.Messages.Enqueue("[c:red|Unstuck disabled]: Safe House exit set back to original.");
         }
     }
 

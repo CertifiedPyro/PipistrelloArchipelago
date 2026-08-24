@@ -203,7 +203,7 @@ internal static class CorePatches
         }
 
         Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
-        Global.State.Messages.Enqueue("[instant|You reached your goal of [c:red|North Plaza]!][w:2]");
+        Global.State.Messages.Enqueue("You reached your goal of [c:red|North Plaza]!");
         Global.State.Session.SetClientState(ArchipelagoClientState.ClientGoal);
     }
 

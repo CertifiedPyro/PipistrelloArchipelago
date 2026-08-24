@@ -22,14 +22,18 @@ internal static class MessageLogHandler
         var builder = new StringBuilder();
         foreach (var part in message.Parts)
         {
+            // Sanitize input.
             var text = part.Text.Replace("[", "(").Replace("]", ")").Replace("\"", "'");
+
+            // Convert palette color to a color the game understands.
+            // This will get converted back to the palette color later.
             var color = GetTextColor(part.PaletteColor);
             var messagePart = color == null ? text : $"[c:{color}|{text}]";
+
             builder.Append(messagePart);
         }
 
-        var queuedMessage = $"[fast|{builder}]";
-        Global.State.Messages.Enqueue(queuedMessage);
+        Global.State.Messages.Enqueue(builder.ToString());
     }
 
     private static string GetTextColor(PaletteColor? color)

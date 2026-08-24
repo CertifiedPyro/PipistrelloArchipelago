@@ -37,6 +37,8 @@ internal static class MessagePatches
             Global.Director.dialoguePanel == null)
         {
             _state.MessageState = MessageState.Building;
+
+            message = $"[fast|{message}]";
             Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(MessagePatches));
         }
     }
