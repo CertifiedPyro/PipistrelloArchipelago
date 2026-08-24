@@ -16,7 +16,7 @@ internal class DeathPatches
     /// If loading save, reset internal state.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    private static void Director_InitFromSavefile_Postfix(int savefileIndex)
+    private static void Director_InitFromSavefile_Postfix()
     {
         _currentDeaths = 0;
         _deathCause = null;

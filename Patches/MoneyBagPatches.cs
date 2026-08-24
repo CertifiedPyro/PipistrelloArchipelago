@@ -7,6 +7,17 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal class MoneyBagPatches
 {
+    private static bool _replaceMoneyBagSprite;
+
+    /// <summary>
+    /// If loading save, reset internal state.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
+    {
+        _replaceMoneyBagSprite = false;
+    }
+
     /// <summary>
     /// Patch for handling money bags as physical Archipelago items.
     /// </summary>
@@ -62,8 +73,7 @@ internal class MoneyBagPatches
             return;
         }
 
-        // TODO: Make local state variable instead.
-        Global.State.ReplaceMoneyBagSprite = true;
+        _replaceMoneyBagSprite = true;
     }
 
     /// <summary>
@@ -72,10 +82,10 @@ internal class MoneyBagPatches
     [HarmonyPrefix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
     private static void SpriteManager_GetSprite_Prefix(ref string sprId)
     {
-        if (Global.State.ReplaceMoneyBagSprite && sprId == "objs/moneyBag")
+        if (_replaceMoneyBagSprite && sprId == "objs/moneyBag")
         {
             sprId = Constants.MoneyBagMediumSpriteName;
-            Global.State.ReplaceMoneyBagSprite = false;
+            _replaceMoneyBagSprite = false;
         }
     }
 }

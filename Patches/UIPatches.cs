@@ -12,7 +12,7 @@ internal static class UIPatches
     /// If loading save, reset internal state.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    private static void Director_InitFromSavefile_Postfix(int savefileIndex)
+    private static void Director_InitFromSavefile_Postfix()
     {
         _makingPauseMenu = false;
     }

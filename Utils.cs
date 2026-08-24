@@ -199,7 +199,6 @@ internal class State
     public readonly ConcurrentQueue<string> Messages = new();
 
     public bool SaveFileLoaded = false;
-    public bool ReplaceMoneyBagSprite = false;
 
     public string DialogueText;
     public bool ShowRemainingDialogue = true;
