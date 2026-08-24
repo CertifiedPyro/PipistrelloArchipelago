@@ -14,6 +14,9 @@ internal static class MessagePatches
     private static float _elapsedTextTimeSeconds;
     private static bool _ignoreClick;
 
+    /// <summary>
+    /// Patch to start to show messages in a dialogue panel.
+    /// </summary>
     [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     [HarmonyPrefix]
     public static void Start()
@@ -46,6 +49,10 @@ internal static class MessagePatches
         }
     }
 
+    /// <summary>
+    /// Patch to show messages in a dialogue panel.
+    /// </summary>
+    /// <param name="__instance"></param>
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
     [HarmonyPrefix]
     public static void DialoguePanelPatch(DialoguePanel __instance)
@@ -86,6 +93,10 @@ internal static class MessagePatches
         _elapsedTextTimeSeconds += Time.deltaTime;
     }
 
+    /// <summary>
+    /// Patch to prevent dialogue skipping when a message is showing.
+    /// </summary>
+    /// <returns></returns>
     [HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
     [HarmonyPrefix]
     public static bool AcceptClickPatch()
@@ -93,6 +104,26 @@ internal static class MessagePatches
         return !_ignoreClick;
     }
 
+    /// <summary>
+    /// Patch to allow interactables to work while a message is showing.
+    /// </summary>
+    [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.HandleInputInteract))]
+    [HarmonyPostfix]
+    public static void HandleInputInteractPatch(ref bool __result)
+    {
+        var player = Global.Director.player;
+        if (player.interactableObject != null && player.currentInput.jump)
+        {
+            __result = true;
+            player.interactableObject.OnInteract();
+        }
+    }
+
+    /// <summary>
+    /// Patch to show Archipelago text colors.
+    /// </summary>
+    /// <param name="section"></param>
+    /// <param name="currentColor"></param>
     [HarmonyPatch(typeof(TextRenderer), nameof(TextRenderer.BuildRecursive))]
     [HarmonyPrefix]
     public static void BuildRecursivePatch(TextRenderer.Section section, ref Color currentColor)
