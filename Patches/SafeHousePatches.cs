@@ -15,6 +15,9 @@ internal static class SafeHousePatches
 
     private static Game.GlobalObjectId _originalSafeHouseExitId;
 
+    /// <summary>
+    /// Patch for adding lever that resets to South Plaza.
+    /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
     private static void Director_LoadProject_Postfix()
     {
@@ -67,6 +70,9 @@ internal static class SafeHousePatches
         }
     }
 
+    /// <summary>
+    /// Patch for handling lever state change.
+    /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.SetFlagBool))]
     private static void Director_SetFlagBool_Postfix(string flag, bool value)
     {
@@ -97,6 +103,9 @@ internal static class SafeHousePatches
         }
     }
 
+    /// <summary>
+    /// Patch for showing text from the lever's sign.
+    /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
     private static bool Localization_GetEntries_Prefix(
         string stringId,
