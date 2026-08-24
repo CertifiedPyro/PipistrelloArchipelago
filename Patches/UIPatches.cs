@@ -4,16 +4,15 @@ using Il2CppPipistrello;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public static class UIPatches
+internal static class UIPatches
 {
     private static int _prevAccountantFlagValue;
 
     /// <summary>
     /// If loading save, reset global state.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    [HarmonyPostfix]
-    public static void InitFromSavefilePatch(int savefileIndex)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix(int savefileIndex)
     {
         _prevAccountantFlagValue = 0;
     }
@@ -21,9 +20,8 @@ public static class UIPatches
     /// <summary>
     /// Patch for showing Archipelago map pins.
     /// </summary>
-    [HarmonyPatch(typeof(Minimap), nameof(Minimap.RefreshPins))]
-    [HarmonyPrefix]
-    public static void RefreshMinimapPinsPatch()
+    [HarmonyPrefix, HarmonyPatch(typeof(Minimap), nameof(Minimap.RefreshPins))]
+    private static void Minimap_RefreshPins_Prefix()
     {
         var mapPins = Global.Director.playerRecord.mapPins;
         for (var i = 0; i < mapPins.Count; i++)
@@ -45,44 +43,41 @@ public static class UIPatches
     }
 
     /// <summary>
-    /// Patch pause menu to always show upgrades menu.
+    /// Patch for always showing the upgrades menu.
     /// </summary>
-    [HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
-    [HarmonyPrefix]
-    public static void MakePauseMenuPrefixPatch()
+    [HarmonyPrefix, HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
+    private static void Menu_MakePauseMenu_Prefix()
     {
         // Pretend that accountant was found.
+        // TODO: Patch GetFlagBool instead to be safer.
         _prevAccountantFlagValue = Global.Director.GetFlag(Game.FLAG_ACCOUNTANT_FOUND);
         Global.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, 2);
     }
 
     /// <summary>
-    /// Patch pause menu to revert accountant state.
+    /// Patch for reverting state after showing the upgrades menu.
     /// </summary>
-    [HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
-    [HarmonyPostfix]
-    public static void MakePauseMenuPostfixPatch()
+    [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
+    private static void Menu_MakePauseMenu_Postfix()
     {
         Global.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, _prevAccountantFlagValue);
     }
 
     /// <summary>
-    /// Patch upgrade menu to make all upgrades locked.
+    /// Patch for locking all upgrades on the upgrade menu.
     /// </summary>
-    [HarmonyPatch(typeof(Game), nameof(Game.IsUpgradeLocked))]
-    [HarmonyPrefix]
-    public static bool IsUpgradeLockedPatch(ref bool __result)
+    [HarmonyPrefix, HarmonyPatch(typeof(Game), nameof(Game.IsUpgradeLocked))]
+    private static bool Game_IsUpgradeLocked_Prefix(ref bool __result)
     {
         __result = true;
         return false;
     }
 
     /// <summary>
-    /// Patch badge menu to make all badge refinements locked.
+    /// Patch for locking all badge refinements in the badge menu.
     /// </summary>
-    [HarmonyPatch(typeof(UIEquipRefinement), nameof(UIEquipRefinement.MakeConfirmationDialog))]
-    [HarmonyPrefix]
-    public static bool UIEquipRefinementPatch()
+    [HarmonyPrefix, HarmonyPatch(typeof(UIEquipRefinement), nameof(UIEquipRefinement.MakeConfirmationDialog))]
+    private static bool UIEquipRefinement_MakeConfirmationDialog_Prefix()
     {
         return false;
     }

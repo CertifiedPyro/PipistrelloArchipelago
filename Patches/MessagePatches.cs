@@ -22,18 +22,12 @@ internal static class MessagePatches
     private static InternalState _state = new();
 
     /// <summary>
-    /// Patch to start to show messages in a dialogue panel.
+    /// Patch to trigger showing messages in a dialogue panel.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
-    [HarmonyPrefix]
-    public static void Start()
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
+    private static void ObjectPlayer_Process_Prefix()
     {
-        if (!Global.State.SaveFileLoaded)
-        {
-            return;
-        }
-
-        if (_state.MessageState != MessageState.None)
+        if (!Global.State.SaveFileLoaded || _state.MessageState != MessageState.None)
         {
             return;
         }
@@ -50,15 +44,15 @@ internal static class MessagePatches
     /// <summary>
     /// Patch to show messages in a dialogue panel.
     /// </summary>
-    [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
-    [HarmonyPrefix]
-    public static void DialoguePanelPatch(DialoguePanel __instance)
+    [HarmonyPrefix, HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
+    private static void DialoguePanel_Process_Prefix(DialoguePanel __instance)
     {
         if (_state.MessageState == MessageState.None)
         {
             return;
         }
 
+        // Check if dialogue if over.
         if (__instance.currentTextScroll >= __instance.textScrolls.Count)
         {
             Global.State.Messages.TryDequeue(out _);
@@ -78,7 +72,7 @@ internal static class MessagePatches
             return;
         }
 
-        // Advance/close text once timer has passed TextShowTimeMs.
+        // Advance/close text once timer has passed.
         if (currentTextScroll.isWaitingClick && _state.ElapsedTextTimeSeconds > TextShowTimeMs / 1000f)
         {
             _state.ElapsedTextTimeSeconds = 0;
@@ -88,7 +82,7 @@ internal static class MessagePatches
             return;
         }
 
-        // Only advance timer when text section is fully shown.
+        // Advance timer when text section is fully shown.
         if (currentTextScroll.isWaitingClick)
         {
             _state.ElapsedTextTimeSeconds += Time.deltaTime;
@@ -96,12 +90,10 @@ internal static class MessagePatches
     }
 
     /// <summary>
-    /// Patch to prevent dialogue skipping when a message is showing.
+    /// Patch to prevent message from being skipped.
     /// </summary>
-    /// <returns></returns>
-    [HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
-    [HarmonyPrefix]
-    public static bool AcceptClickPatch()
+    [HarmonyPrefix, HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
+    private static bool TextScroll_AcceptClick_Prefix()
     {
         return !_state.IgnoreClick;
     }
@@ -109,9 +101,8 @@ internal static class MessagePatches
     /// <summary>
     /// Patch to allow interactables to work while a message is showing.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.HandleInputInteract))]
-    [HarmonyPostfix]
-    public static void HandleInputInteractPatch(ref bool __result)
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.HandleInputInteract))]
+    private static void ObjectPlayer_HandleInputInteract_Postfix(ref bool __result)
     {
         var player = Global.Director.player;
         if (player.interactableObject != null && player.currentInput.jump)
@@ -124,11 +115,8 @@ internal static class MessagePatches
     /// <summary>
     /// Patch to show Archipelago text colors.
     /// </summary>
-    /// <param name="section"></param>
-    /// <param name="currentColor"></param>
-    [HarmonyPatch(typeof(TextRenderer), nameof(TextRenderer.BuildRecursive))]
-    [HarmonyPrefix]
-    public static void BuildRecursivePatch(TextRenderer.Section section, ref Color currentColor)
+    [HarmonyPrefix, HarmonyPatch(typeof(TextRenderer), nameof(TextRenderer.BuildRecursive))]
+    private static void TextRenderer_BuildRecursive_Prefix(TextRenderer.Section section, ref Color currentColor)
     {
         if (_state.MessageState != MessageState.Building)
         {
@@ -185,12 +173,12 @@ internal static class MessagePatches
                Global.Director.uiDialog == null &&
                !Global.Director.IsPlayerDead();
     }
-    
+
     private class InternalState
     {
-        public MessageState MessageState;
-        public float ElapsedTextTimeSeconds;
-        public bool IgnoreClick;
+        internal MessageState MessageState;
+        internal float ElapsedTextTimeSeconds;
+        internal bool IgnoreClick;
     }
 
     private enum MessageState

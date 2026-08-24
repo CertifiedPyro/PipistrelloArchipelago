@@ -6,20 +6,19 @@ using UnityEngine;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public static class SafeHousePatches
+internal static class SafeHousePatches
 {
     private const string LeverObjectId = "archResetLever";
     private const string SignObjectId = "archResetSign";
     private const string ResetFlag = "t:archResetExit";
     private const string SignTextKey = "safehouse_leverSign";
-    
+
     private static Game.GlobalObjectId _originalSafeHouseExitId;
 
-    [HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
-    [HarmonyPostfix]
-    public static void LoadProjectPatch()
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
+    private static void Director_LoadProject_Postfix()
     {
-        // Add lever to Safe House to reset to South Plaza.
+        // Add lever to Safe House that resets to South Plaza.
         var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "safehouse")!;
         var room = map.rooms.ToArray().FirstOrDefault(r => r.id == "mig38")!;
         var objects = room.objects;
@@ -44,7 +43,7 @@ public static class SafeHousePatches
                 });
         }
 
-        // Add sign explaining what the lever does.
+        // Add sign that explains the lever.
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == SignObjectId) == null)
         {
             room.objects.Add(
@@ -68,9 +67,8 @@ public static class SafeHousePatches
         }
     }
 
-    [HarmonyPatch(typeof(Director), nameof(Director.SetFlagBool))]
-    [HarmonyPostfix]
-    public static void SetFlagBoolPatch(string flag, bool value)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.SetFlagBool))]
+    private static void Director_SetFlagBool_Postfix(string flag, bool value)
     {
         if (flag != ResetFlag)
         {
@@ -99,9 +97,8 @@ public static class SafeHousePatches
         }
     }
 
-    [HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
-    [HarmonyPrefix]
-    public static bool LocalizationPatch(
+    [HarmonyPrefix, HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
+    private static bool Localization_GetEntries_Prefix(
         string stringId,
         ref Il2CppSystem.Collections.Generic.List<Localization.Entry> __result)
     {

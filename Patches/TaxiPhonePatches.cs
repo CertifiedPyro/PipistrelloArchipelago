@@ -6,11 +6,10 @@ using MelonLoader;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public class TaxiPhonePatches
+internal class TaxiPhonePatches
 {
-    [HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
-    [HarmonyPrefix]
-    public static void LocalizationPatch(string stringId)
+    [HarmonyPrefix, HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
+    private static void Localization_GetEntries_Prefix(string stringId)
     {
         // Check if taxi phone dialogue is showing.
         if (stringId is not ("taxiPhone_unlock" or "taxiPhone_unlocked"))

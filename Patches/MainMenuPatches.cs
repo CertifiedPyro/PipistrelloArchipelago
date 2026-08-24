@@ -7,24 +7,25 @@ using UnityEngine;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public static class MainMenuPatches
+internal static class MainMenuPatches
 {
     private static UILabel _connectionStatus;
     private static UIButton _loadGameButton;
 
-    [HarmonyPatch(typeof(Director), nameof(Director.QuitToTitleScreen))]
-    [HarmonyPrefix]
-    public static void QuitToTitleScreenPatch()
+    /// <summary>
+    /// Patch to handle quitting to title screen.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.QuitToTitleScreen))]
+    private static void Director_QuitToTitleScreen_Prefix()
     {
         _ = ArchipelagoHelper.DisconnectAsync();
     }
 
     /// <summary>
-    /// Add extra buttons/labels to main menu for Archipelago connections.
+    /// Patch to add extra buttons and labels to main menu for connecting to Archipelago.
     /// </summary>
-    [HarmonyPatch(typeof(Menu), nameof(Menu.MakeMainMenu))]
-    [HarmonyPostfix]
-    public static void MainMenuPatch(UIDialog __result)
+    [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakeMainMenu))]
+    private static void Menu_MakeMainMenu_Postfix(UIDialog __result)
     {
         // Force reconnection every time main menu is reached.
         Global.State.SaveFileLoaded = false;
@@ -69,11 +70,10 @@ public static class MainMenuPatches
     }
 
     /// <summary>
-    /// Connect to Archipelago when "Connect" button is pressed.
+    /// Patch to connect to Archipelago when "Connect" button is pressed.
     /// </summary>
-    [HarmonyPatch(typeof(UIElement), nameof(UIElement.PerformPress))]
-    [HarmonyPrefix]
-    public static bool UIElementPressPatch(UIElement __instance)
+    [HarmonyPrefix, HarmonyPatch(typeof(UIElement), nameof(UIElement.PerformPress))]
+    private static bool UIElement_PerformPress_Prefix(UIElement __instance)
     {
         // Only patch the "Connect" button.
         var connectButton = __instance.TryCast<UIButton>();
@@ -92,27 +92,26 @@ public static class MainMenuPatches
     }
 
     /// <summary>
-    /// Disable spinning 3D console.
+    /// Patch to disable spinning 3D console.
     /// </summary>
-    [HarmonyPatch(typeof(TitleScreen), nameof(TitleScreen.CanBeginAttractMode))]
-    [HarmonyPostfix]
-    public static void DisableSpinningConsolePatch(ref bool __result)
+    [HarmonyPrefix, HarmonyPatch(typeof(TitleScreen), nameof(TitleScreen.CanBeginAttractMode))]
+    private static bool TitleScreen_CanBeginAttractMode_Prefix(ref bool __result)
     {
         __result = false;
+        return false;
     }
 
     /// <summary>
-    /// Modify save file menu to prevent loading non-Archipelago saves.
+    /// Patch to modify save file menu to prevent loading non-Archipelago saves.
     /// </summary>
-    [HarmonyPatch(typeof(Menu), nameof(Menu.MakeSavefileLoadMenu))]
-    [HarmonyPostfix]
-    public static void SavefileLoadMenuPatch(UIDialog __result)
+    [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakeSavefileLoadMenu))]
+    private static void Menu_MakeSavefileLoadMenu_Postfix(UIDialog __result)
     {
         // Get record corresponding with save file menu.
         Func<UIElement, bool> predicate = e => e.TryCast<UISaveFile>() != null;
         var saveFile = __result.FindElementInAllSubDialogs(predicate).Cast<UISaveFile>();
         // saveFile.record is null for some reason, so fetch from Director.
-        var record = __result.director.savefileRecords[saveFile.savefileIndex];
+        var record = Global.Director.savefileRecords[saveFile.savefileIndex];
 
         // Check that save file has Archipelago flag.
         if (record?.flags?.ContainsKey(Constants.FlagArchipelago) == true)
@@ -120,7 +119,7 @@ public static class MainMenuPatches
             return;
         }
 
-        // Get the first Load Game button.
+        // Get the first button, which should be "Load Game".
         predicate = e => e.TryCast<UIButton>() != null;
         var button = __result.FindElementInAllSubDialogs(predicate).Cast<UIButton>();
 
@@ -139,7 +138,7 @@ public static class MainMenuPatches
     {
         try
         {
-            var connectText = "";
+            string connectText;
             if (resultTask.Result)
             {
                 EnableLoadGameButton();

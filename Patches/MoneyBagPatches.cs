@@ -5,14 +5,13 @@ using Il2CppUtil;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public class MoneyBagPatches
+internal class MoneyBagPatches
 {
     /// <summary>
     /// Patch for handling money bags as physical Archipelago items.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
-    [HarmonyPostfix]
-    public static void MoneyBagProcessPatch(ObjectMoneyBag __instance)
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
+    private static void ObjectMoneyBag_Process_Postfix(ObjectMoneyBag __instance)
     {
         // Check that save file is actually loaded, since Process() will run before save file finishes loading.
         if (!Global.State.SaveFileLoaded)
@@ -48,11 +47,10 @@ public class MoneyBagPatches
     }
 
     /// <summary>
-    /// Patch for mark money bags sprites for replacement.
+    /// Patch for marking money bags sprites for replacement.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
-    [HarmonyPrefix]
-    public static void DrawMoneyBagPatch(ObjectMoneyBag __instance)
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
+    private static void ObjectMoneyBag_Draw_Prefix(ObjectMoneyBag __instance)
     {
         if (__instance.director.IsPlayerDeathFreeze() || !__instance.IsVisibleInCamera())
         {
@@ -64,15 +62,15 @@ public class MoneyBagPatches
             return;
         }
 
+        // TODO: Make local state variable instead.
         Global.State.ReplaceMoneyBagSprite = true;
     }
 
     /// <summary>
     /// Patch for replacing the money bag sprite.
     /// </summary>
-    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
-    [HarmonyPrefix]
-    public static void GetSpritePatch(ref string sprId)
+    [HarmonyPrefix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
+    private static void SpriteManager_GetSprite_Prefix(ref string sprId)
     {
         if (Global.State.ReplaceMoneyBagSprite && sprId == "objs/moneyBag")
         {

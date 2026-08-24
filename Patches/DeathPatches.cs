@@ -15,17 +15,15 @@ internal class DeathPatches
     /// <summary>
     /// If loading save, reset global state.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    [HarmonyPostfix]
-    public static void InitFromSavefilePatch(int savefileIndex)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix(int savefileIndex)
     {
         _currentDeaths = 0;
         _deathCause = null;
     }
 
-    [HarmonyPatch(typeof(Director), nameof(Director.HandleDeath))]
-    [HarmonyPrefix]
-    public static void HandleDeathPatch()
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.HandleDeath))]
+    private static void Director_HandleDeath_Prefix()
     {
         // Check if death link is enabled.
         if (!ModSettings.DeathLink.Value)
@@ -54,9 +52,8 @@ internal class DeathPatches
         Global.State.DeathLinkService.SendDeathLink(new DeathLink(playerName, cause));
     }
 
-    [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.OnFallEnd))]
-    [HarmonyPostfix]
-    public static void FallEndPatch()
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.OnFallEnd))]
+    private static void ObjectPlayer_OnFallEnd_Postfix()
     {
         if (Global.Director.player.life > 0)
         {
@@ -97,9 +94,8 @@ internal class DeathPatches
         _deathCause = holeCauses[Random.Range(0, holeCauses.Length)];
     }
 
-    [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.PlayerReceiveHit))]
-    [HarmonyPostfix]
-    public static void PlayerReceiveHitPatch(HitboxManager.OnReceiveHitData data)
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.PlayerReceiveHit))]
+    private static void ObjectPlayer_PlayerReceiveHit_Postfix(HitboxManager.OnReceiveHitData data)
     {
         if (Global.Director.player.life > 0 || data.hitbox.obj == null)
         {

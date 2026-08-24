@@ -9,18 +9,16 @@ using Object = Il2CppPipistrello.Object;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public static class CorePatches
+internal static class CorePatches
 {
-    [HarmonyPatch(typeof(Director), nameof(Director.Init))]
-    [HarmonyPostfix]
-    public static void DirectorInitPatch(Director __instance)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.Init))]
+    private static void Director_Init_Postfix(Director __instance)
     {
         Global.Director = __instance;
     }
 
-    [HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
-    [HarmonyPostfix]
-    public static void LoadProjectPatch()
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
+    private static void Director_LoadProject_Postfix()
     {
         MakeArchMapChanges();
     }
@@ -28,9 +26,8 @@ public static class CorePatches
     /// <summary>
     /// Patch for handling new and loaded saves.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    [HarmonyPostfix]
-    public static void InitFromSavefilePatch(int savefileIndex)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix(int savefileIndex)
     {
         // Reload project to reset Mapvania objects.
         // This crashes the game if called twice before loading, but it shouldn't happen here.
@@ -67,9 +64,8 @@ public static class CorePatches
     /// <summary>
     /// Patch for creating physical Archipelago items.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
-    [HarmonyPrefix]
-    public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
+    private static void Director_InstantiateFromMap_Prefix(ref Mapvania.Object mapObj)
     {
         // Don't replace taxi phones or money bags.
         if (mapObj.objectDefName is "taxiPhone" or "moneyBag")
@@ -98,9 +94,8 @@ public static class CorePatches
     /// <summary>
     /// Patch for handling created Archipelago items.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
-    [HarmonyPostfix]
-    public static void InstantiateFromMapPostfixPatch(Object __result)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
+    private static void Director_InstantiateFromMap_Postfix(Object __result)
     {
         if (__result != null && Utils.IsArchItemId(__result.globalObjectId?.objectId))
         {
@@ -109,11 +104,10 @@ public static class CorePatches
     }
 
     /// <summary>
-    /// Patch to handle post InitRoom().
+    /// Patch to handle post-InitRoom().
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
-    [HarmonyPostfix]
-    public static void InitRoomPatch()
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
+    private static void Director_InitRoom_Postfix()
     {
         // Check if Director is null, since apparently this can run before the main menu appears.
         // Normally, PrepareCheckpoint() runs before ProcessObjects() within Director.InitRoom().
@@ -125,9 +119,8 @@ public static class CorePatches
     /// <summary>
     /// Patch for handling physical Archipelago items.
     /// </summary>
-    [HarmonyPatch(typeof(Game), nameof(Game.SetBpContainerAcquired))]
-    [HarmonyPrefix]
-    public static bool HandlePhysicalArchItemPatch(string id, ref bool __result)
+    [HarmonyPrefix, HarmonyPatch(typeof(Game), nameof(Game.SetBpContainerAcquired))]
+    private static bool Game_SetBpContainerAcquired_Prefix(string id, ref bool __result)
     {
         if (!Utils.IsArchItemId(id))
         {
@@ -144,9 +137,10 @@ public static class CorePatches
     /// <summary>
     /// Patch to show house puzzles as completed based on the replaced physical Archipelago items.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectWarpArea), nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
-    [HarmonyPrefix]
-    public static bool HousePuzzlePatch(ObjectWarpArea __instance, ref bool __result)
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectWarpArea), nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
+    private static bool ObjectWarpArea_CalculateIsHousePuzzleCompleted_Prefix(
+        ObjectWarpArea __instance,
+        ref bool __result)
     {
         if (!Global.Director.currentProject.housePuzzleFlags.TryGetValue(
                 __instance.globalObjectId.AsString, out var houseFlags))
@@ -200,9 +194,8 @@ public static class CorePatches
     /// <summary>
     /// Patch for goal state.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
-    [HarmonyPrefix]
-    public static void GoalPatch(string mapId, string roomId)
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
+    private static void GoalPatch(string mapId, string roomId)
     {
         if (mapId != "city" || roomId != "ren4872")
         {
