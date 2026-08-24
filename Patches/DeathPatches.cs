@@ -13,7 +13,7 @@ internal class DeathPatches
     private static string _deathCause;
 
     /// <summary>
-    /// If loading save, reset global state.
+    /// If loading save, reset internal state.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
     private static void Director_InitFromSavefile_Postfix(int savefileIndex)

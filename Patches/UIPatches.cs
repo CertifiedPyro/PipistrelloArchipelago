@@ -6,15 +6,15 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal static class UIPatches
 {
-    private static int _prevAccountantFlagValue;
+    private static bool _makingPauseMenu;
 
     /// <summary>
-    /// If loading save, reset global state.
+    /// If loading save, reset internal state.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
     private static void Director_InitFromSavefile_Postfix(int savefileIndex)
     {
-        _prevAccountantFlagValue = 0;
+        _makingPauseMenu = false;
     }
 
     /// <summary>
@@ -43,24 +43,33 @@ internal static class UIPatches
     }
 
     /// <summary>
-    /// Patch for always showing the upgrades menu.
+    /// Patch to mark that pause menu is being made.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
     private static void Menu_MakePauseMenu_Prefix()
     {
-        // Pretend that accountant was found.
-        // TODO: Patch GetFlagBool instead to be safer.
-        _prevAccountantFlagValue = Global.Director.GetFlag(Game.FLAG_ACCOUNTANT_FOUND);
-        Global.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, 2);
+        _makingPauseMenu = true;
     }
 
     /// <summary>
-    /// Patch for reverting state after showing the upgrades menu.
+    /// Patch to mark that pause menu is no longer being made.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
     private static void Menu_MakePauseMenu_Postfix()
     {
-        Global.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, _prevAccountantFlagValue);
+        _makingPauseMenu = false;
+    }
+
+    /// <summary>
+    /// Patch for always showing the upgrades menu.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Game), nameof(Game.GetFlag))]
+    private static void Game_GetFlagBool_Postfix(string flag, ref int __result)
+    {
+        if (_makingPauseMenu && flag == Game.FLAG_ACCOUNTANT_FOUND)
+        {
+            __result = 2;
+        }
     }
 
     /// <summary>
