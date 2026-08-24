@@ -3,10 +3,10 @@ using Il2CppPipistrello;
 using Il2CppUtil;
 using UnityEngine;
 
-namespace PipistrelloArchipelago.Handlers;
+namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-internal static class DisplayMessageHandler
+internal static class MessagePatches
 {
     private const int TextShowTimeMs = 3000;
 
@@ -42,7 +42,7 @@ internal static class DisplayMessageHandler
             Global.Director.dialoguePanel == null)
         {
             _messageState = MessageState.Building;
-            Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(DisplayMessageHandler));
+            Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(MessagePatches));
         }
     }
 
