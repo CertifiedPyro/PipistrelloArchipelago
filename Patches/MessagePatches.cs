@@ -19,9 +19,7 @@ internal static class MessagePatches
         ObjectPlayer.State.Cutscene
     ];
 
-    private static MessageState _messageState;
-    private static float _elapsedTextTimeSeconds;
-    private static bool _ignoreClick;
+    private static InternalState _state = new();
 
     /// <summary>
     /// Patch to start to show messages in a dialogue panel.
@@ -35,17 +33,8 @@ internal static class MessagePatches
             return;
         }
 
-        if (_messageState != MessageState.None)
+        if (_state.MessageState != MessageState.None)
         {
-            if (_messageState == MessageState.Finished &&
-                Global.Director.dialoguePanel == null &&
-                Global.State.Messages.TryDequeue(out _))
-            {
-                _messageState = MessageState.None;
-                _elapsedTextTimeSeconds = 0;
-                _ignoreClick = false;
-            }
-
             return;
         }
 
@@ -53,7 +42,7 @@ internal static class MessagePatches
             CanContinueShowingMessage() &&
             Global.Director.dialoguePanel == null)
         {
-            _messageState = MessageState.Building;
+            _state.MessageState = MessageState.Building;
             Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(MessagePatches));
         }
     }
@@ -61,50 +50,48 @@ internal static class MessagePatches
     /// <summary>
     /// Patch to show messages in a dialogue panel.
     /// </summary>
-    /// <param name="__instance"></param>
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
     [HarmonyPrefix]
     public static void DialoguePanelPatch(DialoguePanel __instance)
     {
-        if (_messageState == MessageState.None)
+        if (_state.MessageState == MessageState.None)
         {
             return;
         }
 
         if (__instance.currentTextScroll >= __instance.textScrolls.Count)
         {
-            _messageState = MessageState.Finished;
+            Global.State.Messages.TryDequeue(out _);
+            _state = new InternalState();
             return;
         }
 
-        _messageState = MessageState.Showing;
-        _ignoreClick = true;
+        _state.MessageState = MessageState.Showing;
+        _state.IgnoreClick = true;
 
         // Close dialogue panel early if necessary.
         var currentTextScroll = __instance.textScrolls[__instance.currentTextScroll];
         if (!CanContinueShowingMessage() || __instance.textScrolls.Count > 1)
         {
             currentTextScroll.ended = true;
-            _messageState = MessageState.None;
-            _elapsedTextTimeSeconds = 0;
-            _ignoreClick = false;
+            _state = new InternalState();
             return;
         }
 
         // Advance/close text once timer has passed TextShowTimeMs.
-        if (currentTextScroll.isWaitingClick && _elapsedTextTimeSeconds > TextShowTimeMs / 1000f)
+        if (currentTextScroll.isWaitingClick && _state.ElapsedTextTimeSeconds > TextShowTimeMs / 1000f)
         {
-            _elapsedTextTimeSeconds = 0;
-            _ignoreClick = false;
+            _state.ElapsedTextTimeSeconds = 0;
+            _state.IgnoreClick = false;
             currentTextScroll.AcceptClick();
-            _ignoreClick = true;
+            _state.IgnoreClick = true;
             return;
         }
 
         // Only advance timer when text section is fully shown.
         if (currentTextScroll.isWaitingClick)
         {
-            _elapsedTextTimeSeconds += Time.deltaTime;
+            _state.ElapsedTextTimeSeconds += Time.deltaTime;
         }
     }
 
@@ -116,7 +103,7 @@ internal static class MessagePatches
     [HarmonyPrefix]
     public static bool AcceptClickPatch()
     {
-        return !_ignoreClick;
+        return !_state.IgnoreClick;
     }
 
     /// <summary>
@@ -143,7 +130,7 @@ internal static class MessagePatches
     [HarmonyPrefix]
     public static void BuildRecursivePatch(TextRenderer.Section section, ref Color currentColor)
     {
-        if (_messageState != MessageState.Building)
+        if (_state.MessageState != MessageState.Building)
         {
             return;
         }
@@ -195,15 +182,21 @@ internal static class MessagePatches
     private static bool CanContinueShowingMessage()
     {
         return !InvalidStates.Contains(Global.Director.player.state) &&
-               Global.Director.uiDialog == null && 
+               Global.Director.uiDialog == null &&
                !Global.Director.IsPlayerDead();
     }
-}
+    
+    private class InternalState
+    {
+        public MessageState MessageState;
+        public float ElapsedTextTimeSeconds;
+        public bool IgnoreClick;
+    }
 
-internal enum MessageState
-{
-    None = 0,
-    Building = 1,
-    Showing = 2,
-    Finished = 3
+    private enum MessageState
+    {
+        None = 0,
+        Building = 1,
+        Showing = 2
+    }
 }
