@@ -8,7 +8,16 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal static class MessagePatches
 {
-    private const int TextShowTimeMs = 3000;
+    private const int TextShowTimeMs = 3500;
+
+    private static readonly HashSet<ObjectPlayer.State> InvalidStates =
+    [
+        ObjectPlayer.State.AcquiringItem,
+        ObjectPlayer.State.AcquiringMegaBattery,
+        ObjectPlayer.State.AuntieFinish,
+        ObjectPlayer.State.AuntieTalk,
+        ObjectPlayer.State.Cutscene
+    ];
 
     private static MessageState _messageState;
     private static float _elapsedTextTimeSeconds;
@@ -71,8 +80,9 @@ internal static class MessagePatches
         _messageState = MessageState.Showing;
         _ignoreClick = true;
 
+        // Close dialogue panel early if necessary.
         var currentTextScroll = __instance.textScrolls[__instance.currentTextScroll];
-        if (!CanContinueShowingMessage())
+        if (!CanContinueShowingMessage() || __instance.textScrolls.Count > 1)
         {
             currentTextScroll.ended = true;
             _messageState = MessageState.None;
@@ -81,6 +91,7 @@ internal static class MessagePatches
             return;
         }
 
+        // Advance/close text once timer has passed TextShowTimeMs.
         if (currentTextScroll.isWaitingClick && _elapsedTextTimeSeconds > TextShowTimeMs / 1000f)
         {
             _elapsedTextTimeSeconds = 0;
@@ -90,7 +101,11 @@ internal static class MessagePatches
             return;
         }
 
-        _elapsedTextTimeSeconds += Time.deltaTime;
+        // Only advance timer when text section is fully shown.
+        if (currentTextScroll.isWaitingClick)
+        {
+            _elapsedTextTimeSeconds += Time.deltaTime;
+        }
     }
 
     /// <summary>
@@ -179,7 +194,9 @@ internal static class MessagePatches
 
     private static bool CanContinueShowingMessage()
     {
-        return Global.Director.uiDialog == null && !Global.Director.IsPlayerDead();
+        return !InvalidStates.Contains(Global.Director.player.state) &&
+               Global.Director.uiDialog == null && 
+               !Global.Director.IsPlayerDead();
     }
 }
 
