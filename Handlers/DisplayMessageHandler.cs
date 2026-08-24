@@ -1,7 +1,6 @@
 ﻿using HarmonyLib;
 using Il2CppPipistrello;
 using Il2CppUtil;
-using MelonLoader;
 using UnityEngine;
 
 namespace PipistrelloArchipelago.Handlers;
@@ -11,68 +10,80 @@ internal static class DisplayMessageHandler
 {
     private const int TextShowTimeMs = 3000;
 
-    private static long? _textStartTimeMs;
-    private static bool _showingMessage;
-    private static bool _messageShown;
+    private static MessageState _messageState;
+    private static float _elapsedTextTimeSeconds;
     private static bool _ignoreClick;
-    private static bool _buildingDialoguePanel;
 
     [HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     [HarmonyPrefix]
     public static void Start()
     {
-        if (_showingMessage)
+        if (!Global.State.SaveFileLoaded)
         {
-            if (_messageShown && Global.Director.dialoguePanel == null && Global.State.Messages.TryDequeue(out _))
+            return;
+        }
+
+        if (_messageState != MessageState.None)
+        {
+            if (_messageState == MessageState.Finished &&
+                Global.Director.dialoguePanel == null &&
+                Global.State.Messages.TryDequeue(out _))
             {
-                _textStartTimeMs = null;
-                _showingMessage = false;
-                _messageShown = false;
+                _messageState = MessageState.None;
+                _elapsedTextTimeSeconds = 0;
                 _ignoreClick = false;
             }
 
             return;
         }
 
-        // Only queue message if there isn't dialogue showing already.
-        if (Global.Director.dialoguePanel == null && Global.State.Messages.TryPeek(out var message))
+        if (Global.State.Messages.TryPeek(out var message) &&
+            CanContinueShowingMessage() &&
+            Global.Director.dialoguePanel == null)
         {
-            _showingMessage = true;
+            _messageState = MessageState.Building;
             Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(DisplayMessageHandler));
         }
     }
 
     [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
     [HarmonyPrefix]
-    public static void Prefix(DialoguePanel __instance)
+    public static void DialoguePanelPatch(DialoguePanel __instance)
     {
-        if (!_showingMessage)
+        if (_messageState == MessageState.None)
         {
             return;
         }
 
-        _messageShown = true;
-        _ignoreClick = true;
         if (__instance.currentTextScroll >= __instance.textScrolls.Count)
         {
+            _messageState = MessageState.Finished;
             return;
         }
 
+        _messageState = MessageState.Showing;
+        _ignoreClick = true;
+
         var currentTextScroll = __instance.textScrolls[__instance.currentTextScroll];
-        var currentTime = DateTimeOffset.UtcNow.ToUnixTimeMilliseconds();
-        if (_textStartTimeMs != null && currentTime - _textStartTimeMs > TextShowTimeMs)
+        if (!CanContinueShowingMessage())
         {
-            _textStartTimeMs = null;
+            currentTextScroll.ended = true;
+            _messageState = MessageState.None;
+            _elapsedTextTimeSeconds = 0;
+            _ignoreClick = false;
+            return;
+        }
+
+        if (currentTextScroll.isWaitingClick && _elapsedTextTimeSeconds > TextShowTimeMs / 1000f)
+        {
+            _elapsedTextTimeSeconds = 0;
             _ignoreClick = false;
             currentTextScroll.AcceptClick();
             _ignoreClick = true;
             return;
         }
 
-        if (_textStartTimeMs == null)
-        {
-            _textStartTimeMs = currentTime;
-        }
+        _elapsedTextTimeSeconds += Time.deltaTime;
     }
 
     [HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
@@ -82,27 +93,11 @@ internal static class DisplayMessageHandler
         return !_ignoreClick;
     }
 
-    [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
-    [HarmonyPrefix]
-    public static void StartChoicesPrefix()
-    {
-        MelonLogger.Msg("Set _inDialoguePanel to true");
-        _buildingDialoguePanel = true;
-    }
-
-    [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
-    [HarmonyPostfix]
-    public static void EndChoicesPrefix()
-    {
-        MelonLogger.Msg("Set _inDialoguePanel to false");
-        _buildingDialoguePanel = false;
-    }
-
     [HarmonyPatch(typeof(TextRenderer), nameof(TextRenderer.BuildRecursive))]
     [HarmonyPrefix]
     public static void BuildRecursivePatch(TextRenderer.Section section, ref Color currentColor)
     {
-        if (!_showingMessage || !_buildingDialoguePanel)
+        if (_messageState != MessageState.Building)
         {
             return;
         }
@@ -150,4 +145,17 @@ internal static class DisplayMessageHandler
             currentColor = new Color(newColor.Value.R / 255f, newColor.Value.G / 255f, newColor.Value.B / 255f);
         }
     }
+
+    private static bool CanContinueShowingMessage()
+    {
+        return Global.Director.uiDialog == null && !Global.Director.IsPlayerDead();
+    }
+}
+
+internal enum MessageState
+{
+    None = 0,
+    Building = 1,
+    Showing = 2,
+    Finished = 3
 }

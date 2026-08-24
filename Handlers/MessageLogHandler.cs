@@ -13,8 +13,8 @@ internal static class MessageLogHandler
             return;
         }
 
-        if (message is not (ChatLogMessage or GoalLogMessage or JoinLogMessage or LeaveLogMessage
-            or ReleaseLogMessage or ServerChatLogMessage))
+        if (message is not (ChatLogMessage or HintItemSendLogMessage or GoalLogMessage or JoinLogMessage
+            or LeaveLogMessage or ReleaseLogMessage or ServerChatLogMessage))
         {
             return;
         }
