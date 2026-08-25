@@ -114,7 +114,7 @@ internal static class ItemHandler
         {
             var itemName = item.ItemName;
             var director = Global.Director;
-            var followingObjects = director.player.followingObjects.ToArray();
+            var followingObjectIds = director.playerRecord.followingObjectIds.ToArray();
             var result = true;
             Melon<PipArchMod>.Logger.Msg($"Received item: {itemName}");
 
@@ -166,7 +166,7 @@ internal static class ItemHandler
                 var staffIdObject = Utils.GetMapvaniaObject("yugo3_dev/yug4006/yug4042")!;
                 // Check that the staff ID isn't already turned in for dungeon access or following the player.
                 if (!director.GetFlagBool($"{Game.GLOBAL_FLAG_PREFIX}fariaLimeDungeonAccess")
-                    && followingObjects.All(o => o.objectDefName != staffIdObject.objectDefName))
+                    && followingObjectIds.All(o => o.AsString != staffIdObject.globalObjectId.AsString))
                 {
                     // TODO: Find better way to add following object that activates immediately.
                     director.playerRecord.followingObjectIds.Add(staffIdObject.globalObjectId);
