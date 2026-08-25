@@ -7,6 +7,7 @@ namespace PipistrelloArchipelago.Patches;
 /// <summary>
 /// Patches to handle queued death links.
 /// </summary>
+[HarmonyPatch]
 internal static class DeathLinkQueuedPatches
 {
     private static readonly HashSet<ObjectPlayer.State> InvalidStates =
