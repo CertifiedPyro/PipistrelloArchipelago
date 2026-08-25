@@ -103,7 +103,10 @@ public static class ArchipelagoHelper
         DeathLinkHandler.End();
         ItemHandler.End();
 
-        await Global.State.Session.Socket.DisconnectAsync();
+        if (Global.State.Session.Socket.Connected)
+        {
+            await Global.State.Session.Socket.DisconnectAsync();
+        }
     }
 
     /// <summary>
