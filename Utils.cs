@@ -1,11 +1,13 @@
 ﻿using System.Collections.Concurrent;
 using Archipelago.MultiClient.Net;
 using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
+using Archipelago.MultiClient.Net.Colors;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
 using MelonLoader.Preferences;
+using PipistrelloArchipelago.Patches;
 using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago;
@@ -100,8 +102,8 @@ internal static class Utils
     public static bool IsObjectIdActiveLocation(string globalObjectId)
     {
         // Check cache before checking scouted locations.
-        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) &&
-            !existingValue)
+        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue)
+            && !existingValue)
         {
             return false;
         }
@@ -121,6 +123,11 @@ internal static class Utils
         // Cache lookup for future queries.
         Global.State.IsObjectIdActiveLocationCache[globalObjectId] = active;
         return active;
+    }
+
+    public static bool IsLocalItem(ItemInfo item)
+    {
+        return item.Player.Slot == Global.State.Session.ConnectionInfo.Slot;
     }
 
     public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
@@ -173,10 +180,16 @@ internal static class Utils
         // Create the text to show the player.
         var item = Global.State.ScoutedLocations[locationId];
         var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
+        var itemColor = GetTextColor(ColorUtils.GetColor(item).ToString());
+
         var playerName = item.Player.Name.Replace(" ", "[nbsp]");
-        var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot
-            ? $"You found your [c:blue|{itemName}]!"
-            : $"You sent [c:blue|{itemName}] to [c:red|{playerName}]!";
+        var playerColor = IsLocalItem(item)
+            ? GetTextColor(ColorUtils.ActivePlayerColor.ToString())
+            : GetTextColor(ColorUtils.NonActivePlayerColor.ToString());
+
+        var text = IsLocalItem(item)
+            ? $"You found your [c:{itemColor}|{itemName}]!"
+            : $"You sent [c:{itemColor}|{itemName}] to [c:{playerColor}|{playerName}]!";
 
         // Determine if text should replace dialogue or be queued for later.
         var mapObject = GetMapvaniaObject(globalObjectId);
@@ -189,6 +202,29 @@ internal static class Utils
             Global.State.DialogueText = $"[fast|{text}][w:2]";
             Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
         }
+    }
+
+    /// <summary>
+    /// Converts an Archipelago color to a color the game understands.
+    /// This will get converted back to the palette color in <see cref="MessagePatches" />.
+    /// </summary>
+    public static string GetTextColor(string color)
+    {
+        return color switch
+        {
+            nameof(Color.White) => null,
+            nameof(Color.Black) => "gray",
+            nameof(Color.Red) => "red",
+            nameof(Color.Green) => "green",
+            nameof(Color.Blue) => "blue",
+            nameof(Color.Cyan) => "cyan",
+            nameof(Color.Magenta) => "player",
+            nameof(Color.Yellow) => "yellow",
+            nameof(Color.SlateBlue) => "refine",
+            nameof(Color.Salmon) => "lightPink",
+            nameof(Color.Plum) => "blueprint",
+            _ => null
+        };
     }
 }
 

@@ -1,4 +1,5 @@
-﻿using Archipelago.MultiClient.Net.Models;
+﻿using Archipelago.MultiClient.Net.Colors;
+using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
@@ -68,9 +69,9 @@ internal static class ItemHandler
                 while (lastIndex < helper.AllItemsReceived.Count)
                 {
                     var item = helper.AllItemsReceived[lastIndex];
-                    var isLocalLocation = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot &&
-                                          Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
-                    var result = HandleItem(item, !isLocalLocation);
+                    var isItemFromLocalLocation = Utils.IsLocalItem(item)
+                                                  && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
+                    var result = HandleItem(item, !isItemFromLocalLocation);
                     if (!result)
                     {
                         return;
@@ -182,9 +183,15 @@ internal static class ItemHandler
             if (result && queueMessage)
             {
                 var itemDisplayName = item.ItemDisplayName.Replace(" ", "[nbsp]");
+                var itemColor = Utils.GetTextColor(ColorUtils.GetColor(item).ToString());
                 var playerName = item.Player.Name.Replace(" ", "[nbsp]");
+                var playerColor = Utils.IsLocalItem(item)
+                    ? Utils.GetTextColor(ColorUtils.ActivePlayerColor.ToString())
+                    : Utils.GetTextColor(ColorUtils.NonActivePlayerColor.ToString());
 
-                var text = $"You received [c:blue|{itemDisplayName}] from [c:red|{playerName}]!";
+                var text = Utils.IsLocalItem(item)
+                    ? $"You found your [c:{itemColor}|{itemName}]!"
+                    : $"You received [c:{itemColor}|{itemDisplayName}] from [c:{playerColor}|{playerName}]!";
                 Global.State.Messages.Enqueue(text);
             }
             else if (!result)
