@@ -14,10 +14,9 @@ internal static class SafeHousePatches
     private const string LeverObjectId = "archResetLever";
     private const string SignObjectId = "archResetSign";
     private const string ResetFlag = "t:archResetExit";
-    private const string SignTextKey = "safehouse_leverSign";
 
     private static Game.GlobalObjectId _originalSafeHouseExitId;
-    
+
     /// <summary>
     /// If loading save, reset internal state.
     /// </summary>
@@ -61,6 +60,7 @@ internal static class SafeHousePatches
         // Add sign that explains the lever.
         if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == SignObjectId) == null)
         {
+            const string signText = "Use this lever to return to South Plaza (if you are soft-locked).";
             room.objects.Add(
                 new Mapvania.Object
                 {
@@ -75,8 +75,7 @@ internal static class SafeHousePatches
                     position = new Vector2(8 * 16, 8 * 16),
                     width = 16,
                     height = 16,
-                    properties = JsonValue.Parse(
-                        $"{{\"code\": \"this.scenePlay(\\\"{SignTextKey}\\\")\", \"hideShadow\": true}}"),
+                    properties = JsonValue.Parse($$"""{"code": "this.say(\"{{signText}}\")", "hideShadow": true}"""),
                     usesFlags = true
                 });
         }
@@ -111,29 +110,5 @@ internal static class SafeHousePatches
                 new Il2CppSystem.Nullable<Game.GlobalObjectId>(_originalSafeHouseExitId);
             Global.State.Messages.Enqueue("[c:red|Reset disabled]: Safe House exit set back to original.");
         }
-    }
-
-    /// <summary>
-    /// Shows text for the lever's sign.
-    /// </summary>
-    [HarmonyPrefix, HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
-    private static bool Localization_GetEntries_Prefix(
-        string stringId,
-        ref Il2CppSystem.Collections.Generic.List<Localization.Entry> __result)
-    {
-        if (stringId != SignTextKey)
-        {
-            return true;
-        }
-
-        __result = new Il2CppSystem.Collections.Generic.List<Localization.Entry>();
-        __result.Add(
-            new Localization.Entry
-            {
-                speaker = "sign[0]",
-                contents = "Use this lever to return to South Plaza (if you are soft-locked)."
-            });
-
-        return false;
     }
 }
