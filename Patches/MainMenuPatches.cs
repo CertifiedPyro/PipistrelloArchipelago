@@ -6,10 +6,14 @@ using UnityEngine;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to modify main menu for Archipelago.
+/// </summary>
 [HarmonyPatch]
 internal static class MainMenuPatches
 {
     private static UILabel _connectionStatus;
+    private static UIButton _connectButton;
     private static UIButton _loadGameButton;
 
     /// <summary>
@@ -33,10 +37,10 @@ internal static class MainMenuPatches
         var loadGameButton = elements[0].Cast<UIButton>();
 
         // Add connect button at start of list.
-        var connectButton = loadGameButton.MemberwiseClone().Cast<UIButton>();
+        _connectButton = loadGameButton.MemberwiseClone().Cast<UIButton>();
         var connectButtonTextFn = () => "Connect";
-        connectButton.SetText(connectButtonTextFn);
-        elements.Insert(0, connectButton);
+        _connectButton.SetText(connectButtonTextFn);
+        elements.Insert(0, _connectButton);
 
         // Add connection status label.
         var labelTextFn = () => "<Waiting for connection>\n---";
@@ -80,6 +84,7 @@ internal static class MainMenuPatches
         var labelText = () => "Connecting...\n---";
         _connectionStatus.textFn = labelText;
 
+        DisableConnectButton();
         DisableLoadGameButton();
 
         ArchipelagoHelper.ConnectAsync().ContinueWith(OnConnection).ConfigureAwait(false);
@@ -134,8 +139,7 @@ internal static class MainMenuPatches
             e.TryCast<UIButton>() is { } button
             && button.textFn.Invoke() != Localization.Get("ui_newGame")
             && button.textFn.Invoke() != Localization.Get("ui_back");
-        var result = __result.rootElement.subElements.RemoveAll(predicate);
-        MelonLogger.Msg($"Removed {result} buttons...");
+        __result.rootElement.subElements.RemoveAll(predicate);
     }
 
 
@@ -147,6 +151,8 @@ internal static class MainMenuPatches
     {
         try
         {
+            EnableConnectButton();
+
             string connectText;
             if (resultTask.Result)
             {
@@ -169,17 +175,31 @@ internal static class MainMenuPatches
         }
     }
 
+    private static void EnableConnectButton()
+    {
+        var textFn = () => "Connect";
+        _connectButton.SetText(textFn);
+        _connectButton.canPress = true;
+    }
+
+    private static void DisableConnectButton()
+    {
+        var textFn = () => "---";
+        _connectButton.SetText(textFn);
+        _connectButton.canPress = false;
+    }
+
     private static void EnableLoadGameButton()
     {
-        var loadGameTextFn = () => "Load Game";
-        _loadGameButton.SetText(loadGameTextFn);
+        var textFn = () => Localization.Get("ui_loadGame");
+        _loadGameButton.SetText(textFn);
         _loadGameButton.canPress = true;
     }
 
     private static void DisableLoadGameButton()
     {
-        var loadGameTextFn = () => "---";
-        _loadGameButton.SetText(loadGameTextFn);
+        var textFn = () => "---";
+        _loadGameButton.SetText(textFn);
         _loadGameButton.canPress = false;
     }
 
