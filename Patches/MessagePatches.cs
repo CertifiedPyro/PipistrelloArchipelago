@@ -188,9 +188,10 @@ internal static class MessagePatches
 
     private static bool CanContinueShowingMessage()
     {
-        return !InvalidStates.Contains(Global.Director.player.state) &&
-               Global.Director.uiDialog == null &&
-               !Global.Director.IsPlayerDead();
+        return !InvalidStates.Contains(Global.Director.player.state)
+               && Global.Director.uiDialog == null
+               && !Global.Director.IsPlayerDead()
+               && !Global.Director.transitionActive;
     }
 
     private class InternalState
