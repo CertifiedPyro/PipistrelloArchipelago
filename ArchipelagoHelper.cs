@@ -14,77 +14,82 @@ public static class ArchipelagoHelper
     /// Handles the connection to the Archipelago server.
     /// </summary>
     /// <returns>true if the connection succeeded, false otherwise.</returns>
-    public static async Task<bool> ConnectAsync()
+    public static async Task<(bool, string)> ConnectAsync()
     {
         await DisconnectAsync();
 
         var host = ModSettings.Host.Value;
         var port = ModSettings.Port.Value;
-        var session = ArchipelagoSessionFactory.CreateSession(host, port);
-        session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
-        session.MessageLog.OnMessageReceived += LogMessageHandler.Process;
-        // TODO: add listener for session.Socket.ErrorReceived 
+        var slotName = ModSettings.SlotName.Value;
 
+        ArchipelagoSession session = null;
         LoginResult result;
         try
         {
+            session = ArchipelagoSessionFactory.CreateSession(host, port);
+            session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
+            session.MessageLog.OnMessageReceived += LogMessageHandler.Process;
+            // TODO: add listener for session.Socket.ErrorReceived 
+
             await session.ConnectAsync();
             result = await session.LoginAsync(
                 "Pipistrello and the Cursed Yoyo",
-                ModSettings.SlotName.Value,
+                slotName,
                 ItemsHandlingFlags.AllItems,
                 password: ModSettings.Password.Value);
         }
         catch (Exception e)
         {
-            result = new LoginFailure(e.GetBaseException().Message);
+            // ConnectAsync() gives a TaskCancelledException if timing out.
+            // We want the failure to match the connection failure in TryConnectAndLogin()
+            result = e.GetBaseException() is OperationCanceledException
+                ? new LoginFailure("Connection timed out.")
+                : new LoginFailure(e.GetBaseException().Message);
         }
 
-        if (result is LoginSuccessful loginSuccess)
+        if (result is not LoginSuccessful loginSuccess)
         {
-            Global.State = new State
+            var loginFailure = (LoginFailure)result;
+            var failureStatus = $"Failed to connect: {host}:{port}\n{string.Join("\n", loginFailure.Errors)}";
+            Melon<PipArchMod>.Logger.Error(failureStatus);
+            return (false, failureStatus);
+        }
+
+        var successStatus = $"Connected: {host}:{port}\nSlot: {slotName}";
+        Melon<PipArchMod>.Logger.Msg(successStatus);
+        Global.State = new State
+        {
+            Session = session,
+            SlotData = loginSuccess.SlotData,
+            ScoutedLocations = await session.Locations.ScoutLocationsAsync([.. session.Locations.AllLocations]),
+            RaceMode = await session.DataStorage.GetRaceModeAsync()
+        };
+        _ = ItemHandler.Start();
+
+        // Get the options from the slot data.
+        if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) && optionsObj is JObject options)
+        {
+            // Handle death link.
+            var deathLinkEnabled = options.TryGetValue("death_link", out var deathLinkValue)
+                                   && deathLinkValue.ToString() == "1";
+            if (loginSuccess.SlotData.TryGetValue("death_link_amnesty", out var deathLinkAmnestyValue)
+                && int.TryParse(deathLinkAmnestyValue.ToString(), out var parsedDeathLinkAmnestyValue))
             {
-                Session = session,
-                SlotData = loginSuccess.SlotData,
-                ScoutedLocations = await session.Locations.ScoutLocationsAsync([.. session.Locations.AllLocations]),
-                RaceMode = await session.DataStorage.GetRaceModeAsync()
-            };
-            _ = ItemHandler.Start();
-
-            // Get the options from the slot data.
-            if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) && optionsObj is JObject options)
-            {
-                // Handle death link.
-                var deathLinkEnabled = options.TryGetValue("death_link", out var deathLinkValue)
-                                       && deathLinkValue.ToString() == "1";
-                if (loginSuccess.SlotData.TryGetValue("death_link_amnesty", out var deathLinkAmnestyValue)
-                    && int.TryParse(deathLinkAmnestyValue.ToString(), out var parsedDeathLinkAmnestyValue))
-                {
-                    Global.State.DeathLinkAmnesty = parsedDeathLinkAmnestyValue;
-                }
-
-                if (deathLinkEnabled)
-                {
-                    Melon<PipArchMod>.Logger.Msg("Enabling death link.");
-                    Global.State.DeathLinkService = session.CreateDeathLinkService();
-                    Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.Process;
-
-                    Global.State.DeathLinkService.EnableDeathLink();
-                    ModSettings.DeathLink.Value = true;
-                }
+                Global.State.DeathLinkAmnesty = parsedDeathLinkAmnestyValue;
             }
 
-            return true;
+            if (deathLinkEnabled)
+            {
+                Melon<PipArchMod>.Logger.Msg("Enabling death link.");
+                Global.State.DeathLinkService = session.CreateDeathLinkService();
+                Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.Process;
+
+                Global.State.DeathLinkService.EnableDeathLink();
+                ModSettings.DeathLink.Value = true;
+            }
         }
 
-        Melon<PipArchMod>.Logger.Error($"Failed to connect: {host}:{port}");
-        var loginFailure = (LoginFailure)result;
-        foreach (var error in loginFailure.Errors)
-        {
-            Melon<PipArchMod>.Logger.Error(error);
-        }
-
-        return false;
+        return (true, successStatus);
     }
 
     public static async Task DisconnectAsync()
@@ -96,6 +101,7 @@ public static class ArchipelagoHelper
         }
 
         Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
+        Global.State.Session.MessageLog.OnMessageReceived -= LogMessageHandler.Process;
         Global.State.DeathLinkService?.OnDeathLinkReceived -= DeathLinkHandler.Process;
 
         ItemHandler.End();

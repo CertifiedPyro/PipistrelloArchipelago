@@ -59,7 +59,7 @@ internal static class MainMenuPatches
         elements.Insert(0, panel);
 
         _loadGameButton = loadGameButton;
-        DisableLoadGameButton();
+        SetLoadGameButtonEnabled(false);
 
         // Fix offset and assign every row to its correct index.
         __result.rootElement.offset = new Vector3(0, 24, 0);
@@ -84,8 +84,8 @@ internal static class MainMenuPatches
         var labelText = () => "Connecting...\n---";
         _connectionStatus.textFn = labelText;
 
-        DisableConnectButton();
-        DisableLoadGameButton();
+        SetConnectButtonEnabled(false);
+        SetLoadGameButtonEnabled(false);
 
         ArchipelagoHelper.ConnectAsync().ContinueWith(OnConnection).ConfigureAwait(false);
         return false;
@@ -146,27 +146,19 @@ internal static class MainMenuPatches
     /// <summary>
     /// Handles post-connection UI changes.
     /// </summary>
-    /// <param name="resultTask">A task representing whether the connection to Archipelago was successful.</param>
-    private static void OnConnection(Task<bool> resultTask)
+    /// <param name="resultTask">
+    /// A task of a tuple, with a bool for whether the connection was success and a string for the
+    /// connection status.
+    /// </param>
+    private static void OnConnection(Task<(bool, string)> resultTask)
     {
         try
         {
-            EnableConnectButton();
+            var (result, connectionStatus) = resultTask.Result;
+            SetConnectButtonEnabled(true);
+            SetLoadGameButtonEnabled(result);
 
-            string connectText;
-            if (resultTask.Result)
-            {
-                EnableLoadGameButton();
-                connectText = GetSuccessfulConnectionStatus();
-            }
-            else
-            {
-                DisableLoadGameButton();
-                connectText = GetFailedConnectionStatus();
-            }
-
-            Melon<PipArchMod>.Logger.Msg(connectText);
-            var textFn = () => connectText;
+            var textFn = () => connectionStatus;
             _connectionStatus.textFn = textFn;
         }
         catch (Exception ex)
@@ -175,43 +167,17 @@ internal static class MainMenuPatches
         }
     }
 
-    private static void EnableConnectButton()
+    private static void SetConnectButtonEnabled(bool enabled)
     {
-        var textFn = () => "Connect";
+        var textFn = () => enabled ? "Connect" : "---";
         _connectButton.SetText(textFn);
-        _connectButton.canPress = true;
+        _connectButton.canPress = enabled;
     }
 
-    private static void DisableConnectButton()
+    private static void SetLoadGameButtonEnabled(bool enabled)
     {
-        var textFn = () => "---";
-        _connectButton.SetText(textFn);
-        _connectButton.canPress = false;
-    }
-
-    private static void EnableLoadGameButton()
-    {
-        var textFn = () => Localization.Get("ui_loadGame");
+        var textFn = () => enabled ? Localization.Get("ui_loadGame") : "---";
         _loadGameButton.SetText(textFn);
-        _loadGameButton.canPress = true;
-    }
-
-    private static void DisableLoadGameButton()
-    {
-        var textFn = () => "---";
-        _loadGameButton.SetText(textFn);
-        _loadGameButton.canPress = false;
-    }
-
-    private static string GetSuccessfulConnectionStatus()
-    {
-        var slot = Global.State.Session.ConnectionInfo.Slot;
-        var slotName = Global.State.Session.Players.GetPlayerName(slot);
-        return $"Connected: {ModSettings.Host.Value}:{ModSettings.Port.Value}\nSlot: {slotName}";
-    }
-
-    private static string GetFailedConnectionStatus()
-    {
-        return $"Failed to connect: {ModSettings.Host.Value}:{ModSettings.Port.Value}\n---";
+        _loadGameButton.canPress = enabled;
     }
 }
