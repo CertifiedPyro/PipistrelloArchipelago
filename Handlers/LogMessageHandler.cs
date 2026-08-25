@@ -4,8 +4,14 @@ using Archipelago.MultiClient.Net.MessageLog.Messages;
 
 namespace PipistrelloArchipelago.Handlers;
 
-internal static class MessageLogHandler
+/// <summary>
+/// Handler for receiving messages from Archipelago.
+/// </summary>
+internal static class LogMessageHandler
 {
+    /// <summary>
+    /// Processes a received message.
+    /// </summary>
     public static void Process(LogMessage message)
     {
         if (message is HintItemSendLogMessage { IsRelatedToActivePlayer: false })
@@ -13,8 +19,11 @@ internal static class MessageLogHandler
             return;
         }
 
-        if (message is not (ChatLogMessage or HintItemSendLogMessage or GoalLogMessage or JoinLogMessage
-            or LeaveLogMessage or ReleaseLogMessage or ServerChatLogMessage))
+        if (message is not (ChatLogMessage
+            or HintItemSendLogMessage
+            or GoalLogMessage
+            or ReleaseLogMessage
+            or ServerChatLogMessage))
         {
             return;
         }
