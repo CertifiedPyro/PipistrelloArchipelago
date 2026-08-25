@@ -2,9 +2,13 @@
 using Il2CppPipistrello;
 using Il2CppUtil;
 using UnityEngine;
+using Sprite = Il2CppUtil.Sprite;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to handle queued messages.
+/// </summary>
 [HarmonyPatch]
 internal static class MessagePatches
 {
@@ -22,7 +26,7 @@ internal static class MessagePatches
     private static InternalState _state = new();
 
     /// <summary>
-    /// Patch to trigger showing messages in a dialogue panel.
+    /// Determines if a queued message should be shown in a dialogue panel.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     private static void ObjectPlayer_Process_Prefix()
@@ -32,9 +36,9 @@ internal static class MessagePatches
             return;
         }
 
-        if (Global.State.Messages.TryPeek(out var message) &&
-            CanContinueShowingMessage() &&
-            Global.Director.dialoguePanel == null)
+        if (Global.State.Messages.TryPeek(out var message)
+            && CanContinueShowingMessage()
+            && Global.Director.dialoguePanel == null)
         {
             _state.MessageState = MessageState.Building;
 
@@ -44,7 +48,7 @@ internal static class MessagePatches
     }
 
     /// <summary>
-    /// Patch to show messages in a dialogue panel.
+    /// Handles the shown message.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.Process))]
     private static void DialoguePanel_Process_Prefix(DialoguePanel __instance)
@@ -54,7 +58,7 @@ internal static class MessagePatches
             return;
         }
 
-        // Check if dialogue if over.
+        // Handle dialogue that is over.
         if (__instance.currentTextScroll >= __instance.textScrolls.Count)
         {
             Global.State.Messages.TryDequeue(out _);
@@ -65,7 +69,7 @@ internal static class MessagePatches
         _state.MessageState = MessageState.Showing;
         _state.IgnoreClick = true;
 
-        // Close dialogue panel early if necessary.
+        // Close dialogue panel early if necessary (including if dialogue is added midway through).
         var currentTextScroll = __instance.textScrolls[__instance.currentTextScroll];
         if (!CanContinueShowingMessage() || __instance.textScrolls.Count > 1)
         {
@@ -74,7 +78,7 @@ internal static class MessagePatches
             return;
         }
 
-        // Advance/close text once timer has passed.
+        // Advance or close text once timer has passed.
         if (currentTextScroll.isWaitingClick && _state.ElapsedTextTimeSeconds > TextShowTimeMs / 1000f)
         {
             _state.ElapsedTextTimeSeconds = 0;
@@ -92,7 +96,7 @@ internal static class MessagePatches
     }
 
     /// <summary>
-    /// Patch to prevent message from being skipped.
+    /// Prevents message from being skipped.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
     private static bool TextScroll_AcceptClick_Prefix()
@@ -101,7 +105,19 @@ internal static class MessagePatches
     }
 
     /// <summary>
-    /// Patch to allow interactables to work while a message is showing.
+    /// Hides the dialogue advance arrow.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
+    private static void SpriteManager_GetSprite_Postfix(string sprId, ref Sprite __result)
+    {
+        if (_state.MessageState != MessageState.None && sprId == "ui/dialogueAdvanceArrow")
+        {
+            __result = SpriteManager.nullSprite;
+        }
+    }
+
+    /// <summary>
+    /// Allows interactables to work while a message is showing.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.HandleInputInteract))]
     private static void ObjectPlayer_HandleInputInteract_Postfix(ref bool __result)
@@ -115,7 +131,7 @@ internal static class MessagePatches
     }
 
     /// <summary>
-    /// Patch to show Archipelago text colors.
+    /// Converts game colors to Archipelago palette colors.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(TextRenderer), nameof(TextRenderer.BuildRecursive))]
     private static void TextRenderer_BuildRecursive_Prefix(TextRenderer.Section section, ref Color currentColor)
@@ -134,6 +150,7 @@ internal static class MessagePatches
         {
             newColor = Archipelago.MultiClient.Net.Models.Color.Green;
         }
+        /* Pure blue is too hard to read, so use the game's blue color instead. */
         // else if (currentColor.Equals(Il2CppPipistrello.Global.colorTextBlue))
         // {
         //     newColor = Archipelago.MultiClient.Net.Models.Color.Blue;
