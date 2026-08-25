@@ -44,6 +44,11 @@ internal static class CorePatches
             record.flags[Constants.FlagArchipelago] = 1; // Mark as an Archipelago save.
             record.flags[Game.FLAG_ABILITY_THROW] = 0; // Remove Offstring Throw (obtained in Abandoned Tunnels).
 
+            // Store the room seed.
+            var seed = Global.State.Session.RoomState.Seed;
+            var seedFlag = $"{Constants.FlagArchipelago}:{seed}{Constants.FlagArchipelagoSeedSuffix}";
+            record.flags[seedFlag] = 1;
+
             /* Disable various yoyo trick tutorials. */
             // Disable Around-the-World tutorial.
             var gFlag = Game.GLOBAL_FLAG_PREFIX;

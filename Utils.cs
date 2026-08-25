@@ -20,6 +20,7 @@ internal static class Constants
     public const string MoneyBagMediumSpriteName = "moneyBag_medium";
     public const string MoneyBagSmallSpriteName = "moneyBag_small";
     public const string FlagInteractSuffix = ":interacted";
+    public const string FlagArchipelagoSeedSuffix = ":seed";
 
     public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
@@ -154,7 +155,6 @@ internal static class Utils
 
     public static void SendLocationCheck(string globalObjectId)
     {
-        // Send location check to Archipelago.
         var locationId = ObjectIdToLocationId(globalObjectId);
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
 

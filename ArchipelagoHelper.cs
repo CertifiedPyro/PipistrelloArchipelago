@@ -83,7 +83,6 @@ public static class ArchipelagoHelper
                 Melon<PipArchMod>.Logger.Msg("Enabling death link.");
                 Global.State.DeathLinkService = session.CreateDeathLinkService();
                 Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.Process;
-
                 Global.State.DeathLinkService.EnableDeathLink();
                 ModSettings.DeathLink.Value = true;
             }

@@ -113,20 +113,30 @@ internal static class MainMenuPatches
         // saveFile.record is null for some reason, so fetch from Director.
         var record = Global.Director.savefileRecords[saveFile.savefileIndex];
 
-        // Check that save file has Archipelago flag.
-        if (record?.flags?.ContainsKey(Constants.FlagArchipelago) == true)
-        {
-            return;
-        }
-
         // Get the first button, which should be "Load Game".
         predicate = e => e.TryCast<UIButton>() != null;
         var button = __result.FindElementInAllSubDialogs(predicate).Cast<UIButton>();
 
-        // Replace "Load Game" button to avoid loading non-Archipelago saves.
-        var textFn = () => "❌ Non-Archipelago save ❌";
-        button.SetText(textFn);
-        button.canPress = false;
+        // Check that save file has Archipelago flag.
+        if (record?.flags == null || !record.flags.ContainsKey(Constants.FlagArchipelago))
+        {
+            // Replace "Load Game" button.
+            var textFn = () => "❌ Non-Archipelago save ❌";
+            button.SetText(textFn);
+            button.canPress = false;
+            return;
+        }
+
+        // Check that the save has the correct Archipelago seed.
+        var seed = Global.State.Session.RoomState.Seed;
+        var seedFlag = $"{Constants.FlagArchipelago}:{seed}{Constants.FlagArchipelagoSeedSuffix}";
+        if (!record.flags.ContainsKey(seedFlag))
+        {
+            // Replace "Load Game" button.
+            var textFn = () => "❌ Wrong Archipelago seed ❌";
+            button.SetText(textFn);
+            button.canPress = false;
+        }
     }
 
     /// <summary>
