@@ -1,6 +1,7 @@
 ﻿using System.Text;
 using Archipelago.MultiClient.Net.Colors;
 using Archipelago.MultiClient.Net.MessageLog.Messages;
+using PipistrelloArchipelago.Patches;
 
 namespace PipistrelloArchipelago.Handlers;
 
@@ -34,8 +35,6 @@ internal static class LogMessageHandler
             // Sanitize input.
             var text = part.Text.Replace("[", "(").Replace("]", ")").Replace("\"", "'");
 
-            // Convert palette color to a color the game understands.
-            // This will get converted back to the palette color later.
             var color = GetTextColor(part.PaletteColor);
             var messagePart = color == null ? text : $"[c:{color}|{text}]";
 
@@ -45,6 +44,10 @@ internal static class LogMessageHandler
         Global.State.Messages.Enqueue(builder.ToString());
     }
 
+    /// <summary>
+    /// Converts palette color to a color the game understands.
+    /// This will get converted back to the palette color in <see cref="MessagePatches" />.
+    /// </summary>
     private static string GetTextColor(PaletteColor? color)
     {
         return color switch

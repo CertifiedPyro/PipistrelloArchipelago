@@ -22,7 +22,8 @@ public static class ArchipelagoHelper
         var port = ModSettings.Port.Value;
         var session = ArchipelagoSessionFactory.CreateSession(host, port);
         session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
-        session.MessageLog.OnMessageReceived += MessageLogHandler.Process;
+        session.MessageLog.OnMessageReceived += LogMessageHandler.Process;
+        // TODO: add listener for session.Socket.ErrorReceived 
 
         LoginResult result;
         try
@@ -51,8 +52,7 @@ public static class ArchipelagoHelper
             _ = ItemHandler.Start();
 
             // Get the options from the slot data.
-            if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) &&
-                optionsObj is JObject options)
+            if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) && optionsObj is JObject options)
             {
                 // Handle death link.
                 var deathLinkEnabled = options.TryGetValue("death_link", out var deathLinkValue)

@@ -24,7 +24,7 @@ internal static class CorePatches
     }
 
     /// <summary>
-    /// Patch for handling new and loaded saves.
+    /// Handles new and loaded saves.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
     private static void Director_InitFromSavefile_Postfix(int savefileIndex)
@@ -62,24 +62,24 @@ internal static class CorePatches
     }
 
     /// <summary>
-    /// Patch for creating physical Archipelago items.
+    /// Creates physical Archipelago objects.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     private static void Director_InstantiateFromMap_Prefix(ref Mapvania.Object mapObj)
     {
-        // Don't replace taxi phones or money bags.
+        // Skip taxi phones and money bags.
         if (mapObj.objectDefName is "taxiPhone" or "moneyBag")
         {
             return;
         }
 
-        // Check that the object should actually be swapped.
+        // Check that the object should be swapped.
         if (!Utils.IsObjectIdActiveLocation(mapObj.globalObjectId.AsString))
         {
             return;
         }
 
-        // Swap to a physical Archipelago item.
+        // Swap to a physical Archipelago object.
         mapObj.objectDefId = "lor313";
         mapObj.objectDefName = "bpContainer";
 
@@ -92,7 +92,7 @@ internal static class CorePatches
     }
 
     /// <summary>
-    /// Patch for handling created Archipelago items.
+    /// Swaps sprites for physical Archipelago objects.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     private static void Director_InstantiateFromMap_Postfix(Object __result)
@@ -104,7 +104,7 @@ internal static class CorePatches
     }
 
     /// <summary>
-    /// Patch to handle post-InitRoom().
+    /// Adds checkpoint instantiating room due to (potentially) added money bag pins.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
     private static void Director_InitRoom_Postfix()
@@ -117,7 +117,7 @@ internal static class CorePatches
     }
 
     /// <summary>
-    /// Patch for handling physical Archipelago items.
+    /// Handles an acquired physical Archipelago object.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(Game), nameof(Game.SetBpContainerAcquired))]
     private static bool Game_SetBpContainerAcquired_Prefix(string id, ref bool __result)
@@ -135,7 +135,7 @@ internal static class CorePatches
     }
 
     /// <summary>
-    /// Patch to show house puzzles as completed based on the replaced physical Archipelago items.
+    /// Patch to show house puzzles as completed based on the replaced physical Archipelago objects.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectWarpArea), nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
     private static bool ObjectWarpArea_CalculateIsHousePuzzleCompleted_Prefix(
@@ -163,7 +163,7 @@ internal static class CorePatches
             }
 
             // Check that flag matches expected format. Some flags are just regular (e.g. "g:mirrorHousePrize").
-            // Check that the global object id's item is actually swapped.
+            // Check that the object is actually swapped.
             var newFlag = flag;
             if (flagSplit.Length >= 3 && Utils.IsObjectIdActiveLocation(flagSplit[2]))
             {
@@ -207,6 +207,7 @@ internal static class CorePatches
         Global.State.Session.SetClientState(ArchipelagoClientState.ClientGoal);
     }
 
+    // TODO: Move to separate patch file.
     private static void MakeArchMapChanges()
     {
         var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "city")!;
