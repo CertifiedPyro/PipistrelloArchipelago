@@ -52,7 +52,7 @@ internal static class SafeHousePatches
                     position = new Vector2(9 * 16, 8 * 16),
                     width = 16,
                     height = 16,
-                    properties = JsonValue.Parse($"{{\"controlsFlag\": \"{ResetFlag}\", \"mode\": \"toggle\"}}"),
+                    properties = JsonValue.Parse($$"""{"controlsFlag": "{{ResetFlag}}", "mode": "toggle"}"""),
                     usesFlags = true
                 });
         }
