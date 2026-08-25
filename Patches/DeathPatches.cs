@@ -9,6 +9,15 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal class DeathPatches
 {
+    private static readonly HashSet<ObjectPlayer.State> InvalidStates =
+    [
+        ObjectPlayer.State.AcquiringItem,
+        ObjectPlayer.State.AcquiringMegaBattery,
+        ObjectPlayer.State.AuntieFinish,
+        ObjectPlayer.State.AuntieTalk,
+        ObjectPlayer.State.Cutscene
+    ];
+
     private static int _currentDeaths;
     private static string _deathCause;
 
@@ -22,6 +31,35 @@ internal class DeathPatches
         _deathCause = null;
     }
 
+    /// <summary>
+    /// Patch for handling queued death link.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
+    private static void ObjectPlayer_Process_Prefix()
+    {
+        try
+        {
+            if (!Global.State.SaveFileLoaded ||
+                !ModSettings.DeathLink.Value ||
+                Global.State.QueuedDeath == null ||
+                !CanKillPlayer())
+            {
+                return;
+            }
+
+            Melon<PipArchMod>.Logger.Msg("Killing player for death link...");
+            Global.Director.player.Kill();
+            Global.State.Messages.Enqueue(Global.State.QueuedDeath.Cause);
+        }
+        catch (Exception e)
+        {
+            Melon<PipArchMod>.Logger.Error($"Exception handling death: {e}");
+        }
+    }
+
+    /// <summary>
+    /// Patch for handling sent death links.
+    /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.HandleDeath))]
     private static void Director_HandleDeath_Prefix()
     {
@@ -188,5 +226,14 @@ internal class DeathPatches
             _ => null
         };
         _deathCause = _deathCause != null ? $"died to {_deathCause}." : "died.";
+    }
+
+    private static bool CanKillPlayer()
+    {
+        // Kill if player is not in cutscene, not in menu, not in dialogue, and is not dead.
+        return !InvalidStates.Contains(Global.Director.player.state)
+               && Global.Director.uiDialog == null
+               && Global.Director.dialoguePanel?.IsOver() != false
+               && !Global.Director.IsPlayerDead();
     }
 }

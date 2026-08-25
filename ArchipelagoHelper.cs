@@ -45,8 +45,7 @@ public static class ArchipelagoHelper
             {
                 Session = session,
                 SlotData = loginSuccess.SlotData,
-                ScoutedLocations = await session.Locations.ScoutLocationsAsync(
-                    [.. session.Locations.AllLocations]),
+                ScoutedLocations = await session.Locations.ScoutLocationsAsync([.. session.Locations.AllLocations]),
                 RaceMode = await session.DataStorage.GetRaceModeAsync()
             };
             _ = ItemHandler.Start();
@@ -69,7 +68,6 @@ public static class ArchipelagoHelper
                     Melon<PipArchMod>.Logger.Msg("Enabling death link.");
                     Global.State.DeathLinkService = session.CreateDeathLinkService();
                     Global.State.DeathLinkService.OnDeathLinkReceived += DeathLinkHandler.Process;
-                    _ = DeathLinkHandler.Start();
 
                     Global.State.DeathLinkService.EnableDeathLink();
                     ModSettings.DeathLink.Value = true;
@@ -100,7 +98,6 @@ public static class ArchipelagoHelper
         Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
         Global.State.DeathLinkService?.OnDeathLinkReceived -= DeathLinkHandler.Process;
 
-        DeathLinkHandler.End();
         ItemHandler.End();
 
         if (Global.State.Session.Socket.Connected)
