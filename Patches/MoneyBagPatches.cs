@@ -4,6 +4,9 @@ using Il2CppUtil;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to handle money bags as physical Archipelago objects.
+/// </summary>
 [HarmonyPatch]
 internal class MoneyBagPatches
 {
@@ -19,17 +22,18 @@ internal class MoneyBagPatches
     }
 
     /// <summary>
-    /// Patch for handling money bags as physical Archipelago items.
+    /// Handles money bags as physical Archipelago items.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
     private static void ObjectMoneyBag_Process_Postfix(ObjectMoneyBag __instance)
     {
-        // Check that save file is actually loaded, since Process() will run before save file finishes loading.
+        // Check that save file is actually loaded, since Process() will run before load, for some reason.
         if (!Global.State.SaveFileLoaded)
         {
             return;
         }
 
+        // Check that the object should be swapped.
         var globalObjectId = __instance.globalObjectId.AsString;
         if (!Utils.IsObjectIdActiveLocation(globalObjectId))
         {
@@ -49,7 +53,7 @@ internal class MoneyBagPatches
             return;
         }
 
-        // Money bag should not actually give money.
+        // Money bag should not give money.
         __instance.moneyAmount = 0;
 
         // Add map pin for money bag.
@@ -58,7 +62,7 @@ internal class MoneyBagPatches
     }
 
     /// <summary>
-    /// Patch for marking money bags sprites for replacement.
+    /// Marks the money bag sprite for replacement.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
     private static void ObjectMoneyBag_Draw_Prefix(ObjectMoneyBag __instance)
@@ -68,6 +72,7 @@ internal class MoneyBagPatches
             return;
         }
 
+        // Check that the object should be swapped.
         if (!Utils.IsObjectIdActiveLocation(__instance.globalObjectId.AsString))
         {
             return;
@@ -77,7 +82,7 @@ internal class MoneyBagPatches
     }
 
     /// <summary>
-    /// Patch for replacing the money bag sprite.
+    /// Replaces the money bag sprite.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
     private static void SpriteManager_GetSprite_Prefix(ref string sprId)

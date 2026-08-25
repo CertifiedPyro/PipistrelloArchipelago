@@ -24,6 +24,15 @@ internal static class MessagePatches
     ];
 
     private static InternalState _state = new();
+    
+    /// <summary>
+    /// If loading save, reset internal state.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
+    {
+        _state = new InternalState();
+    }
 
     /// <summary>
     /// Determines if a queued message should be shown in a dialogue panel.
@@ -31,6 +40,7 @@ internal static class MessagePatches
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     private static void ObjectPlayer_Process_Prefix()
     {
+        // TODO: Add setting for whether messages should be shown (and clear messages if disabled).
         if (!Global.State.SaveFileLoaded || _state.MessageState != MessageState.None)
         {
             return;

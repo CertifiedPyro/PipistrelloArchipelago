@@ -5,6 +5,9 @@ using UnityEngine;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to modify the safe house.
+/// </summary>
 [HarmonyPatch]
 internal static class SafeHousePatches
 {
@@ -14,9 +17,18 @@ internal static class SafeHousePatches
     private const string SignTextKey = "safehouse_leverSign";
 
     private static Game.GlobalObjectId _originalSafeHouseExitId;
+    
+    /// <summary>
+    /// If loading save, reset internal state.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
+    {
+        _originalSafeHouseExitId = null;
+    }
 
     /// <summary>
-    /// Patch for adding lever that resets to South Plaza.
+    /// Adds the lever that resets to South Plaza.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
     private static void Director_LoadProject_Postfix()
@@ -71,7 +83,7 @@ internal static class SafeHousePatches
     }
 
     /// <summary>
-    /// Patch for handling lever state change.
+    /// Handles lever state change.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.SetFlagBool))]
     private static void Director_SetFlagBool_Postfix(string flag, bool value)
@@ -91,18 +103,18 @@ internal static class SafeHousePatches
                     roomId = "ren223",
                     objectId = "lor366"
                 });
-            Global.State.Messages.Enqueue("[c:green|Unstuck enabled]: Safe House exit set to South Plaza.");
+            Global.State.Messages.Enqueue("[c:green|Reset enabled]: Safe House exit set to South Plaza.");
         }
         else
         {
             Global.Director.playerRecord.safehouseExitId =
                 new Il2CppSystem.Nullable<Game.GlobalObjectId>(_originalSafeHouseExitId);
-            Global.State.Messages.Enqueue("[c:red|Unstuck disabled]: Safe House exit set back to original.");
+            Global.State.Messages.Enqueue("[c:red|Reset disabled]: Safe House exit set back to original.");
         }
     }
 
     /// <summary>
-    /// Patch for showing text from the lever's sign.
+    /// Shows text for the lever's sign.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
     private static bool Localization_GetEntries_Prefix(
@@ -119,7 +131,7 @@ internal static class SafeHousePatches
             new Localization.Entry
             {
                 speaker = "sign[0]",
-                contents = "If you are soft-locked, hit this lever to go back to South Plaza."
+                contents = "Use this lever to return to South Plaza (if you are soft-locked)."
             });
 
         return false;

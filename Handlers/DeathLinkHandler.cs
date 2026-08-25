@@ -1,5 +1,4 @@
 ﻿using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
-using HarmonyLib;
 using MelonLoader;
 
 namespace PipistrelloArchipelago.Handlers;
@@ -7,7 +6,6 @@ namespace PipistrelloArchipelago.Handlers;
 /// <summary>
 /// Handler for receiving death links from Archipelago.
 /// </summary>
-[HarmonyPatch]
 internal static class DeathLinkHandler
 {
     /// <summary>
