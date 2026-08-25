@@ -48,10 +48,11 @@ internal static class DeathLinkQueuedPatches
 
     private static bool CanKillPlayer()
     {
-        // Kill if player is not in cutscene, not in menu, not in dialogue, and is not dead.
         return !InvalidStates.Contains(Global.Director.player.state)
                && Global.Director.uiDialog == null
                && Global.Director.dialoguePanel?.IsOver() != false
-               && !Global.Director.IsPlayerDead();
+               && !Global.Director.IsPlayerDead()
+               && !Global.Director.transitionActive
+               && Global.Director.player.onGround; // Prevents softlock when exiting safe house
     }
 }
