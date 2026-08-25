@@ -60,7 +60,7 @@ internal static class ItemHandler
                 var lastIndex = director.GetFlag(Constants.FlagLastItemIndex);
                 if (lastIndex > helper.AllItemsReceived.Count)
                 {
-                    Global.State.Messages.Enqueue("[c:red|Unexpected item index. Please reconnect.]");
+                    Global.State.Messages.Enqueue("[c:red|Unexpected item index. Please quit and reconnect.]");
                     Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
                     Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
                     return;
@@ -196,7 +196,7 @@ internal static class ItemHandler
             }
             else if (!result)
             {
-                var text = $"[c:red|Unexpected item: {item.ItemDisplayName}. Please reconnect.]";
+                var text = $"[c:red|Unexpected item: {item.ItemDisplayName}. Please quit and reconnect.]";
                 Global.State.Messages.Enqueue(text);
             }
 

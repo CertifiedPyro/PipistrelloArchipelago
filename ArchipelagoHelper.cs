@@ -29,7 +29,7 @@ public static class ArchipelagoHelper
             session = ArchipelagoSessionFactory.CreateSession(host, port);
             session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
             session.MessageLog.OnMessageReceived += LogMessageHandler.Process;
-            // TODO: add listener for session.Socket.ErrorReceived 
+            session.Socket.ErrorReceived += HandleErrorReceived;
 
             await session.ConnectAsync();
             result = await session.LoginAsync(
@@ -102,6 +102,7 @@ public static class ArchipelagoHelper
 
         Global.State.Session.Locations.CheckedLocationsUpdated -= LocationHandler.Process;
         Global.State.Session.MessageLog.OnMessageReceived -= LogMessageHandler.Process;
+        Global.State.Session.Socket.ErrorReceived -= HandleErrorReceived;
         Global.State.DeathLinkService?.OnDeathLinkReceived -= DeathLinkHandler.Process;
 
         ItemHandler.End();
@@ -152,5 +153,12 @@ public static class ArchipelagoHelper
         {
             Melon<PipArchMod>.Logger.Error("Exception handling initial received items: " + ex);
         }
+    }
+
+    private static void HandleErrorReceived(Exception e, string message)
+    {
+        Global.State.Messages.Enqueue(
+            $"[c:red|Error received on Archipelago socket.[d] Please quit and reconnect.[d][n]{message}]");
+        Melon<PipArchMod>.Logger.Error($"Error received on Archipelago socket: {message}\n{e}");
     }
 }
