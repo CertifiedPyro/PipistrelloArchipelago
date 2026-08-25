@@ -22,12 +22,11 @@ internal static class MainMenuPatches
     }
 
     /// <summary>
-    /// Patch to add extra buttons and labels to main menu for connecting to Archipelago.
+    /// Adds buttons and labels to main menu for connecting to Archipelago.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakeMainMenu))]
     private static void Menu_MakeMainMenu_Postfix(UIDialog __result)
     {
-        // Force reconnection every time main menu is reached.
         Global.State.SaveFileLoaded = false;
 
         var elements = __result.rootElement.subElements;
@@ -51,10 +50,7 @@ internal static class MainMenuPatches
         _connectionStatus = label;
 
         // Wrap connection status label in a panel.
-        var panel = new UIPanel
-        {
-            childrenCenterH = true
-        };
+        var panel = new UIPanel { childrenCenterH = true };
         panel.subElements.Add(label);
         elements.Insert(0, panel);
 
@@ -70,12 +66,11 @@ internal static class MainMenuPatches
     }
 
     /// <summary>
-    /// Patch to connect to Archipelago when "Connect" button is pressed.
+    /// Connects to Archipelago when "Connect" button is pressed.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(UIElement), nameof(UIElement.PerformPress))]
     private static bool UIElement_PerformPress_Prefix(UIElement __instance)
     {
-        // Only patch the "Connect" button.
         var connectButton = __instance.TryCast<UIButton>();
         if (connectButton == null || connectButton.textFn.Invoke() != "Connect")
         {
@@ -92,7 +87,7 @@ internal static class MainMenuPatches
     }
 
     /// <summary>
-    /// Patch to disable spinning 3D console.
+    /// Disables the spinning 3D console on title screen.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(TitleScreen), nameof(TitleScreen.CanBeginAttractMode))]
     private static bool TitleScreen_CanBeginAttractMode_Prefix(ref bool __result)
@@ -102,7 +97,7 @@ internal static class MainMenuPatches
     }
 
     /// <summary>
-    /// Patch to modify save file menu to prevent loading non-Archipelago saves.
+    /// Modifies the load save file menu to prevent loading non-Archipelago saves.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakeSavefileLoadMenu))]
     private static void Menu_MakeSavefileLoadMenu_Postfix(UIDialog __result)
@@ -129,9 +124,23 @@ internal static class MainMenuPatches
         button.canPress = false;
     }
 
+    /// <summary>
+    /// Modifies the new save file menu to remove unnecessary "New Game" buttons.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakeSavefileNewMenu))]
+    private static void Menu_MakeSavefileNewMenu_Postfix(UIDialog __result)
+    {
+        Func<UIElement, bool> predicate = e =>
+            e.TryCast<UIButton>() is { } button
+            && button.textFn.Invoke() != Localization.Get("ui_newGame")
+            && button.textFn.Invoke() != Localization.Get("ui_back");
+        var result = __result.rootElement.subElements.RemoveAll(predicate);
+        MelonLogger.Msg($"Removed {result} buttons...");
+    }
+
 
     /// <summary>
-    /// Handles post-Archipelago connection UI changes.
+    /// Handles post-connection UI changes.
     /// </summary>
     /// <param name="resultTask">A task representing whether the connection to Archipelago was successful.</param>
     private static void OnConnection(Task<bool> resultTask)
