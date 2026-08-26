@@ -12,7 +12,8 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal static class MessagePatches
 {
-    private const int TextShowTimeMs = 3500;
+    private const int NormalTextShowTimeMs = 3500;
+    private const int CountdownTextShowTimeMs = 1000;
 
     private static readonly HashSet<ObjectPlayer.State> InvalidStates =
     [
@@ -40,16 +41,43 @@ internal static class MessagePatches
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     private static void ObjectPlayer_Process_Prefix()
     {
-        if (!Global.State.SaveFileLoaded || _state.MessageState != MessageState.None)
+        if (!Global.State.SaveFileLoaded)
         {
             return;
         }
 
-        if (Global.State.Messages.TryPeek(out var message)
+        if (!Global.State.CountdownMessages.IsEmpty
             && CanContinueShowingMessage()
             && Global.Director.dialoguePanel == null)
         {
-            _state.MessageState = MessageState.Building;
+            // Get the latest countdown message
+            var countdownMessage = "";
+            while (!Global.State.CountdownMessages.IsEmpty)
+            {
+                Global.State.CountdownMessages.TryDequeue(out countdownMessage);
+            }
+
+            _state = new InternalState
+            {
+                MessageState = MessageState.Building,
+                TargetTextTimeSeconds = CountdownTextShowTimeMs
+            };
+
+            countdownMessage = $"[instant|{countdownMessage}]";
+            Global.Director.player.ExecuteCodeInThread($"say(\"{countdownMessage}\")", nameof(MessagePatches));
+            return;
+        }
+
+        if (_state.MessageState == MessageState.None
+            && Global.State.Messages.TryPeek(out var message)
+            && CanContinueShowingMessage()
+            && Global.Director.dialoguePanel == null)
+        {
+            _state = new InternalState
+            {
+                MessageState = MessageState.Building,
+                TargetTextTimeSeconds = NormalTextShowTimeMs
+            };
 
             message = $"[fast|{message}]";
             Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(MessagePatches));
@@ -70,7 +98,12 @@ internal static class MessagePatches
         // Handle dialogue that is over.
         if (__instance.currentTextScroll >= __instance.textScrolls.Count)
         {
-            Global.State.Messages.TryDequeue(out _);
+            // Check that message was not a countdown message.
+            if (Mathf.Approximately(_state.TargetTextTimeSeconds, NormalTextShowTimeMs))
+            {
+                Global.State.Messages.TryDequeue(out _);
+            }
+
             _state = new InternalState();
             return;
         }
@@ -79,8 +112,9 @@ internal static class MessagePatches
         _state.IgnoreClick = true;
 
         // Close dialogue panel early if necessary (including if dialogue is added midway through).
+        // We also want to show the latest countdown message, even if a normal message is already showing.
         var currentTextScroll = __instance.textScrolls[__instance.currentTextScroll];
-        if (!CanContinueShowingMessage() || __instance.textScrolls.Count > 1)
+        if (!CanContinueShowingMessage() || __instance.textScrolls.Count > 1 || !Global.State.CountdownMessages.IsEmpty)
         {
             currentTextScroll.ended = true;
             _state = new InternalState();
@@ -88,7 +122,7 @@ internal static class MessagePatches
         }
 
         // Advance or close text once timer has passed.
-        if (currentTextScroll.isWaitingClick && _state.ElapsedTextTimeSeconds > TextShowTimeMs / 1000f)
+        if (currentTextScroll.isWaitingClick && _state.ElapsedTextTimeSeconds > _state.TargetTextTimeSeconds / 1000f)
         {
             _state.ElapsedTextTimeSeconds = 0;
             _state.IgnoreClick = false;
@@ -207,6 +241,7 @@ internal static class MessagePatches
     {
         internal MessageState MessageState;
         internal float ElapsedTextTimeSeconds;
+        internal float TargetTextTimeSeconds;
         internal bool IgnoreClick;
     }
 

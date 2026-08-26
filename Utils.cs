@@ -196,6 +196,7 @@ internal class State
     public readonly Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
     public readonly ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
     public readonly ConcurrentQueue<string> Messages = new();
+    public readonly ConcurrentQueue<string> CountdownMessages = new();
 
     public bool SaveFileLoaded = false;
 

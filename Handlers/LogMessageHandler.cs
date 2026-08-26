@@ -13,7 +13,6 @@ internal static class LogMessageHandler
     /// </summary>
     public static void Process(LogMessage message)
     {
-        // TODO: Handle countdown message
         if (message is ChatLogMessage)
         {
             if (!ModSettings.MessagesChatAllowed.Value)
@@ -35,7 +34,7 @@ internal static class LogMessageHandler
                 return;
             }
         }
-        else if (message is not (GoalLogMessage or ReleaseLogMessage))
+        else if (message is not (CountdownLogMessage or GoalLogMessage or ReleaseLogMessage))
         {
             return;
         }
@@ -52,6 +51,14 @@ internal static class LogMessageHandler
             builder.Append(messagePart);
         }
 
-        Global.State.Messages.Enqueue(builder.ToString());
+        var queuedMessage = builder.ToString();
+        if (message is CountdownLogMessage)
+        {
+            Global.State.CountdownMessages.Enqueue(queuedMessage);
+        }
+        else
+        {
+            Global.State.Messages.Enqueue(queuedMessage);
+        }
     }
 }
