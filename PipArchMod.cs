@@ -35,15 +35,25 @@ public class PipArchMod : MelonMod
 
         // Newer versions of Tomlet cannot serialize enums with [Flags] because it calls Enum.GetName(type, value).
         TomletMain.RegisterMapper<ItemReceiveMessagesSetting>(value => new TomlString(value.ToString()), null);
+
+        var allowItemReceiveMessagesDescription =
+            $"""
+             Sets which received items are displayed in-game as messages.
+             Note: Toggling "{nameof(ItemReceiveMessagesSetting.Useful)}" on forces "{nameof(ItemReceiveMessagesSetting.Progression)}" on.
+             """;
         ModSettings.AllowItemReceiveMessages = ModSettings.Category.CreateEntry(
             "Item Receive Messages",
             ItemReceiveMessagesSetting.Progression
             | ItemReceiveMessagesSetting.Useful
             | ItemReceiveMessagesSetting.Trap
-            | ItemReceiveMessagesSetting.Filler);
+            | ItemReceiveMessagesSetting.Filler,
+            description: allowItemReceiveMessagesDescription,
+            validator: new ModSettings.AllowItemReceiveMessagesValidator());
         ModSettings.AllowChatMessages = ModSettings.Category.CreateEntry("Chat Messages", true);
         ModSettings.AllowServerMessages = ModSettings.Category.CreateEntry("Server Messages", true);
-        ModSettings.Category.CreateEntry("--- End of settings ---", true);
+        ModSettings.Category.CreateEntry(
+            "--- End of settings ---", true,
+            description: "This exists to pad out the preferences manager in windowed mode. You can ignore this.");
 
         ReadObjectIdMapping();
         ExportArchipelagoSprites();

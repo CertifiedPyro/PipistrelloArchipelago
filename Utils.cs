@@ -76,6 +76,25 @@ internal static class ModSettings
             return false;
         }
     }
+
+    internal class AllowItemReceiveMessagesValidator : ValueValidator
+    {
+        public override bool IsValid(object value)
+        {
+            return value is ItemReceiveMessagesSetting;
+        }
+
+        public override object EnsureValid(object value)
+        {
+            var newValue = (ItemReceiveMessagesSetting)value;
+            if (newValue.HasFlag(ItemReceiveMessagesSetting.Useful))
+            {
+                newValue |= ItemReceiveMessagesSetting.Progression;
+            }
+
+            return newValue;
+        }
+    }
 }
 
 internal static class Global
