@@ -35,6 +35,10 @@ internal static class ModSettings
     public static MelonPreferences_Entry<string> Password;
     public static MelonPreferences_Entry<bool> DeathLink;
 
+    public static MelonPreferences_Entry<bool> AllowItemReceiveMessages;
+    public static MelonPreferences_Entry<bool> AllowChatMessages;
+    public static MelonPreferences_Entry<bool> AllowServerMessages;
+
     internal class DeathLinkValidator : ValueValidator
     {
         public override bool IsValid(object value)

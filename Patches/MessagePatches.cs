@@ -24,7 +24,7 @@ internal static class MessagePatches
     ];
 
     private static InternalState _state = new();
-    
+
     /// <summary>
     /// If loading save, reset internal state.
     /// </summary>
@@ -40,7 +40,6 @@ internal static class MessagePatches
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     private static void ObjectPlayer_Process_Prefix()
     {
-        // TODO: Add setting for whether messages should be shown (and clear messages if disabled).
         if (!Global.State.SaveFileLoaded || _state.MessageState != MessageState.None)
         {
             return;

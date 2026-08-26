@@ -30,6 +30,10 @@ public class PipArchMod : MelonMod
             description: deathLinkDescription,
             validator: new ModSettings.DeathLinkValidator());
 
+        ModSettings.AllowItemReceiveMessages = ModSettings.Category.CreateEntry("Item Receive Messages", true);
+        ModSettings.AllowChatMessages = ModSettings.Category.CreateEntry("Chat Messages", true);
+        ModSettings.AllowServerMessages = ModSettings.Category.CreateEntry("Server Messages", true);
+
         ReadObjectIdMapping();
         ExportArchipelagoSprites();
     }

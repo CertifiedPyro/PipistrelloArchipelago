@@ -13,16 +13,29 @@ internal static class LogMessageHandler
     /// </summary>
     public static void Process(LogMessage message)
     {
-        if (message is HintItemSendLogMessage { IsRelatedToActivePlayer: false })
+        // TODO: Handle countdown message
+        if (message is ChatLogMessage)
         {
-            return;
+            if (!ModSettings.AllowChatMessages.Value)
+            {
+                return;
+            }
         }
-
-        if (message is not (ChatLogMessage
-            or GoalLogMessage
-            or HintItemSendLogMessage
-            or ReleaseLogMessage
-            or ServerChatLogMessage))
+        else if (message is ServerChatLogMessage)
+        {
+            if (!ModSettings.AllowServerMessages.Value)
+            {
+                return;
+            }
+        }
+        else if (message is HintItemSendLogMessage hintItemSendLogMessage)
+        {
+            if (hintItemSendLogMessage is { IsRelatedToActivePlayer: false })
+            {
+                return;
+            }
+        }
+        else if (message is not (GoalLogMessage or ReleaseLogMessage))
         {
             return;
         }
