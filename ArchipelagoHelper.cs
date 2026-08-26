@@ -29,7 +29,6 @@ public static class ArchipelagoHelper
             session = ArchipelagoSessionFactory.CreateSession(host, port);
             session.Locations.CheckedLocationsUpdated += LocationHandler.Process;
             session.MessageLog.OnMessageReceived += LogMessageHandler.Process;
-            session.Socket.ErrorReceived += HandleErrorReceived;
 
             await session.ConnectAsync();
             result = await session.LoginAsync(
@@ -57,6 +56,8 @@ public static class ArchipelagoHelper
 
         var successStatus = $"Connected: {host}:{port}\nSlot: {slotName}";
         Melon<PipArchMod>.Logger.Msg(successStatus);
+        
+        session.Socket.ErrorReceived += HandleErrorReceived;
         Global.State = new State
         {
             Session = session,
