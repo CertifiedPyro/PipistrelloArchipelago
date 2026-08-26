@@ -41,14 +41,13 @@ internal static class MessagePatches
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
     private static void ObjectPlayer_Process_Prefix()
     {
-        if (!Global.State.SaveFileLoaded)
+        if (!Global.State.SaveFileLoaded || !CanContinueShowingMessage() || Global.Director.dialoguePanel != null)
         {
             return;
         }
 
-        if (!Global.State.CountdownMessages.IsEmpty
-            && CanContinueShowingMessage()
-            && Global.Director.dialoguePanel == null)
+        // Show the latest countdown message, even if a normal message is already showing.
+        if (!Global.State.CountdownMessages.IsEmpty)
         {
             // Get the latest countdown message
             var countdownMessage = "";
@@ -68,10 +67,7 @@ internal static class MessagePatches
             return;
         }
 
-        if (_state.MessageState == MessageState.None
-            && Global.State.Messages.TryPeek(out var message)
-            && CanContinueShowingMessage()
-            && Global.Director.dialoguePanel == null)
+        if (Global.State.Messages.TryPeek(out var message) && _state.MessageState == MessageState.None)
         {
             _state = new InternalState
             {
@@ -98,7 +94,7 @@ internal static class MessagePatches
         // Handle dialogue that is over.
         if (__instance.currentTextScroll >= __instance.textScrolls.Count)
         {
-            // Check that message was not a countdown message.
+            // Check that message was a normal message before dequeueing.
             if (Mathf.Approximately(_state.TargetTextTimeSeconds, NormalTextShowTimeMs))
             {
                 Global.State.Messages.TryDequeue(out _);
@@ -112,7 +108,6 @@ internal static class MessagePatches
         _state.IgnoreClick = true;
 
         // Close dialogue panel early if necessary (including if dialogue is added midway through).
-        // We also want to show the latest countdown message, even if a normal message is already showing.
         var currentTextScroll = __instance.textScrolls[__instance.currentTextScroll];
         if (!CanContinueShowingMessage() || __instance.textScrolls.Count > 1 || !Global.State.CountdownMessages.IsEmpty)
         {

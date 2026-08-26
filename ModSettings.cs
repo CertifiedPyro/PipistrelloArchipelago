@@ -57,7 +57,7 @@ internal static class ModSettings
         MessagesServerAllowed = category.CreateEntry("Server Messages", true);
         category.CreateEntry(
             "--- End of settings ---", true,
-            description: "This exists to pad out the preferences manager in windowed mode. You can ignore this.");
+            description: "Ignore this: It just exists to pad out the preferences manager in windowed mode.");
     }
 }
 
