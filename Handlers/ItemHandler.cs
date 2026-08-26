@@ -82,7 +82,9 @@ internal static class ItemHandler
                             && setting.HasFlag(ItemReceiveMessagesSetting.Trap))
                         || (item.Flags == ItemFlags.None
                             && setting.HasFlag(ItemReceiveMessagesSetting.Filler))
-                        || item.Player?.Slot == 0; // Items granted by server have no flags, so always show.
+                        // Items granted by server have no flags, so always show if any messages are allowed.
+                        || (item.Player?.Slot == 0
+                            && setting != ItemReceiveMessagesSetting.None);
                     var itemMessageAllowed = !isItemFromLocalLocation && itemMessageAllowedFromSetting;
 
                     var result = HandleItem(item, itemMessageAllowed);
