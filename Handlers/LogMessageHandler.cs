@@ -34,7 +34,15 @@ internal static class LogMessageHandler
                 return;
             }
         }
-        else if (message is not (CountdownLogMessage or GoalLogMessage or ReleaseLogMessage))
+        else if (message is CountdownLogMessage countdownLogMessage)
+        {
+            // Set a limit for queueing countdown messages, since they take priority over regular messages.
+            if (countdownLogMessage.RemainingSeconds > 120)
+            {
+                return;
+            }
+        }
+        else if (message is not (GoalLogMessage or ReleaseLogMessage))
         {
             return;
         }
