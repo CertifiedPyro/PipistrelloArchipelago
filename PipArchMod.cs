@@ -2,6 +2,8 @@
 using System.Text.Json;
 using MelonLoader;
 using PipistrelloArchipelago;
+using Tomlet;
+using Tomlet.Models;
 
 [assembly: MelonInfo(typeof(PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
@@ -20,19 +22,28 @@ public class PipArchMod : MelonMod
         ModSettings.Password = ModSettings.Category.CreateEntry(
             "Password", "", description: "WARNING: Password is not hidden");
 
-        const string deathLinkDescription = """
-                                            Once connected, toggles death link if it was originally enabled.
-                                            Note: You cannot disable death link in race mode.
-                                            """;
+        const string deathLinkDescription =
+            """
+            Once connected, toggles death link if it was originally enabled.
+            Note: You cannot disable death link in race mode.
+            """;
         ModSettings.DeathLink = ModSettings.Category.CreateEntry(
             "Death Link",
             false,
             description: deathLinkDescription,
             validator: new ModSettings.DeathLinkValidator());
 
-        ModSettings.AllowItemReceiveMessages = ModSettings.Category.CreateEntry("Item Receive Messages", true);
+        // Newer versions of Tomlet cannot serialize enums with [Flags] because it calls Enum.GetName(type, value).
+        TomletMain.RegisterMapper<ItemReceiveMessagesSetting>(value => new TomlString(value.ToString()), null);
+        ModSettings.AllowItemReceiveMessages = ModSettings.Category.CreateEntry(
+            "Item Receive Messages",
+            ItemReceiveMessagesSetting.Progression
+            | ItemReceiveMessagesSetting.Useful
+            | ItemReceiveMessagesSetting.Trap
+            | ItemReceiveMessagesSetting.Filler);
         ModSettings.AllowChatMessages = ModSettings.Category.CreateEntry("Chat Messages", true);
         ModSettings.AllowServerMessages = ModSettings.Category.CreateEntry("Server Messages", true);
+        ModSettings.Category.CreateEntry("--- End of settings ---", true);
 
         ReadObjectIdMapping();
         ExportArchipelagoSprites();

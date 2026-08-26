@@ -1,4 +1,5 @@
 ﻿using Archipelago.MultiClient.Net.Colors;
+using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using Il2CppUtil;
@@ -71,7 +72,20 @@ internal static class ItemHandler
                     var item = helper.AllItemsReceived[lastIndex];
                     var isItemFromLocalLocation = Utils.IsLocalItem(item)
                                                   && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
-                    var result = HandleItem(item, !isItemFromLocalLocation);
+                    var setting = ModSettings.AllowItemReceiveMessages.Value;
+                    var itemMessageAllowedFromSetting =
+                        (item.Flags.HasFlag(ItemFlags.Advancement)
+                         && setting.HasFlag(ItemReceiveMessagesSetting.Progression))
+                        || (item.Flags.HasFlag(ItemFlags.NeverExclude)
+                            && setting.HasFlag(ItemReceiveMessagesSetting.Useful))
+                        || (item.Flags.HasFlag(ItemFlags.Trap)
+                            && setting.HasFlag(ItemReceiveMessagesSetting.Trap))
+                        || (item.Flags == ItemFlags.None
+                            && setting.HasFlag(ItemReceiveMessagesSetting.Filler))
+                        || item.Player?.Slot == 0; // Items granted by server have no flags, so always show.
+                    var itemMessageAllowed = !isItemFromLocalLocation && itemMessageAllowedFromSetting;
+
+                    var result = HandleItem(item, itemMessageAllowed);
                     if (!result)
                     {
                         return;

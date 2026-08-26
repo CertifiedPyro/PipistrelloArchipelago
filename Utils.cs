@@ -26,6 +26,18 @@ internal static class Constants
     public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
 }
 
+[Flags]
+internal enum ItemReceiveMessagesSetting
+{
+    None = 0,
+    Progression = 1,
+    Useful = 2,
+    Trap = 4,
+
+    Filler = 8
+    // All = Progression | Useful | Trap | Filler
+}
+
 internal static class ModSettings
 {
     public static MelonPreferences_Category Category;
@@ -35,7 +47,7 @@ internal static class ModSettings
     public static MelonPreferences_Entry<string> Password;
     public static MelonPreferences_Entry<bool> DeathLink;
 
-    public static MelonPreferences_Entry<bool> AllowItemReceiveMessages;
+    public static MelonPreferences_Entry<ItemReceiveMessagesSetting> AllowItemReceiveMessages;
     public static MelonPreferences_Entry<bool> AllowChatMessages;
     public static MelonPreferences_Entry<bool> AllowServerMessages;
 

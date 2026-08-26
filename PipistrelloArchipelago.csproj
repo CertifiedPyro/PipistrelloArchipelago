@@ -300,6 +300,7 @@
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
+        <PackageReference Include="Samboy063.Tomlet" Version="6.2.0"/>
     </ItemGroup>
 
     <Target Name="PostBuild" AfterTargets="ILRepacker">
@@ -311,6 +312,6 @@
     </ItemGroup>
 
     <ItemGroup>
-      <EditorConfigFiles Remove=".editorconfig" />
+        <EditorConfigFiles Remove=".editorconfig"/>
     </ItemGroup>
 </Project>
