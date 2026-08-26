@@ -6,7 +6,6 @@ using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
-using MelonLoader.Preferences;
 using PipistrelloArchipelago.Patches;
 using Object = Il2CppPipistrello.Object;
 
@@ -24,77 +23,6 @@ internal static class Constants
 
     public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
-}
-
-[Flags]
-internal enum ItemReceiveMessagesSetting
-{
-    None = 0,
-    Progression = 1,
-    Useful = 2,
-    Trap = 4,
-
-    Filler = 8
-    // All = Progression | Useful | Trap | Filler
-}
-
-internal static class ModSettings
-{
-    public static MelonPreferences_Category Category;
-    public static MelonPreferences_Entry<string> Host;
-    public static MelonPreferences_Entry<int> Port;
-    public static MelonPreferences_Entry<string> SlotName;
-    public static MelonPreferences_Entry<string> Password;
-    public static MelonPreferences_Entry<bool> DeathLink;
-
-    public static MelonPreferences_Entry<ItemReceiveMessagesSetting> AllowItemReceiveMessages;
-    public static MelonPreferences_Entry<bool> AllowChatMessages;
-    public static MelonPreferences_Entry<bool> AllowServerMessages;
-
-    internal class DeathLinkValidator : ValueValidator
-    {
-        public override bool IsValid(object value)
-        {
-            return value.Equals(EnsureValid(value));
-        }
-
-        public override object EnsureValid(object value)
-        {
-            if (Global.State.DeathLinkService != null)
-            {
-                // If race mode is toggled on, death link must stay on if enabled.
-                if (Global.State.RaceMode)
-                {
-                    return true;
-                }
-
-                // Death link can be toggled on/off if it was originally enabled.
-                return value;
-            }
-
-            // Otherwise, setting must stay false.
-            return false;
-        }
-    }
-
-    internal class AllowItemReceiveMessagesValidator : ValueValidator
-    {
-        public override bool IsValid(object value)
-        {
-            return value is ItemReceiveMessagesSetting;
-        }
-
-        public override object EnsureValid(object value)
-        {
-            var newValue = (ItemReceiveMessagesSetting)value;
-            if (newValue.HasFlag(ItemReceiveMessagesSetting.Useful))
-            {
-                newValue |= ItemReceiveMessagesSetting.Progression;
-            }
-
-            return newValue;
-        }
-    }
 }
 
 internal static class Global

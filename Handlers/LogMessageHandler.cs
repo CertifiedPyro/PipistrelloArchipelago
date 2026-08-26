@@ -16,14 +16,14 @@ internal static class LogMessageHandler
         // TODO: Handle countdown message
         if (message is ChatLogMessage)
         {
-            if (!ModSettings.AllowChatMessages.Value)
+            if (!ModSettings.MessagesChatAllowed.Value)
             {
                 return;
             }
         }
         else if (message is ServerChatLogMessage)
         {
-            if (!ModSettings.AllowServerMessages.Value)
+            if (!ModSettings.MessagesServerAllowed.Value)
             {
                 return;
             }

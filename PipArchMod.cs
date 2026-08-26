@@ -2,8 +2,6 @@
 using System.Text.Json;
 using MelonLoader;
 using PipistrelloArchipelago;
-using Tomlet;
-using Tomlet.Models;
 
 [assembly: MelonInfo(typeof(PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
@@ -14,47 +12,7 @@ public class PipArchMod : MelonMod
 {
     public override void OnInitializeMelon()
     {
-        // Initialize MelonLoader settings.
-        ModSettings.Category = MelonPreferences.CreateCategory("Archipelago");
-        ModSettings.Host = ModSettings.Category.CreateEntry("Host", "archipelago.gg");
-        ModSettings.Port = ModSettings.Category.CreateEntry("Port", 0);
-        ModSettings.SlotName = ModSettings.Category.CreateEntry("Slot Name", "");
-        ModSettings.Password = ModSettings.Category.CreateEntry(
-            "Password", "", description: "WARNING: Password is not hidden");
-
-        const string deathLinkDescription =
-            """
-            Once connected, toggles death link if it was originally enabled.
-            Note: You cannot disable death link in race mode.
-            """;
-        ModSettings.DeathLink = ModSettings.Category.CreateEntry(
-            "Death Link",
-            false,
-            description: deathLinkDescription,
-            validator: new ModSettings.DeathLinkValidator());
-
-        // Newer versions of Tomlet cannot serialize enums with [Flags] because it calls Enum.GetName(type, value).
-        TomletMain.RegisterMapper<ItemReceiveMessagesSetting>(value => new TomlString(value.ToString()), null);
-
-        var allowItemReceiveMessagesDescription =
-            $"""
-             Sets which received items are displayed in-game as messages.
-             Note: Toggling "{nameof(ItemReceiveMessagesSetting.Useful)}" on forces "{nameof(ItemReceiveMessagesSetting.Progression)}" on.
-             """;
-        ModSettings.AllowItemReceiveMessages = ModSettings.Category.CreateEntry(
-            "Item Receive Messages",
-            ItemReceiveMessagesSetting.Progression
-            | ItemReceiveMessagesSetting.Useful
-            | ItemReceiveMessagesSetting.Trap
-            | ItemReceiveMessagesSetting.Filler,
-            description: allowItemReceiveMessagesDescription,
-            validator: new ModSettings.AllowItemReceiveMessagesValidator());
-        ModSettings.AllowChatMessages = ModSettings.Category.CreateEntry("Chat Messages", true);
-        ModSettings.AllowServerMessages = ModSettings.Category.CreateEntry("Server Messages", true);
-        ModSettings.Category.CreateEntry(
-            "--- End of settings ---", true,
-            description: "This exists to pad out the preferences manager in windowed mode. You can ignore this.");
-
+        ModSettings.Initialize();
         ReadObjectIdMapping();
         ExportArchipelagoSprites();
     }

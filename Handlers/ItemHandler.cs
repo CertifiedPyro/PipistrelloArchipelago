@@ -72,19 +72,14 @@ internal static class ItemHandler
                     var item = helper.AllItemsReceived[lastIndex];
                     var isItemFromLocalLocation = Utils.IsLocalItem(item)
                                                   && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
-                    var setting = ModSettings.AllowItemReceiveMessages.Value;
+                    var setting = ModSettings.MessagesItemReceivedAllowed.Value;
                     var itemMessageAllowedFromSetting =
-                        (item.Flags.HasFlag(ItemFlags.Advancement)
-                         && setting.HasFlag(ItemReceiveMessagesSetting.Progression))
-                        || (item.Flags.HasFlag(ItemFlags.NeverExclude)
-                            && setting.HasFlag(ItemReceiveMessagesSetting.Useful))
-                        || (item.Flags.HasFlag(ItemFlags.Trap)
-                            && setting.HasFlag(ItemReceiveMessagesSetting.Trap))
-                        || (item.Flags == ItemFlags.None
-                            && setting.HasFlag(ItemReceiveMessagesSetting.Filler))
+                        (item.Flags.HasFlag(ItemFlags.Advancement) && setting.HasFlag(ItemMessagesSetting.Progression))
+                        || (item.Flags.HasFlag(ItemFlags.NeverExclude) && setting.HasFlag(ItemMessagesSetting.Useful))
+                        || (item.Flags.HasFlag(ItemFlags.Trap) && setting.HasFlag(ItemMessagesSetting.Trap))
+                        || (item.Flags == ItemFlags.None && setting.HasFlag(ItemMessagesSetting.Filler))
                         // Items granted by server have no flags, so always show if any messages are allowed.
-                        || (item.Player?.Slot == 0
-                            && setting != ItemReceiveMessagesSetting.None);
+                        || (item.Player?.Slot == 0 && setting != ItemMessagesSetting.None);
                     var itemMessageAllowed = !isItemFromLocalLocation && itemMessageAllowedFromSetting;
 
                     var result = HandleItem(item, itemMessageAllowed);
