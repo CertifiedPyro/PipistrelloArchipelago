@@ -35,7 +35,7 @@ public static class ArchipelagoHelper
                 "Pipistrello and the Cursed Yoyo",
                 slotName,
                 ItemsHandlingFlags.AllItems,
-                password: ModSettings.Password.Value);
+                password: ModSettings.Password.Value.ToString());
         }
         catch (Exception e)
         {
@@ -56,7 +56,7 @@ public static class ArchipelagoHelper
 
         var successStatus = $"Connected: {host}:{port}\nSlot: {slotName}";
         Melon<PipArchMod>.Logger.Msg(successStatus);
-        
+
         session.Socket.ErrorReceived += HandleErrorReceived;
         Global.State = new State
         {

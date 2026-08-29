@@ -279,6 +279,12 @@
         <Reference Include="Il2CppInterop.Common">
             <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\MelonLoader\net6\Il2CppInterop.Common.dll</HintPath>
         </Reference>
+        <Reference Include="MelonPrefManager.IL2CPP">
+            <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\Mods\MelonPrefManager.IL2CPP.dll</HintPath>
+        </Reference>
+        <Reference Include="UniverseLib.ML.IL2CPP.Interop">
+            <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\Mods\UniverseLib.ML.IL2CPP.Interop.dll</HintPath>
+        </Reference>
 
     </ItemGroup>
 
@@ -309,9 +315,5 @@
 
     <ItemGroup>
         <None Include="Generate\RoomConnections.cs"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <EditorConfigFiles Remove=".editorconfig"/>
     </ItemGroup>
 </Project>
