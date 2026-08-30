@@ -52,6 +52,9 @@ internal static class CorePatches
             record.flags[$"{gFlag}city_underground/lor779:finished"] = 1; // Disable NPC.
             record.flags[$"{gFlag}city_underground/lor779:barrier"] = 1; // Lower barrier to south room.
 
+            /* Enable various misc flags. */
+            record.flags[$"{gFlag}area2ExcavationCrumble"] = 1; // Forces area in front of Faria dungeon to be crumbled.
+
             Global.Director.InitFromRecord(record);
         }
 
