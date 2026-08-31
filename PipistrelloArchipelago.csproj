@@ -21,14 +21,7 @@
     <ItemGroup>
         <Compile Remove="Generate\RoomConnections.cs"/>
     </ItemGroup>
-
-    <ItemGroup>
-        <None Remove="arch_medium.png"/>
-        <None Remove="arch_small.png"/>
-        <None Remove="Images\moneyBag_medium.png"/>
-        <None Remove="Images\moneyBag_small.png"/>
-        <None Remove="object_id_mapping.json"/>
-    </ItemGroup>
+    
     <ItemGroup>
         <Reference Include="Assembly-CSharp">
             <HintPath>C:\Program Files (x86)\Steam\steamapps\common\Pipistrello and the Cursed Yoyo\MelonLoader\Il2CppAssemblies\Assembly-CSharp.dll</HintPath>
@@ -289,11 +282,18 @@
     </ItemGroup>
 
     <ItemGroup>
-        <EmbeddedResource Include="Images\arch_medium.png"/>
-        <EmbeddedResource Include="Images\arch_small.png"/>
-        <EmbeddedResource Include="Images\moneyBag_medium.png"/>
-        <EmbeddedResource Include="Images\moneyBag_small.png"/>
+        <None Remove="object_id_mapping.json"/>
         <EmbeddedResource Include="object_id_mapping.json"/>
+        <None Remove="Images\arch_medium.png" />
+        <EmbeddedResource Include="Images\arch_medium.png"/>
+        <None Remove="Images\arch_small.png"/>
+        <EmbeddedResource Include="Images\arch_small.png"/>
+        <None Remove="Images\arch_moneyBag_medium.png" />
+        <EmbeddedResource Include="Images\arch_moneyBag_medium.png" />
+        <None Remove="Images\arch_moneyBag_small.png" />
+        <EmbeddedResource Include="Images\arch_moneyBag_small.png" />
+        <None Remove="Images\arch_lever_disabled.png" />
+        <EmbeddedResource Include="Images\arch_lever_disabled.png" />
     </ItemGroup>
 
     <ItemGroup>

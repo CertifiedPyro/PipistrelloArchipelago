@@ -16,8 +16,9 @@ internal static class Constants
     public const string ArchItemObjectIdSuffix = "_architem";
     public const string ArchMediumSpriteName = "arch_medium";
     public const string ArchSmallSpriteName = "arch_small";
-    public const string MoneyBagMediumSpriteName = "moneyBag_medium";
-    public const string MoneyBagSmallSpriteName = "moneyBag_small";
+    public const string MoneyBagMediumSpriteName = "arch_moneyBag_medium";
+    public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
+    public const string LeverDisabledSpriteName = "arch_lever_disabled";
     public const string FlagInteractSuffix = ":interacted";
     public const string FlagArchipelagoSeedSuffix = ":seed";
 

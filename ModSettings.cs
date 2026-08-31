@@ -62,6 +62,7 @@ internal static class ModSettings
             validator: new AllowItemReceiveMessagesValidator());
         MessagesChatAllowed = category.CreateEntry("Chat Messages", true);
         MessagesServerAllowed = category.CreateEntry("Server Messages", true);
+        // TODO: Remove this filler setting.
         category.CreateEntry(
             "--- End of settings ---", true,
             description: "Ignore this: It just exists to pad out the preferences manager in windowed mode.");
