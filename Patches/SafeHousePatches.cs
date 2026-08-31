@@ -95,19 +95,13 @@ internal static class SafeHousePatches
         if (value)
         {
             _originalSafeHouseExitId = Global.Director.FindSafehouseExit().globalObjectId;
-            Global.Director.playerRecord.safehouseExitId = new Il2CppSystem.Nullable<Game.GlobalObjectId>(
-                new Game.GlobalObjectId
-                {
-                    mapId = "city",
-                    roomId = "ren223",
-                    objectId = "lor366"
-                });
+            Global.Director.player.ExecuteCodeInThread("safehouseSetExit(\"city/ren223/lor366\")", "archSafehouse");
             Global.State.Messages.Enqueue("[c:green|Reset enabled]: Safe House exit set to South Plaza.");
         }
         else
         {
-            Global.Director.playerRecord.safehouseExitId =
-                new Il2CppSystem.Nullable<Game.GlobalObjectId>(_originalSafeHouseExitId);
+            Global.Director.player.ExecuteCodeInThread(
+                $"safehouseSetExit(\"{_originalSafeHouseExitId.AsString}\")", "archSafehouseReset");
             Global.State.Messages.Enqueue("[c:red|Reset disabled]: Safe House exit set back to original.");
         }
     }
