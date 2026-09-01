@@ -19,8 +19,9 @@ internal static class Constants
     public const string MoneyBagMediumSpriteName = "arch_moneyBag_medium";
     public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
     public const string LeverDisabledSpriteName = "arch_lever_disabled";
-    public const string FlagInteractSuffix = ":interacted";
     public const string FlagArchipelagoSeedSuffix = ":seed";
+    public const string FlagInteractSuffix = ":interacted";
+    public const string FlagMegaBatterySuffix = ":archMegaBattery";
 
     public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
@@ -36,20 +37,11 @@ internal static class Global
 
 internal static class Utils
 {
-    public static string IdToArchItemId(string id)
-    {
-        return id + Constants.ArchItemObjectIdSuffix;
-    }
+    public static string IdToArchItemId(string id) => id + Constants.ArchItemObjectIdSuffix;
 
-    public static string ArchItemIdToId(string archItemId)
-    {
-        return archItemId[..^Constants.ArchItemObjectIdSuffix.Length];
-    }
+    public static string ArchItemIdToId(string archItemId) => archItemId[..^Constants.ArchItemObjectIdSuffix.Length];
 
-    public static bool IsArchItemId(string id)
-    {
-        return id != null && id.EndsWith(Constants.ArchItemObjectIdSuffix);
-    }
+    public static bool IsArchItemId(string id) => id != null && id.EndsWith(Constants.ArchItemObjectIdSuffix);
 
     public static long ObjectIdToLocationId(string globalObjectId)
     {
@@ -90,10 +82,7 @@ internal static class Utils
         return active;
     }
 
-    public static bool IsLocalItem(ItemInfo item)
-    {
-        return item.Player.Slot == Global.State.Session.ConnectionInfo.Slot;
-    }
+    public static bool IsLocalItem(ItemInfo item) => item.Player.Slot == Global.State.Session.ConnectionInfo.Slot;
 
     public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
     {
@@ -157,6 +146,11 @@ internal static class Utils
 
         // Determine if text should replace dialogue or be queued for later.
         var mapObject = GetMapvaniaObject(globalObjectId);
+        if (mapObject?.objectDefName == "megaBatteryHolder")
+        {
+            return;
+        }
+
         if (mapObject?.objectDefName == "moneyBag")
         {
             Global.State.Messages.Enqueue(text);

@@ -13,9 +13,10 @@ internal static class MegaBatteryPatches
 {
     private static string _itemName;
     private static string _recipientText;
+    private static string _globalObjectId;
 
     /// <summary>
-    /// Stores the item info at the Mega-Battery location.
+    /// Handles Mega-Battery instantiation.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     private static void Director_InstantiateFromMap_Postfix(Object __result)
@@ -25,6 +26,10 @@ internal static class MegaBatteryPatches
             return;
         }
 
+        // Avoid giving the actual Mega-Battery item.
+        __result.controlsFlag += Constants.FlagMegaBatterySuffix;
+
+        // Store the item info at the Archipelago location.
         var locationId = Utils.ObjectIdToLocationId(__result.globalObjectId.AsString);
         var item = Global.State.ScoutedLocations[locationId];
         _itemName = item.ItemDisplayName;
@@ -33,6 +38,8 @@ internal static class MegaBatteryPatches
         _recipientText = Utils.IsLocalItem(item)
             ? "for yourself!"
             : $"for {playerName}!";
+
+        _globalObjectId = __result.globalObjectId.AsString;
     }
 
     /// <summary>
@@ -66,5 +73,19 @@ internal static class MegaBatteryPatches
         }
 
         return true;
+    }
+
+    /// <summary>
+    /// Handles sending the location check.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.SetFlagBool))]
+    private static void Director_SetFlagBool_Postfix(string flag, bool value)
+    {
+        if (!flag.EndsWith(Constants.FlagMegaBatterySuffix) || !value)
+        {
+            return;
+        }
+
+        Utils.SendLocationCheck(_globalObjectId);
     }
 }

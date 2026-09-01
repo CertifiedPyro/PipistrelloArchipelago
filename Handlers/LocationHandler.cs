@@ -31,6 +31,9 @@ internal static class LocationHandler
                 case "moneyBag":
                     HandleMoneyBag(mapObject);
                     break;
+                case "megaBatteryHolder":
+                    HandleMegaBatteryHolder(mapObject);
+                    break;
                 default:
                     HandleGenericLocation(objectId);
                     break;
@@ -48,6 +51,7 @@ internal static class LocationHandler
         [
             .. CheckUnsentTaxiPhonesLocations(),
             .. CheckUnsentMoneyBagLocations(),
+            .. CheckUnsentMegaBatteryHolderLocations(),
             .. CheckUnsentGenericLocations()
         ];
     }
@@ -124,6 +128,46 @@ internal static class LocationHandler
             var moneyBagDespawnFlag =
                 $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsStringNoRoom}{Game.FLAG_OBJECT_DESPAWN_SUFFIX}";
             if (Global.Director.GetFlag(moneyBagDespawnFlag) != 0)
+            {
+                locations.Add(locationId);
+            }
+        }
+
+        return locations;
+    }
+
+    private static void HandleMegaBatteryHolder(Mapvania.Object mapObject)
+    {
+        // Don't need to do anything.
+        // Flag is already set by the Mega-Battery holder.
+    }
+
+    private static List<long> CheckUnsentMegaBatteryHolderLocations()
+    {
+        var megaBatteries = new Dictionary<string, string>
+        {
+            { "dungeon1/ren29878/ren30081", Game.FLAG_MEGABATTERY1 },
+            { "dungeon2/lor1089/lor1264", Game.FLAG_MEGABATTERY2 },
+            { "dungeon3/lor2/lor455", Game.FLAG_MEGABATTERY3 },
+            { "dungeon4/lor155/lor597", Game.FLAG_MEGABATTERY4 }
+        };
+
+        var locations = new List<long>();
+        foreach (var (globalObjectId, megaBatteryFlag) in megaBatteries)
+        {
+            if (!Utils.IsObjectIdActiveLocation(globalObjectId))
+            {
+                continue;
+            }
+            
+            var locationId = Utils.ObjectIdToLocationId(globalObjectId);
+            if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
+            {
+                continue;
+            }
+
+            var flag = $"{megaBatteryFlag}{Constants.FlagMegaBatterySuffix}";
+            if (Global.Director.GetFlagBool(flag))
             {
                 locations.Add(locationId);
             }
