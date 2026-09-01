@@ -69,7 +69,7 @@ internal static class CorePatches
     private static void Director_InstantiateFromMap_Prefix(ref Mapvania.Object mapObj)
     {
         // Skip taxi phones and money bags.
-        if (mapObj.objectDefName is "taxiPhone" or "moneyBag")
+        if (mapObj.objectDefName is "taxiPhone" or "moneyBag" or "megaBatteryHolder")
         {
             return;
         }
