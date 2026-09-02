@@ -136,6 +136,25 @@ internal static class CorePatches
     }
 
     /// <summary>
+    /// Handles replacing physical Archipelago object map pins.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectBpContainer), nameof(ObjectBpContainer.Process))]
+    private static void ObjectBpContainer_Process_Postfix(ObjectBpContainer __instance)
+    {
+        // Check that save file is actually loaded, since Process() will run before load, for some reason.
+        if (!Global.State.SaveFileLoaded
+            || !Utils.IsArchItemId(__instance.globalObjectId.AsString))
+        {
+            return;
+        }
+
+        // Update map pin.
+        // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
+        var mapPin = __instance.specialState == Object.SpecialState.None ? Constants.ArchSmallSpriteName : null;
+        __instance.UpdateMapPin(mapPin);
+    }
+
+    /// <summary>
     /// Patch to show house puzzles as completed based on the replaced physical Archipelago objects.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(ObjectWarpArea), nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]

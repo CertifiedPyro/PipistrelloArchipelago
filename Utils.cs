@@ -141,11 +141,10 @@ internal static class Utils
         }
         else if (mapObject?.objectDefName != "megaBatteryHolder")
         {
-            MelonLogger.Msg("Replacing dialogue...");
             Global.State.DialogueText = $"[fast|{text}][w:2]";
             Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
         }
-        
+
         // Send the location check.
         try
         {

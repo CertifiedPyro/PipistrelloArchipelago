@@ -250,12 +250,12 @@ internal static class LocationHandler
         foreach (var record in records)
         {
             var mapPins = record.mapPins;
-            var moneyBagMapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == globalObjectId);
+            var foundMapPin = mapPins.ToArray().FirstOrDefault(p => p.objectId.AsString == globalObjectId);
 
             // Check if the map pin is null, or the game will crash.
-            if (moneyBagMapPin != null)
+            if (foundMapPin != null)
             {
-                mapPins.Remove(moneyBagMapPin);
+                mapPins.Remove(foundMapPin);
             }
         }
     }
