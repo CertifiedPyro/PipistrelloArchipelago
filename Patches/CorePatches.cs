@@ -150,7 +150,7 @@ internal static class CorePatches
 
         // Update map pin.
         // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
-        var mapPin = __instance.specialState == Object.SpecialState.None ? Constants.ArchSmallSpriteName : null;
+        var mapPin = __instance.specialState != Object.SpecialState.Acquiring ? Constants.ArchSmallSpriteName : null;
         __instance.UpdateMapPin(mapPin);
     }
 
