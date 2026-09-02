@@ -119,17 +119,6 @@ internal static class Utils
                 $"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
         }
 
-        try
-        {
-            Global.State.LocalCheckedLocations.TryAdd(locationId, 1);
-            Global.State.Session.Locations.CompleteLocationChecks(locationId);
-        }
-        catch (ArchipelagoSocketClosedException ex)
-        {
-            Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
-            return;
-        }
-
         // Create the text to show the player.
         var item = Global.State.ScoutedLocations[locationId];
         var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
@@ -146,19 +135,26 @@ internal static class Utils
 
         // Determine if text should replace dialogue or be queued for later.
         var mapObject = GetMapvaniaObject(globalObjectId);
-        if (mapObject?.objectDefName == "megaBatteryHolder")
-        {
-            return;
-        }
-
         if (mapObject?.objectDefName == "moneyBag")
         {
             Global.State.Messages.Enqueue(text);
         }
-        else
+        else if (mapObject?.objectDefName != "megaBatteryHolder")
         {
+            MelonLogger.Msg("Replacing dialogue...");
             Global.State.DialogueText = $"[fast|{text}][w:2]";
             Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
+        }
+        
+        // Send the location check.
+        try
+        {
+            Global.State.LocalCheckedLocations.TryAdd(locationId, 1);
+            Global.State.Session.Locations.CompleteLocationChecks(locationId);
+        }
+        catch (ArchipelagoSocketClosedException ex)
+        {
+            Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
         }
     }
 
