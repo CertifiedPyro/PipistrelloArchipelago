@@ -50,7 +50,8 @@ internal static class ModSettings
         const string messagesItemReceivedAllowedDescription =
             $"""
              Sets which received items are displayed in-game as messages.
-             Note: Toggling "{nameof(ItemMessagesSetting.Useful)}" on forces "{nameof(ItemMessagesSetting.Progression)}" on.
+             - Toggling "{nameof(ItemMessagesSetting.Useful)}" on forces "{nameof(ItemMessagesSetting.Progression)}" on.
+             - If you don't want to receive messages, toggle all checkboxes off, select "{nameof(ItemMessagesSetting.None)}", and save.
              """;
         MessagesItemReceivedAllowed = category.CreateEntry(
             "Item Receive Messages",
