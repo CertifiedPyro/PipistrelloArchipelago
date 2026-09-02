@@ -7,39 +7,51 @@ namespace PipistrelloArchipelago.Patches;
 /// Patches to override dialogue if physical Archipelago object is acquired.
 /// </summary>
 [HarmonyPatch]
-internal class DialoguePanelPatch
+internal static class DialoguePanelPatch
 {
-    private const string ArchDialogueShown = "ARCH_DIALOGUE_SHOWN";
-
+    private static bool _replacedDialogue;
+    
+    /// <summary>
+    /// If loading save, reset internal state.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
+    {
+        _replacedDialogue = false;
+    }
+    
     /// <summary>
     /// Overrides dialogue text if physical Archipelago object is acquired.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
     private static bool DialoguePanel_InjectText_Prefix(ref string text)
     {
-        switch (Global.State.DialogueText)
+        if (_replacedDialogue)
         {
-            case null:
-                return true;
-            case ArchDialogueShown:
-                return Global.State.ShowRemainingDialogue;
-            default:
-                // Replace the first message with the desired text.
-                text = Global.State.DialogueText;
-                Global.State.DialogueText = ArchDialogueShown;
-                return true;
+            return Global.State.ShowRemainingDialogue;
         }
+
+        if (Global.State.DialogueText == null)
+        {
+            return true;
+        }
+        
+        // Replace the first message with the desired text.
+        text = Global.State.DialogueText;
+        _replacedDialogue = true;
+        return true;
     }
 
     /// <summary>
     /// Handles cleanup after dialogue is over.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.IsOver))]
-    private static void DialoguePanel_IsOver_Postfix(bool __result)
+    private static void DialoguePanel_IsOver_Postfix(DialoguePanel __instance, bool __result)
     {
-        if (__result)
+        if (__result && _replacedDialogue)
         {
             Global.State.DialogueText = null;
+            _replacedDialogue = false;
         }
     }
 }
