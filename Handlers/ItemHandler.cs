@@ -25,6 +25,7 @@ internal static class ItemHandler
         { "Coin-Flip", Game.FLAG_ABILITY_SPECIAL_COINFLIP },
         { "Mega-Battery 1", Game.FLAG_MEGABATTERY1 },
         { "Mega-Battery 2", Game.FLAG_MEGABATTERY2 },
+        { "Faria Mega-Battery", Game.FLAG_MEGABATTERY2 },
         { "Mega-Battery 3", Game.FLAG_MEGABATTERY3 },
         { "Mega-Battery 4", Game.FLAG_MEGABATTERY4 }
     };
