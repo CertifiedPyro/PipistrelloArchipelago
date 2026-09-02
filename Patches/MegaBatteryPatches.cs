@@ -11,23 +11,47 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal static class MegaBatteryPatches
 {
+    private static readonly HashSet<string> TriggerAreasToRemove = ["dungeon2/lor1089/lor1265", "dungeon3/lor2/lor520"];
+
     private static string _itemName;
     private static string _recipientText;
     private static string _globalObjectId;
+    private static bool _sentLocationCheck;
+
+    /// <summary>
+    /// Removes trigger areas that remind the player if they're leaving without the Mega-Battery.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
+    private static bool Director_InstantiateFromMap_Prefix(Mapvania.Object mapObj, ref Object __result)
+    {
+        if (!TriggerAreasToRemove.Contains(mapObj.globalObjectId.AsString))
+        {
+            return true;
+        }
+
+        __result = null;
+        return false;
+    }
 
     /// <summary>
     /// Handles Mega-Battery instantiation.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
-    private static void Director_InstantiateFromMap_Postfix(Object __result)
+    private static void Director_InstantiateFromMap_Postfix(ref Object __result)
     {
-        if (__result?.TryCast<ObjectMegaBatteryHolder>() == null)
+        if (__result?.TryCast<ObjectMegaBatteryHolder>() is not { } megaBatteryHolder)
         {
             return;
         }
 
-        // Avoid giving the actual Mega-Battery item.
+        // Mark Mega-Battery location as checked, without giving the actual Mega-Battery item.
         __result.controlsFlag += Constants.FlagMegaBatterySuffix;
+
+        // Ensure the Mega-Battery holder state matches the modified flag.
+        if (Global.Director.GetFlagBool(__result.controlsFlag))
+        {
+            megaBatteryHolder.state = ObjectMegaBatteryHolder.State.Empty;
+        }
 
         // Store the item info at the Archipelago location.
         var locationId = Utils.ObjectIdToLocationId(__result.globalObjectId.AsString);
@@ -40,6 +64,7 @@ internal static class MegaBatteryPatches
             : $"for {playerName}!";
 
         _globalObjectId = __result.globalObjectId.AsString;
+        _sentLocationCheck = false;
     }
 
     /// <summary>
@@ -60,32 +85,31 @@ internal static class MegaBatteryPatches
     [HarmonyPrefix, HarmonyPatch(typeof(Localization), nameof(Localization.Get))]
     private static bool Localization_Get_Prefix(string stringId, ref string __result)
     {
-        if (stringId == "ui_get_megaBattery_main")
+        switch (stringId)
         {
-            __result = _itemName;
-            return false;
+            case "ui_get_megaBattery_main":
+                __result = _itemName;
+                return false;
+            case "ui_get_megaBattery_after":
+                __result = _recipientText;
+                return false;
+            default:
+                return true;
         }
-
-        if (stringId == "ui_get_megaBattery_after")
-        {
-            __result = _recipientText;
-            return false;
-        }
-
-        return true;
     }
 
     /// <summary>
     /// Handles sending the location check.
     /// </summary>
-    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.SetFlagBool))]
-    private static void Director_SetFlagBool_Postfix(string flag, bool value)
+    [HarmonyPostfix,
+     HarmonyPatch(typeof(ObjectMegaBatteryHolder), nameof(ObjectMegaBatteryHolder.GetMegaBatteryAnimState))]
+    private static void ObjectMegaBatteryHolder_GetMegaBatteryAnimState_Postfix(
+        ObjectMegaBatteryHolder.AnimState __result)
     {
-        if (!flag.EndsWith(Constants.FlagMegaBatterySuffix) || !value)
+        if (!_sentLocationCheck && __result == ObjectMegaBatteryHolder.AnimState.Hold)
         {
-            return;
+            Utils.SendLocationCheck(_globalObjectId);
+            _sentLocationCheck = true;
         }
-
-        Utils.SendLocationCheck(_globalObjectId);
     }
 }

@@ -138,8 +138,19 @@ internal static class LocationHandler
 
     private static void HandleMegaBatteryHolder(Mapvania.Object mapObject)
     {
-        // Don't need to do anything.
-        // Flag is already set by the Mega-Battery holder.
+        if (mapObject.globalObjectId.GlobalMapId.mapId == "dungeon2")
+        {
+            Global.Director.SetFlagBool("g:visited:dungeon2/lor1089", true); // Mark boss room as visited.
+            Global.Director.SetFlagBool("g:introBoss2:permanent", true); // Mark intro as shown.
+            Global.Director.SetFlagBool("g:bossDefeated2", true); // Mark boss as defeated.
+            Global.Director.SetFlagBool("g:dungeon2:bossChamber", true); // Not entirely sure what this does.
+            Global.Director.SetFlagBool("g:dungeon2/lor1095:used", true); // Mark boss setup code as finished.
+            Global.Director.SetFlagBool("g:afterMegaBattery2Scene", true); // Prevent teleport back to safe house.
+            Global.Director.SetFlagBool(
+                $"{Game.FLAG_MEGABATTERY2}{Constants.FlagMegaBatterySuffix}",
+                true); // Mark Archipelago location as checked.
+            Melon<PipArchMod>.Logger.Msg("Set Faria boss defeat flags");
+        }
     }
 
     private static List<long> CheckUnsentMegaBatteryHolderLocations()
@@ -159,7 +170,7 @@ internal static class LocationHandler
             {
                 continue;
             }
-            
+
             var locationId = Utils.ObjectIdToLocationId(globalObjectId);
             if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
             {
