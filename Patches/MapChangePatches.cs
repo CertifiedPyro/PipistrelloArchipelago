@@ -81,22 +81,60 @@ internal static class MapChangePatches
                 });
         }
 
-        // Remove door to skyscraper mini-dungeon.
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug2741")!;
+        // Add barrier for defeating the Faria boss and getting the Faria Mega-Battery.
+        map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "city_underground")!;
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren984")!;
         objects = room.objects;
-        var objectToRemove = objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "yug2747");
-        if (objectToRemove != null)
+        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archFariaBarrier") == null)
         {
-            objects.Remove(objectToRemove);
+            room.objects.Add(
+                new Mapvania.Object
+                {
+                    objectDefId = "lor15",
+                    objectDefName = "barrier",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city_underground",
+                        roomId = "ren984",
+                        objectId = "archFariaBarrier"
+                    },
+                    position = new Vector2(17 * 16, 16),
+                    width = 2 * 16,
+                    height = 16,
+                    properties = JsonValue.Parse("""{"activationFlag": "!g:bossDefeated2 || !g:megaBattery2"}"""),
+                    usesFlags = true
+                });
         }
 
-        // Remove slime NPC in front of Faria dungeon.
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug108")!;
-        objects = room.objects;
-        objectToRemove = objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "yug3097");
-        if (objectToRemove != null)
+        // Add sign explaining the new barrier requirements.
+        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrierSign") == null)
         {
-            objects.Remove(objectToRemove);
+            const string code = """
+                                var flagFariaBoss = \"false\"
+                                if (flag(\"g:bossDefeated2\").isOn()) { flagFariaBoss = \"true\" }
+                                var flagMegaBattery2 = \"false\"
+                                if (flag(\"g:megaBattery2\").isOn()) { flagMegaBattery2 = \"true\" }
+                                this.say(\"Additional barrier requirements:\n\"
+                                    + \" - Faria boss defeated: \" + flagFariaBoss + \"\n\"
+                                    + \" - Faria Mega-Battery obtained: \" +  flagMegaBattery2)
+                                """;
+            room.objects.Add(
+                new Mapvania.Object
+                {
+                    objectDefId = "hen93",
+                    objectDefName = "sign",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city_underground",
+                        roomId = "ren984",
+                        objectId = "archBarrierSign"
+                    },
+                    position = new Vector2(20 * 16, 4 * 16),
+                    width = 16,
+                    height = 16,
+                    properties = JsonValue.Parse($$"""{"code": "{{code}}", "hideShadow": true}"""),
+                    usesFlags = true
+                });
         }
     }
 }
