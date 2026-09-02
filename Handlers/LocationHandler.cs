@@ -145,7 +145,6 @@ internal static class LocationHandler
             Global.Director.SetFlagBool("g:bossDefeated2", true); // Mark boss as defeated.
             Global.Director.SetFlagBool("g:dungeon2:bossChamber", true); // Not entirely sure what this does.
             Global.Director.SetFlagBool("g:dungeon2/lor1095:used", true); // Mark boss setup code as finished.
-            Global.Director.SetFlagBool("g:afterMegaBattery2Scene", true); // Prevent teleport back to safe house.
             Global.Director.SetFlagBool(
                 $"{Game.FLAG_MEGABATTERY2}{Constants.FlagMegaBatterySuffix}",
                 true); // Mark Archipelago location as checked.
