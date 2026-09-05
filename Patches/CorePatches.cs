@@ -57,6 +57,9 @@ internal static class CorePatches
 
             /* Enable various misc flags. */
             record.flags[$"{gFlag}area2ExcavationCrumble"] = 1; // Forces area in front of Faria dungeon to be crumbled.
+            // These 2 flags force the start of Faria dungeon to be crumbled and the slime drill NPC to disappear.
+            record.flags[$"{gFlag}dungeon2:intro"] = 1;
+            record.flags[$"{gFlag}dungeon2:introCrumble"] = 1;
 
             Global.Director.InitFromRecord(record);
         }
