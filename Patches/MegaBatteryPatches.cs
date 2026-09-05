@@ -16,36 +16,11 @@ internal static class MegaBatteryPatches
         "dungeon1/ren29878", "dungeon2/lor1089", "dungeon3/lor2", "dungeon4/lor155"
     ];
 
-    private static readonly HashSet<string> ObjectsToRemove =
-    [
-        "dungeon1/ren29878/lor570", // Code that teleports player to the Safe House
-        "dungeon2/lor1089/lor1282", // Code that teleports player to the Safe House
-        "dungeon2/lor1089/lor1265", // Trigger area that reminds the player if they're leaving without the Mega-Battery
-        "dungeon3/lor2/lor521", // Code that teleports player to the Safe House
-        "dungeon3/lor2/lor520", // Trigger area that reminds the player if they're leaving without the Mega-Battery
-        "dungeon4/lor155/lor1361" // Code that teleports player to the Safe House
-    ];
-
     private static string _itemText;
     private static string _recipientText;
     private static bool _replaceSprite;
     private static string _globalObjectId;
     private static bool _sentLocationCheck;
-
-    /// <summary>
-    /// Removes certain objects related to the Mega-Battery.
-    /// </summary>
-    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
-    private static bool Director_InstantiateFromMap_Prefix(Mapvania.Object mapObj, ref Object __result)
-    {
-        if (!ObjectsToRemove.Contains(mapObj.globalObjectId.AsString))
-        {
-            return true;
-        }
-
-        __result = null;
-        return false;
-    }
 
     /// <summary>
     /// Handles Mega-Battery instantiation.

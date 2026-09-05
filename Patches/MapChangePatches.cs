@@ -2,12 +2,39 @@
 using Il2CppPipistrello;
 using Il2CppUtil;
 using UnityEngine;
+using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
 internal static class MapChangePatches
 {
+    private static readonly HashSet<string> ObjectsToRemove =
+    [
+        "city/ren355/lor2455", // Code that reminds the player to collect both Mega-Batteries before going to North Plaza.
+        "dungeon1/ren29878/lor570", // Code that teleports player to the Safe House
+        "dungeon2/lor1089/lor1282", // Code that teleports player to the Safe House
+        "dungeon2/lor1089/lor1265", // Trigger area that reminds the player if they're leaving without the Mega-Battery
+        "dungeon3/lor2/lor521", // Code that teleports player to the Safe House
+        "dungeon3/lor2/lor520", // Trigger area that reminds the player if they're leaving without the Mega-Battery
+        "dungeon4/lor155/lor1361" // Code that teleports player to the Safe House
+    ];
+
+    /// <summary>
+    /// Removes certain objects.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
+    private static bool Director_InstantiateFromMap_Prefix(Mapvania.Object mapObj, ref Object __result)
+    {
+        if (!ObjectsToRemove.Contains(mapObj.globalObjectId.AsString))
+        {
+            return true;
+        }
+
+        __result = null;
+        return false;
+    }
+
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
     private static void Director_LoadProject_Postfix()
     {
@@ -81,7 +108,7 @@ internal static class MapChangePatches
                     usesFlags = true
                 });
         }
-        
+
         // Block off Cancelled Subway Station
         room = map.rooms.ToArray().FirstOrDefault(r => r.id == "lor1128")!;
         objects = room.objects;
@@ -105,7 +132,7 @@ internal static class MapChangePatches
                     usesFlags = true
                 });
         }
-        
+
         // Block off water access to Fadalins Neighborhood
         room = map.rooms.ToArray().FirstOrDefault(r => r.id == "lor1097")!;
         objects = room.objects;
