@@ -67,11 +67,26 @@ internal static class CorePatches
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
     private static void Director_InitRoom_Postfix()
     {
+        if (Global.Director == null)
+        {
+            return;
+        }
+
         // Check if Director is null, since apparently this can run before the main menu appears.
         // Normally, PrepareCheckpoint() runs before ProcessObjects() within Director.InitRoom().
         // However, since we're adding map pins to money bags in ProcessObjects(), we need to save those map pins.
         // This way, if a player returns to the safehouse, the map pins are still saved.
-        Global.Director?.PrepareCheckpoint(false);
+        Global.Director.PrepareCheckpoint(false);
+
+        // Instantiate following objects, so they can be granted later.
+        var staffId = Global.Director.InstantiateRemotely(
+            new Game.GlobalObjectId
+            {
+                mapId = "yugo3_dev",
+                roomId = "yug4006",
+                objectId = "yug4042"
+            });
+        staffId?.presenceFlag = new FlagExpression(Global.Director, staffId.globalObjectId.GlobalRoomId, "false");
     }
 
     /// <summary>

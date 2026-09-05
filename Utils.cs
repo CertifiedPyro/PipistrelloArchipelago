@@ -19,12 +19,20 @@ internal static class Constants
     public const string MoneyBagMediumSpriteName = "arch_moneyBag_medium";
     public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
     public const string LeverDisabledSpriteName = "arch_lever_disabled";
+
     public const string FlagArchipelagoSeedSuffix = ":seed";
     public const string FlagInteractSuffix = ":interacted";
     public const string FlagMegaBatterySuffix = ":archMegaBattery";
 
     public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
     public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
+
+    public static readonly Game.GlobalObjectId StaffIdGlobalObjectId = new()
+    {
+        mapId = "yugo3_dev",
+        roomId = "yug4006",
+        objectId = "yug4042"
+    };
 }
 
 internal static class Global

@@ -176,13 +176,13 @@ internal static class ItemHandler
             else if (itemName == "Staff ID")
             {
                 // Use Staff ID from a dev map that we know won't be changed.
-                var staffIdObject = Utils.GetMapvaniaObject("yugo3_dev/yug4006/yug4042")!;
+                var staffIdMapObject = Utils.GetMapvaniaObject(Constants.StaffIdGlobalObjectId.AsString)!;
+                var staffId = Utils.GetObject<ObjectFollowItem>(staffIdMapObject);
                 // Check that the staff ID isn't already turned in for dungeon access or following the player.
                 if (!director.GetFlagBool($"{Game.GLOBAL_FLAG_PREFIX}fariaLimeDungeonAccess")
-                    && followingObjectIds.All(o => o.AsString != staffIdObject.globalObjectId.AsString))
+                    && followingObjectIds.All(o => o.AsString != staffIdMapObject.globalObjectId.AsString))
                 {
-                    // TODO: Find better way to add following object that activates immediately.
-                    director.playerRecord.followingObjectIds.Add(staffIdObject.globalObjectId);
+                    director.AddFollowingObject(staffId);
                     Melon<PipArchMod>.Logger.Msg("Added Staff ID to following objects");
                 }
             }
