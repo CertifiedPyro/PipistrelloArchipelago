@@ -43,7 +43,6 @@ internal static class CorePatches
 
             /* Disable various yoyo trick tutorials. */
             var gFlag = Game.GLOBAL_FLAG_PREFIX;
-            // TODO: Disable trigger area when auntie goes up to North Plaza
             // Disable Wall-Dash tutorial.
             record.flags[$"{gFlag}dungeon2/lor638{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
             record.flags[$"{gFlag}dungeon2/lor149:walldash1"] = 1; // Disable instruction area.

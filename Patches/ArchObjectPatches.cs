@@ -28,6 +28,8 @@ internal class ArchObjectPatches
         // Swap to a physical Archipelago object.
         mapObj.objectDefId = "lor313";
         mapObj.objectDefName = "bpContainer";
+        mapObj.objectDefBehaviorName = null;
+
 
         // Object id must be edited like this, instead of assigned directly for some reason.
         var globalObjectId = mapObj.globalObjectId;
