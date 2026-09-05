@@ -4,48 +4,54 @@ using Il2CppPipistrello;
 namespace PipistrelloArchipelago.Patches;
 
 /// <summary>
-/// Patch for replacing dialogue when a physical Archipelago item is picked up.
+/// Patches to override dialogue if physical Archipelago object is acquired.
 /// </summary>
 [HarmonyPatch]
-public class DialoguePanelPatch
+internal static class DialoguePanelPatch
 {
-    private const string _ARCH_DIALOGUE_SHOWN = "ARCH_DIALOGUE_SHOWN";
-
+    private static bool _replacedDialogue;
+    
     /// <summary>
-    /// Patch to handle overwriting dialogue text if physical Archipelago item is picked up.
+    /// If loading save, reset internal state.
     /// </summary>
-    [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
-    [HarmonyPrefix]
-    public static bool InjectTextPatch(ref string text)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
     {
-        // Check if there is Archipelago dialogue to show.
-        if (Global.State.DialogueText == null)
-        {
-            return true;
-        }
-
-        if (Global.State.DialogueText == _ARCH_DIALOGUE_SHOWN)
+        _replacedDialogue = false;
+    }
+    
+    /// <summary>
+    /// Overrides dialogue text if physical Archipelago object is acquired.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.InjectText))]
+    private static bool DialoguePanel_InjectText_Prefix(ref string text)
+    {
+        if (_replacedDialogue)
         {
             return Global.State.ShowRemainingDialogue;
         }
 
+        if (Global.State.DialogueText == null)
+        {
+            return true;
+        }
+        
         // Replace the first message with the desired text.
         text = Global.State.DialogueText;
-        Global.State.DialogueText = _ARCH_DIALOGUE_SHOWN;
+        _replacedDialogue = true;
         return true;
     }
 
     /// <summary>
-    /// Patch to handle when dialogue is finished.
+    /// Handles cleanup after dialogue is over.
     /// </summary>
-    [HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.IsOver))]
-    [HarmonyPostfix]
-    public static void IsOverPatch(bool __result)
+    [HarmonyPostfix, HarmonyPatch(typeof(DialoguePanel), nameof(DialoguePanel.IsOver))]
+    private static void DialoguePanel_IsOver_Postfix(DialoguePanel __instance, bool __result)
     {
-        // Reset state once dialogue is over.
-        if (__result)
+        if (__result && _replacedDialogue)
         {
             Global.State.DialogueText = null;
+            _replacedDialogue = false;
         }
     }
 }

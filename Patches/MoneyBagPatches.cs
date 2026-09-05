@@ -4,22 +4,36 @@ using Il2CppUtil;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to handle money bags as physical Archipelago objects.
+/// </summary>
 [HarmonyPatch]
-public class MoneyBagPatches
+internal class MoneyBagPatches
 {
+    private static bool _replaceMoneyBagSprite;
+
     /// <summary>
-    /// Patch for handling money bags as physical Archipelago items.
+    /// If loading save, reset internal state.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
-    [HarmonyPostfix]
-    public static void MoneyBagProcessPatch(ObjectMoneyBag __instance)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
     {
-        // Check that save file is actually loaded, since Process() will run before save file finishes loading.
+        _replaceMoneyBagSprite = false;
+    }
+
+    /// <summary>
+    /// Handles money bags as physical Archipelago items.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Process))]
+    private static void ObjectMoneyBag_Process_Postfix(ObjectMoneyBag __instance)
+    {
+        // Check that save file is actually loaded, since Process() will run before load, for some reason.
         if (!Global.State.SaveFileLoaded)
         {
             return;
         }
 
+        // Check that the object should be swapped.
         var globalObjectId = __instance.globalObjectId.AsString;
         if (!Utils.IsObjectIdActiveLocation(globalObjectId))
         {
@@ -39,7 +53,7 @@ public class MoneyBagPatches
             return;
         }
 
-        // Money bag should not actually give money.
+        // Money bag should not give money.
         __instance.moneyAmount = 0;
 
         // Add map pin for money bag.
@@ -48,36 +62,35 @@ public class MoneyBagPatches
     }
 
     /// <summary>
-    /// Patch for mark money bags sprites for replacement.
+    /// Marks the money bag sprite for replacement.
     /// </summary>
-    [HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
-    [HarmonyPrefix]
-    public static void DrawMoneyBagPatch(ObjectMoneyBag __instance)
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectMoneyBag), nameof(ObjectMoneyBag.Draw))]
+    private static void ObjectMoneyBag_Draw_Prefix(ObjectMoneyBag __instance)
     {
         if (__instance.director.IsPlayerDeathFreeze() || !__instance.IsVisibleInCamera())
         {
             return;
         }
 
+        // Check that the object should be swapped.
         if (!Utils.IsObjectIdActiveLocation(__instance.globalObjectId.AsString))
         {
             return;
         }
 
-        Global.State.ReplaceMoneyBagSprite = true;
+        _replaceMoneyBagSprite = true;
     }
 
     /// <summary>
-    /// Patch for replacing the money bag sprite.
+    /// Replaces the money bag sprite.
     /// </summary>
-    [HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
-    [HarmonyPrefix]
-    public static void GetSpritePatch(ref string sprId)
+    [HarmonyPrefix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
+    private static void SpriteManager_GetSprite_Prefix(ref string sprId)
     {
-        if (Global.State.ReplaceMoneyBagSprite && sprId == "objs/moneyBag")
+        if (_replaceMoneyBagSprite && sprId == "objs/moneyBag")
         {
             sprId = Constants.MoneyBagMediumSpriteName;
-            Global.State.ReplaceMoneyBagSprite = false;
+            _replaceMoneyBagSprite = false;
         }
     }
 }

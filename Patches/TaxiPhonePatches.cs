@@ -1,46 +1,34 @@
 ﻿using HarmonyLib;
 using Il2CppPipistrello;
-using Il2CppUtil;
-using MelonLoader;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to handle taxi phones as Archipelago locations.
+/// </summary>
 [HarmonyPatch]
-public class TaxiPhonePatches
+internal class TaxiPhonePatches
 {
-    [HarmonyPatch(typeof(Localization), nameof(Localization.GetEntries))]
-    [HarmonyPrefix]
-    public static void LocalizationPatch(string stringId)
+    /// <summary>
+    /// Handles interaction with a taxi phone.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectTaxiPhone), nameof(ObjectTaxiPhone.OnInteract))]
+    private static void ObjectTaxiPhone_OnInteract_Prefix(ObjectTaxiPhone __instance)
     {
-        // Check if taxi phone dialogue is showing.
-        if (stringId == "taxiPhone_unlock" || stringId == "taxiPhone_unlocked")
+        // Check that the object is eligible to be a location.
+        var globalObjectId = __instance.globalObjectId.AsString;
+        if (!Utils.IsObjectIdActiveLocation(globalObjectId))
         {
-            // Assume the player is interacting with a ObjectTaxiPhone now.
-            // Find the closest ObjectTaxiPhone.
-            Func<ObjectTaxiPhone, bool> predicate = (_) => true;
-            var taxiPhoneObject = Global.Director.FindNearestObject<ObjectTaxiPhone>(
-                Global.Director.player.position, predicate);
-
-            if (!Utils.IsObjectIdActiveLocation(taxiPhoneObject.globalObjectId.AsString))
-            {
-                return;
-            }
-
-            // Sanity check that the player is close to the taxi phone.
-            if (Global.Director.currentRoomId != taxiPhoneObject.globalObjectId.roomId)
-            {
-                Melon<PipArchMod>.Logger.Msg("Could not find correct taxi phone for location check.");
-                return;
-            }
-
-            // Check if player already interacted with this taxi phone.
-            var flag = $"{Game.GLOBAL_FLAG_PREFIX}{taxiPhoneObject.globalObjectId.AsString}{Constants.FLAG_INTERACT_SUFFIX}";
-            if (Global.Director.GetFlagBool(flag))
-            {
-                return;
-            }
-
-            Utils.SendLocationCheck(taxiPhoneObject.globalObjectId.AsString);
+            return;
         }
+
+        // Check if player already interacted with this taxi phone.
+        var flag = $"{Game.GLOBAL_FLAG_PREFIX}{globalObjectId}{Constants.FlagInteractSuffix}";
+        if (Global.Director.GetFlagBool(flag))
+        {
+            return;
+        }
+
+        Utils.SendLocationCheck(globalObjectId);
     }
 }

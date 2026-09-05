@@ -1,35 +1,33 @@
-﻿using Archipelago.MultiClient.Net;
+﻿using System.Collections.Concurrent;
+using Archipelago.MultiClient.Net;
+using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
+using Archipelago.MultiClient.Net.Colors;
 using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
-using System.Collections.Concurrent;
+using PipistrelloArchipelago.Patches;
+using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago;
 
-static class Constants
+internal static class Constants
 {
-    public static string ArchItemObjectIdSuffix = "_architem";
-    public static string ArchMediumSpriteName = "arch_medium";
-    public static string ArchSmallSpriteName = "arch_small";
-    public static string MoneyBagMediumSpriteName = "moneyBag_medium";
-    public static string MoneyBagSmallSpriteName = "moneyBag_small";
+    public const string ArchItemObjectIdSuffix = "_architem";
+    public const string ArchMediumSpriteName = "arch_medium";
+    public const string ArchSmallSpriteName = "arch_small";
+    public const string MoneyBagMediumSpriteName = "arch_moneyBag_medium";
+    public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
+    public const string LeverDisabledSpriteName = "arch_lever_disabled";
+    public const string FlagArchipelagoSeedSuffix = ":seed";
+    public const string FlagInteractSuffix = ":interacted";
+    public const string FlagMegaBatterySuffix = ":archMegaBattery";
 
-    public static string FLAG_ARCHIPELAGO = $"{Game.GLOBAL_FLAG_PREFIX}arch";
-    public static string FLAG_LAST_ITEM_INDEX = $"{FLAG_ARCHIPELAGO}:lastItemIndex";
-    public static string FLAG_INTERACT_SUFFIX = ":interacted";
+    public static readonly string FlagArchipelago = $"{Game.GLOBAL_FLAG_PREFIX}arch";
+    public static readonly string FlagLastItemIndex = $"{FlagArchipelago}:lastItemIndex";
 }
 
-static class ModSettings
-{
-    public static MelonPreferences_Category Category;
-    public static MelonPreferences_Entry<string> Host;
-    public static MelonPreferences_Entry<int> Port;
-    public static MelonPreferences_Entry<string> SlotName;
-    public static MelonPreferences_Entry<string> Password;
-}
-
-static class Global
+internal static class Global
 {
     public static Director Director = null;
     public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
@@ -37,22 +35,13 @@ static class Global
     public static State State = new();
 }
 
-static class Utils
+internal static class Utils
 {
-    public static string IdToArchItemId(string id)
-    {
-        return id + Constants.ArchItemObjectIdSuffix;
-    }
+    public static string IdToArchItemId(string id) => id + Constants.ArchItemObjectIdSuffix;
 
-    public static string ArchItemIdToId(string archItemId)
-    {
-        return archItemId[..^Constants.ArchItemObjectIdSuffix.Length];
-    }
+    public static string ArchItemIdToId(string archItemId) => archItemId[..^Constants.ArchItemObjectIdSuffix.Length];
 
-    public static bool IsArchItemId(string id)
-    {
-        return id != null && id.EndsWith(Constants.ArchItemObjectIdSuffix);
-    }
+    public static bool IsArchItemId(string id) => id != null && id.EndsWith(Constants.ArchItemObjectIdSuffix);
 
     public static long ObjectIdToLocationId(string globalObjectId)
     {
@@ -70,7 +59,8 @@ static class Utils
     public static bool IsObjectIdActiveLocation(string globalObjectId)
     {
         // Check cache before checking scouted locations.
-        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue) && !existingValue)
+        if (Global.State.IsObjectIdActiveLocationCache.TryGetValue(globalObjectId, out var existingValue)
+            && !existingValue)
         {
             return false;
         }
@@ -92,6 +82,8 @@ static class Utils
         return active;
     }
 
+    public static bool IsLocalItem(ItemInfo item) => item.Player.Slot == Global.State.Session.ConnectionInfo.Slot;
+
     public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
     {
         var parts = globalObjectIdString.Split('/');
@@ -102,48 +94,44 @@ static class Utils
     }
 
     public static T? GetObject<T>(Mapvania.Object mapObject)
-        where T : Il2CppPipistrello.Object
+        where T : Object
     {
         if (mapObject == null)
         {
             return null;
         }
 
-        var result = Global.Director.objects.ToArray().FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
+        var result = Global.Director.objects.ToArray()
+            .FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
         return result?.Cast<T>();
     }
 
     public static void SendLocationCheck(string globalObjectId)
     {
-        // Send location check to Archipelago.
         var locationId = ObjectIdToLocationId(globalObjectId);
         Melon<PipArchMod>.Logger.Msg($"Sending location check: {globalObjectId}");
 
-        // Duplicate locations should never happen, but this is here just to be safe.
+        // Duplicate locations should never happen, but log just in case.
+        // We still want the rest of the function to run so the dialogue can get replaced.
         if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
         {
-            Melon<PipArchMod>.Logger.Warning($"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
-            return;
-        }
-
-        try
-        {
-            Global.State.LocalCheckedLocations.TryAdd(locationId, 1);
-            Global.State.Session.Locations.CompleteLocationChecks([locationId]);
-        }
-        catch (ArchipelagoSocketClosedException ex)
-        {
-            Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
-            return;
+            Melon<PipArchMod>.Logger.Warning(
+                $"Duplicate location found: {Global.State.Session.Locations.GetLocationNameFromId(locationId)}");
         }
 
         // Create the text to show the player.
         var item = Global.State.ScoutedLocations[locationId];
         var itemName = item.ItemDisplayName.Replace(" ", "[nbsp]");
+        var itemColor = GetTextColor(ColorUtils.GetColor(item).ToString());
+
         var playerName = item.Player.Name.Replace(" ", "[nbsp]");
-        var text = item.Player.Slot == Global.State.Session.ConnectionInfo.Slot
-            ? $"[instant|You found your [c:blue|{itemName}]!][w:2]"
-            : $"[instant|You sent [c:blue|{itemName}] to [c:red|{playerName}]!][w:2]";
+        var playerColor = IsLocalItem(item)
+            ? GetTextColor(ColorUtils.ActivePlayerColor.ToString())
+            : GetTextColor(ColorUtils.NonActivePlayerColor.ToString());
+
+        var text = IsLocalItem(item)
+            ? $"You found your [c:{itemColor}|{itemName}]!"
+            : $"You sent [c:{itemColor}|{itemName}] to [c:{playerColor}|{playerName}]!";
 
         // Determine if text should replace dialogue or be queued for later.
         var mapObject = GetMapvaniaObject(globalObjectId);
@@ -151,28 +139,66 @@ static class Utils
         {
             Global.State.Messages.Enqueue(text);
         }
-        else
+        else if (mapObject?.objectDefName != "megaBatteryHolder")
         {
-            Global.State.DialogueText = text;
+            Global.State.DialogueText = $"[fast|{text}][w:2]";
             Global.State.ShowRemainingDialogue = mapObject?.objectDefName == "taxiPhone";
         }
+
+        // Send the location check.
+        try
+        {
+            Global.State.LocalCheckedLocations.TryAdd(locationId, 1);
+            Global.State.Session.Locations.CompleteLocationChecks(locationId);
+        }
+        catch (ArchipelagoSocketClosedException ex)
+        {
+            Melon<PipArchMod>.Logger.Error($"Could not send location check: {ex}");
+        }
+    }
+
+    /// <summary>
+    /// Converts an Archipelago color to a color the game understands.
+    /// This will get converted back to the palette color in <see cref="MessagePatches" />.
+    /// </summary>
+    public static string GetTextColor(string color)
+    {
+        return color switch
+        {
+            nameof(Color.White) => null,
+            nameof(Color.Black) => "gray",
+            nameof(Color.Red) => "red",
+            nameof(Color.Green) => "green",
+            nameof(Color.Blue) => "blue",
+            nameof(Color.Cyan) => "cyan",
+            nameof(Color.Magenta) => "player",
+            nameof(Color.Yellow) => "yellow",
+            nameof(Color.SlateBlue) => "refine",
+            nameof(Color.Salmon) => "lightPink",
+            nameof(Color.Plum) => "blueprint",
+            _ => null
+        };
     }
 }
 
-class State
+internal class State
 {
-    public ArchipelagoSession Session = null;
-    public Dictionary<string, object> SlotData = null;
-    public Dictionary<long, ScoutedItemInfo> ScoutedLocations = null;
-
-    public Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
-    public ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
+    public readonly Dictionary<string, bool> IsObjectIdActiveLocationCache = [];
+    public readonly ConcurrentDictionary<long, byte> LocalCheckedLocations = [];
+    public readonly ConcurrentQueue<string> Messages = new();
+    public readonly ConcurrentQueue<string> CountdownMessages = new();
 
     public bool SaveFileLoaded = false;
-    public bool ReplaceMoneyBagSprite = false;
 
-    public string DialogueText = null;
+    public string DialogueText;
     public bool ShowRemainingDialogue = true;
-    public ConcurrentQueue<string> Messages = new();
-}
 
+    public DeathLinkService DeathLinkService;
+    public int DeathLinkAmnesty = 1;
+    public DeathLink QueuedDeath;
+
+    public ArchipelagoSession Session { get; init; }
+    public Dictionary<string, object> SlotData { get; init; }
+    public Dictionary<long, ScoutedItemInfo> ScoutedLocations { get; init; }
+    public bool RaceMode { get; init; }
+}

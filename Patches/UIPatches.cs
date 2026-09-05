@@ -4,86 +4,62 @@ using Il2CppPipistrello;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public static class UIPatches
+internal static class UIPatches
 {
-    private static int _prevAccountantFlagValue;
+    private static bool _makingPauseMenu;
 
     /// <summary>
-    /// If loading save, reset global state.
+    /// If loading save, reset internal state.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    [HarmonyPostfix]
-    public static void InitFromSavefilePatch(int savefileIndex)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
     {
-        _prevAccountantFlagValue = 0;
+        _makingPauseMenu = false;
     }
 
     /// <summary>
-    /// Patch for showing Archipelago map pins.
+    /// Patch to mark that pause menu is being made.
     /// </summary>
-    [HarmonyPatch(typeof(Minimap), nameof(Minimap.RefreshPins))]
-    [HarmonyPrefix]
-    public static void RefreshMinimapPinsPatch()
+    [HarmonyPrefix, HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
+    private static void Menu_MakePauseMenu_Prefix()
     {
-        var mapPins = Global.Director.playerRecord.mapPins;
-        for (var i = 0; i < mapPins.Count; i++)
-        {
-            var mapPin = mapPins[i];
-            if (mapPin.pinId != "bpContainer")
-            {
-                continue;
-            }
+        _makingPauseMenu = true;
+    }
 
-            // Replace map pins for physical Archipelago items with the Archipelago UI pin.
-            var locationName = Global.GlobalObjectIdToLocationName.GetValueOrDefault(mapPin.objectId.AsString);
-            if (Utils.IsArchItemId(mapPin.objectId.objectId) || locationName != null)
-            {
-                mapPin.pinId = Constants.ArchSmallSpriteName;
-                mapPins.System_Collections_IList_set_Item(i, mapPin);
-            }
+    /// <summary>
+    /// Patch to mark that pause menu is no longer being made.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
+    private static void Menu_MakePauseMenu_Postfix()
+    {
+        _makingPauseMenu = false;
+    }
+
+    /// <summary>
+    /// Patch for always showing the upgrades menu.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Game), nameof(Game.GetFlag))]
+    private static void Game_GetFlagBool_Postfix(string flag, ref int __result)
+    {
+        if (_makingPauseMenu && flag == Game.FLAG_ACCOUNTANT_FOUND)
+        {
+            __result = 2;
         }
     }
 
     /// <summary>
-    /// Patch pause menu to always show upgrades menu.
+    /// Patch for locking all upgrades on the upgrade menu.
     /// </summary>
-    [HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
-    [HarmonyPrefix]
-    public static void MakePauseMenuPrefixPatch()
-    {
-        // Pretend that accountant was found.
-        _prevAccountantFlagValue = Global.Director.GetFlag(Game.FLAG_ACCOUNTANT_FOUND);
-        Global.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, 2);
-    }
-
-    /// <summary>
-    /// Patch pause menu to revert accountant state.
-    /// </summary>
-    [HarmonyPatch(typeof(Menu), nameof(Menu.MakePauseMenu))]
-    [HarmonyPostfix]
-    public static void MakePauseMenuPostfixPatch()
-    {
-        Global.Director.SetFlag(Game.FLAG_ACCOUNTANT_FOUND, _prevAccountantFlagValue);
-    }
-
-    /// <summary>
-    /// Patch upgrade menu to make all upgrades locked.
-    /// </summary>
-    [HarmonyPatch(typeof(Game), nameof(Game.IsUpgradeLocked))]
-    [HarmonyPrefix]
-    public static bool IsUpgradeLockedPatch(ref bool __result)
+    [HarmonyPrefix, HarmonyPatch(typeof(Game), nameof(Game.IsUpgradeLocked))]
+    private static bool Game_IsUpgradeLocked_Prefix(ref bool __result)
     {
         __result = true;
         return false;
     }
 
     /// <summary>
-    /// Patch badge menu to make all badge refinements locked.
+    /// Patch for locking all badge refinements in the badge menu.
     /// </summary>
-    [HarmonyPatch(typeof(UIEquipRefinement), nameof(UIEquipRefinement.MakeConfirmationDialog))]
-    [HarmonyPrefix]
-    public static bool UIEquipRefinementPatch()
-    {
-        return false;
-    }
+    [HarmonyPrefix, HarmonyPatch(typeof(UIEquipRefinement), nameof(UIEquipRefinement.MakeConfirmationDialog))]
+    private static bool UIEquipRefinement_MakeConfirmationDialog_Prefix() => false;
 }

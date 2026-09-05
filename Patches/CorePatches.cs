@@ -1,4 +1,5 @@
-﻿using HarmonyLib;
+﻿using Archipelago.MultiClient.Net.Enums;
+using HarmonyLib;
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
@@ -6,28 +7,19 @@ using MelonLoader;
 namespace PipistrelloArchipelago.Patches;
 
 [HarmonyPatch]
-public static class CorePatches
+internal static class CorePatches
 {
-    [HarmonyPatch(typeof(Director), nameof(Director.Init))]
-    [HarmonyPostfix]
-    public static void DirectorInitPatch(Director __instance)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.Init))]
+    private static void Director_Init_Postfix(Director __instance)
     {
         Global.Director = __instance;
     }
 
-    [HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
-    [HarmonyPostfix]
-    public static void LoadProjectPatch()
-    {
-        MakeArchMapChanges();
-    }
-
     /// <summary>
-    /// Patch for handling new and loaded saves.
+    /// Handles new and loaded saves.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
-    [HarmonyPostfix]
-    public static void InitFromSavefilePatch(int savefileIndex)
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix(int savefileIndex)
     {
         // Reload project to reset Mapvania objects.
         // This crashes the game if called twice before loading, but it shouldn't happen here.
@@ -41,111 +33,64 @@ public static class CorePatches
             var southPlazaNames = Localization.GetEntries("location_plaza1").ToArray().Select(e => e.contents);
             var scenario = Game.GetNewGameScenarios().ToArray().First(s => southPlazaNames.Contains(s.name));
             var record = Game.DeserializeRecord(scenario.serializedRecord);
-            record.flags[Constants.FLAG_ARCHIPELAGO] = 1;  // Mark as an Archipelago save.
-            record.flags[Game.FLAG_ABILITY_THROW] = 0;  // Remove Offstring Throw (obtained in Abandoned Tunnels).
+            record.flags[Constants.FlagArchipelago] = 1; // Mark as an Archipelago save.
+            record.flags[Game.FLAG_ABILITY_THROW] = 0; // Remove Offstring Throw (obtained in Abandoned Tunnels).
+
+            // Store the room seed.
+            var seed = Global.State.Session.RoomState.Seed;
+            var seedFlag = $"{Constants.FlagArchipelago}:{seed}{Constants.FlagArchipelagoSeedSuffix}";
+            record.flags[seedFlag] = 1;
 
             /* Disable various yoyo trick tutorials. */
+            var gFlag = Game.GLOBAL_FLAG_PREFIX;
+            // Disable Wall-Dash tutorial.
+            record.flags[$"{gFlag}dungeon2/lor638{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
+            record.flags[$"{gFlag}dungeon2/lor149:walldash1"] = 1; // Disable instruction area.
+            record.flags[$"{gFlag}dungeon2/lor149:crumble2"] = 1; // Force area to be crumbled.
             // Disable Around-the-World tutorial.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city/yug1405{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1;  // Disable trigger area.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}tutorialSpin"] = 1;  // Disable tutorial.
+            record.flags[$"{gFlag}city/yug1405{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
+            record.flags[$"{gFlag}tutorialSpin"] = 1; // Disable tutorial.
             // Disable Sleeper tutorial.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city_underground/lor813{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1;  // Disable trigger area.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city_underground/lor779:finished"] = 1;  // Disable NPC.
-            record.flags[$"{Game.GLOBAL_FLAG_PREFIX}city_underground/lor779:barrier"] = 1;  // Lower barrier to south room.
+            record.flags[$"{gFlag}city_underground/lor813{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
+            record.flags[$"{gFlag}city_underground/lor779:finished"] = 1; // Disable NPC.
+            record.flags[$"{gFlag}city_underground/lor779:barrier"] = 1; // Lower barrier to south room.
+
+            /* Enable various misc flags. */
+            record.flags[$"{gFlag}area2ExcavationCrumble"] = 1; // Forces area in front of Faria dungeon to be crumbled.
+            // These 2 flags force the start of Faria dungeon to be crumbled and the slime drill NPC to disappear.
+            record.flags[$"{gFlag}dungeon2:intro"] = 1;
+            record.flags[$"{gFlag}dungeon2:introCrumble"] = 1;
 
             Global.Director.InitFromRecord(record);
         }
 
-        Global.State.Session.SetClientState(Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientPlaying);
-        ArchipelagoHelper.HandleInitial();
+        Global.State.Session.SetClientState(ArchipelagoClientState.ClientPlaying);
+        ArchipelagoHelper.HandleSaveFileLoad();
     }
 
     /// <summary>
-    /// Patch for creating physical Archipelago items.
+    /// Adds checkpoint instantiating room due to (potentially) added money bag pins.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
-    [HarmonyPrefix]
-    public static void InstantiateFromMapPrefixPatch(ref Mapvania.Object mapObj)
-    {
-        // Don't replace taxi phones or money bags.
-        if (mapObj.objectDefName == "taxiPhone" || mapObj.objectDefName == "moneyBag")
-        {
-            return;
-        }
-
-        // Check that the object should actually be swapped.
-        if (!Utils.IsObjectIdActiveLocation(mapObj.globalObjectId.AsString))
-        {
-            return;
-        }
-
-        // Swap to a physical Archipelago item.
-        mapObj.objectDefId = "lor313";
-        mapObj.objectDefName = "bpContainer";
-
-        // Object id must be edited like this, instead of assigned directly for some reason.
-        var globalObjectId = mapObj.globalObjectId;
-        globalObjectId.objectId = Utils.IdToArchItemId(globalObjectId.objectId);
-        mapObj.globalObjectId = globalObjectId;
-
-        // TODO: Swap items with each other.
-    }
-
-    /// <summary>
-    /// Patch for handling created Archipelago items.
-    /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
-    [HarmonyPostfix]
-    public static void InstantiateFromMapPostfixPatch(Il2CppPipistrello.Object __result)
-    {
-        if (Utils.IsArchItemId(__result?.globalObjectId?.objectId))
-        {
-            // Replace sprite.
-            __result.spriteName = Constants.ArchMediumSpriteName;
-        }
-    }
-
-    /// <summary>
-    /// Patch to handle post InitRoom().
-    /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
-    [HarmonyPostfix]
-    public static void InitRoomPatch()
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
+    private static void Director_InitRoom_Postfix()
     {
         // Check if Director is null, since apparently this can run before the main menu appears.
-        // Normally, PrepareCheckpoint() runs before ProcessObjects().
+        // Normally, PrepareCheckpoint() runs before ProcessObjects() within Director.InitRoom().
         // However, since we're adding map pins to money bags in ProcessObjects(), we need to save those map pins.
         // This way, if a player returns to the safehouse, the map pins are still saved.
         Global.Director?.PrepareCheckpoint(false);
     }
 
     /// <summary>
-    /// Patch for handling physical Archipelago items.
+    /// Patch to show house puzzles as completed based on the replaced physical Archipelago objects.
     /// </summary>
-    [HarmonyPatch(typeof(Game), nameof(Game.SetBpContainerAcquired))]
-    [HarmonyPrefix]
-    public static bool HandlePhysicalArchItemPatch(string id, ref bool __result)
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectWarpArea), nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
+    private static bool ObjectWarpArea_CalculateIsHousePuzzleCompleted_Prefix(
+        ObjectWarpArea __instance,
+        ref bool __result)
     {
-        if (Utils.IsArchItemId(id))
-        {
-            var objectId = Utils.ArchItemIdToId(id);
-            Utils.SendLocationCheck(objectId);
-
-            __result = false;
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <summary>
-    /// Patch to show house puzzles as completed based on the replaced physical Archipelago items.
-    /// </summary>
-    [HarmonyPatch(typeof(ObjectWarpArea), nameof(ObjectWarpArea.CalculateIsHousePuzzleCompleted))]
-    [HarmonyPrefix]
-    public static bool HousePuzzlePatch(ObjectWarpArea __instance, ref bool __result)
-    {
-        if (!Global.Director.currentProject.housePuzzleFlags.TryGetValue(__instance.globalObjectId.AsString, out var houseFlags))
+        if (!Global.Director.currentProject.housePuzzleFlags.TryGetValue(
+                __instance.globalObjectId.AsString, out var houseFlags))
         {
             return true;
         }
@@ -159,22 +104,29 @@ public static class CorePatches
             // Convert the badge to a global object id first.
             if (flagSplit[1] == "equip")
             {
-                var equipMeta = Global.Director.currentProject.equipMeta.ToArray().First(e => e.equipId == flagSplit[2]);
+                var equipMeta = Global.Director.currentProject.equipMeta.ToArray()
+                    .First(e => e.equipId == flagSplit[2]);
                 flagSplit[2] = equipMeta.globalObjectId.AsString;
             }
 
-            // Check that the global object id's item is actually swapped.
-            if (!Utils.IsObjectIdActiveLocation(flagSplit[2]))
+            // Check that flag matches expected format. Some flags are just regular (e.g. "g:mirrorHousePrize").
+            // Check that the object is actually swapped.
+            var newFlag = flag;
+            if (flagSplit.Length >= 3 && Utils.IsObjectIdActiveLocation(flagSplit[2]))
             {
-                continue;
+                // Swap flag with corresponding Archipelago item flag.
+                flagSplit[1] = "bpContainer";
+                flagSplit[2] = Utils.IdToArchItemId(flagSplit[2]);
+                // Some equips use the :blueprint flag instead of the :acquired flag.
+                if (flagSplit.Length == 4)
+                {
+                    flagSplit[3] = "acquired";
+                }
+
+                // Rejoin flag parts.
+                newFlag = string.Join(':', flagSplit);
             }
 
-            // Swap flag with corresponding Archipelago item flag.
-            flagSplit[1] = "bpContainer";
-            flagSplit[2] = Utils.IdToArchItemId(flagSplit[2]);
-
-            // Rejoin flag parts.
-            var newFlag = string.Join(':', flagSplit);
             if (!Global.Director.GetFlagBool(newFlag))
             {
                 __result = false;
@@ -189,105 +141,16 @@ public static class CorePatches
     /// <summary>
     /// Patch for goal state.
     /// </summary>
-    [HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
-    [HarmonyPrefix]
-    public static void GoalPatch(string mapId, string roomId)
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InitRoom))]
+    private static void GoalPatch(string mapId, string roomId)
     {
-        if (mapId == "city" && roomId == "ren4872")
+        if (mapId != "city" || roomId != "ren4872")
         {
-            Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
-            var text = $"[instant|You reached your goal of [c:red|North Plaza]!][w:2]";
-            Global.State.Messages.Enqueue(text);
-            Global.State.Session.SetClientState(
-                Archipelago.MultiClient.Net.Enums.ArchipelagoClientState.ClientGoal);
-        }
-    }
-
-    public static void MakeArchMapChanges()
-    {
-        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "city");
-        var room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren223");
-        var objects = room.objects;
-        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier1") == null)
-        {
-            room.objects.Add(new Mapvania.Object()
-            {
-                objectDefId = "lor15",
-                objectDefName = "barrier",
-                globalObjectId = new Game.GlobalObjectId
-                {
-                    mapId = "city",
-                    roomId = "ren223",
-                    objectId = "archBarrier1"
-                },
-                position = new UnityEngine.Vector2(0, 22 * 16),
-                width = 16,
-                height = 7 * 16,
-                properties = JsonValue.Parse("{\"activationFlag\": true}"),
-                usesFlags = true
-            });
+            return;
         }
 
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4152");
-        objects = room.objects;
-        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier2") == null)
-        {
-            room.objects.Add(new Mapvania.Object()
-            {
-                objectDefId = "lor15",
-                objectDefName = "barrier",
-                globalObjectId = new Game.GlobalObjectId
-                {
-                    mapId = "city",
-                    roomId = "ren4152",
-                    objectId = "archBarrier2"
-                },
-                position = new UnityEngine.Vector2(0, 2 * 16),
-                width = 16,
-                height = 7 * 16,
-                properties = JsonValue.Parse("{\"activationFlag\": true}"),
-                usesFlags = true
-            });
-        }
-
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren4064");
-        objects = room.objects;
-        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier3") == null)
-        {
-            room.objects.Add(new Mapvania.Object()
-            {
-                objectDefId = "lor15",
-                objectDefName = "barrier",
-                globalObjectId = new Game.GlobalObjectId
-                {
-                    mapId = "city",
-                    roomId = "ren4064",
-                    objectId = "archBarrier3"
-                },
-                position = new UnityEngine.Vector2(0, 4 * 16),
-                width = 16,
-                height = 2 * 16,
-                properties = JsonValue.Parse("{\"activationFlag\": true}"),
-                usesFlags = true
-            });
-        }
-
-        // Remove door to skyscraper mini-dungeon.
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug2741");
-        objects = room.objects;
-        var objectToRemove = objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "yug2747");
-        if (objectToRemove != null)
-        {
-            objects.Remove(objectToRemove);
-        }
-
-        // Remove slime NPC in front of Faria dungeon.
-        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "yug108");
-        objects = room.objects;
-        objectToRemove = objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "yug3097");
-        if (objectToRemove != null)
-        {
-            objects.Remove(objectToRemove);
-        }
+        Melon<PipArchMod>.Logger.Msg("Goal: North Plaza reached!");
+        Global.State.Messages.Enqueue("You reached your goal of [c:red|North Plaza]!");
+        Global.State.Session.SetClientState(ArchipelagoClientState.ClientGoal);
     }
 }

@@ -1,0 +1,204 @@
+﻿using Archipelago.MultiClient.Net.BounceFeatures.DeathLink;
+using HarmonyLib;
+using Il2CppPipistrello;
+using MelonLoader;
+using Random = UnityEngine.Random;
+
+namespace PipistrelloArchipelago.Patches;
+
+/// <summary>
+/// Patches to send death links.
+/// </summary>
+[HarmonyPatch]
+internal static class DeathLinkSendPatches
+{
+    private static int _currentDeaths;
+    private static string _deathCause;
+
+    /// <summary>
+    /// If loading save, reset internal state.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
+    {
+        _currentDeaths = 0;
+        _deathCause = null;
+    }
+
+    /// <summary>
+    /// Sends death link.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.HandleDeath))]
+    private static void Director_HandleDeath_Prefix()
+    {
+        // Check if death link is enabled.
+        if (!ModSettings.DeathLink.Value)
+        {
+            return;
+        }
+
+        // Check if death came from death link.
+        if (Global.State.QueuedDeath != null)
+        {
+            Global.State.QueuedDeath = null;
+            return;
+        }
+
+        _currentDeaths += 1;
+        if (_currentDeaths < Global.State.DeathLinkAmnesty)
+        {
+            return;
+        }
+
+        // Send death link.
+        _currentDeaths = 0;
+        var playerName = Global.State.Session.Players.GetPlayerAlias(Global.State.Session.ConnectionInfo.Slot);
+        var cause = $"{playerName} {_deathCause ?? "died."}";
+        Melon<PipArchMod>.Logger.Msg($"Sending death link: {cause}");
+        Global.State.DeathLinkService.SendDeathLink(new DeathLink(playerName, cause));
+    }
+
+    /// <summary>
+    /// Stores death cause for falls.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.OnFallEnd))]
+    private static void ObjectPlayer_OnFallEnd_Postfix()
+    {
+        if (Global.Director.player.life > 0)
+        {
+            return;
+        }
+
+        var floor = Global.Director.player.currentFloorAttributes;
+        if (floor.hasLiquid)
+        {
+            var liquidCauses = new[]
+            {
+                "fell into",
+                "drowned in",
+                "swam in"
+            };
+            var liquid = floor.materialLiquid switch
+            {
+                Mapvania.TileMaterial.LiquidStart or Mapvania.TileMaterial.LiquidWater => "water",
+                Mapvania.TileMaterial.LiquidOil => "frying oil",
+                Mapvania.TileMaterial.LiquidPetroleum => "petroleum",
+                Mapvania.TileMaterial.LiquidSewers => "sewer water",
+                Mapvania.TileMaterial.LiquidPoison => "poison water",
+                Mapvania.TileMaterial.LiquidLava => "lava",
+                Mapvania.TileMaterial.LiquidRose or Mapvania.TileMaterial.LiquidRose2 => "rose water",
+                _ => "unknown liquid"
+            };
+            _deathCause = $"{liquidCauses[Random.Range(0, liquidCauses.Length)]} {liquid}.";
+            return;
+        }
+
+        var holeCauses = new[]
+        {
+            "fell into a hole.",
+            "slipped into a pit.",
+            "misjudged a step.",
+            "discovered gravity for the first time."
+        };
+        _deathCause = holeCauses[Random.Range(0, holeCauses.Length)];
+    }
+
+    /// <summary>
+    /// Stores death cause for received hits.
+    /// </summary>
+    [HarmonyPostfix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.PlayerReceiveHit))]
+    private static void ObjectPlayer_PlayerReceiveHit_Postfix(HitboxManager.OnReceiveHitData data)
+    {
+        if (Global.Director.player.life > 0 || data.hitbox.obj == null)
+        {
+            return;
+        }
+
+        var vehicleCauses = new[]
+        {
+            "got ran over by a vehicle.",
+            "forgot to look both ways.",
+            "was caught jaywalking.",
+            "turned into a speed bump."
+        };
+        if (data.hitbox.obj.TryCast<ObjectVehicle>() != null)
+        {
+            _deathCause = vehicleCauses[Random.Range(0, vehicleCauses.Length)];
+            return;
+        }
+
+        var projectile = data.hitbox.obj.TryCast<ObjectEnemyProjectile>();
+        if (projectile != null)
+        {
+            _deathCause = projectile.spriteName switch
+            {
+                "enemies/beeShoot/bullet" => "a gunner bee's bullet",
+                "enemies/cosplayNinja/kunai" => "a ninja's kunai",
+                "enemies/cosplayNinja/shuriken" => "a ninja's shuriken",
+                "enemies/foodBandit/1_projectile1" or "enemies/foodBandit/1_projectile2" =>
+                    "a nacho food bandit's projectile",
+                "enemies/foodBandit/2_projectile1" or "enemies/foodBandit/2_projectile2" =>
+                    "a guacamole food bandit's projectile",
+                "enemies/madameBoss/madameProjectile" => "Madame Pipistrello's projectiles",
+                "enemies/swimmer/bubble" => "a swimmer's bubble",
+                _ => "a projectile"
+            };
+            _deathCause = $"died to {_deathCause}.";
+            return;
+        }
+
+        // Check obj type, since obj.objectDefName might be empty for enemies that spawn in a boss arena.
+        _deathCause = data.hitbox.obj?.GetIl2CppType().Name switch
+        {
+            nameof(EnemyBeeDash) => "a cop bee",
+            nameof(EnemyBeeShoot) => "a gunner bee",
+            nameof(EnemyCosplayBoss) => "Linkoln",
+            nameof(EnemyCosplayBossBoomerang) => "Linkoln's boomerang",
+            nameof(EnemyCosplayHelix) => "Bat-Guy",
+            nameof(EnemyCosplayMist) => "a ghost",
+            nameof(EnemyCosplayNinja) => "a ninja",
+            nameof(EnemyCosplayProtect) => "a protector",
+            nameof(EnemyCosplaySamurai) => "a samurai",
+            nameof(EnemyFairyToxy) => "Toxy",
+            nameof(EnemyFoodBanditGuacamole) => "a guacamole food bandit",
+            nameof(EnemyFoodBanditNacho) => "a nacho food bandit",
+            nameof(EnemyHammerSwinger) => "a hammer swinger",
+            nameof(EnemyHockeyPuck) => "a hockey puck",
+            nameof(EnemyMadameBoss) => "Madame Pipistrello",
+            nameof(EnemyMadameHand) => "Madame Pipistrello's batteries",
+            nameof(EnemyMistProjectile) => "a ghost's mist",
+            nameof(EnemyRatBoss) => "Don Maretti",
+            nameof(EnemyRatDrone) => "an RC car rat",
+            nameof(EnemyRatDroneCar) => "an RC car",
+            nameof(EnemyRatMelee) => "a melee rat",
+            nameof(EnemyRatScooter) => "a scooter rat",
+            nameof(EnemyRatShoot) => "a gunner rat",
+            nameof(EnemySlime) when data.hitbox.obj.Cast<EnemySlime>().kind == EnemySlime.Kind.Red => "a red slime",
+            nameof(EnemySlime) when data.hitbox.obj.Cast<EnemySlime>().kind == EnemySlime.Kind.Blue => "a blue slime",
+            nameof(EnemySlime) when data.hitbox.obj.Cast<EnemySlime>().kind == EnemySlime.Kind.Big => "a big slime",
+            nameof(EnemySlimeBomb) => "a bomber slime",
+            nameof(EnemySlimeDrill) => "a driller slime",
+            nameof(EnemySlimePunch) => "a puncher slime",
+            nameof(EnemySlimeShield) => "a shield slime",
+            nameof(EnemySlimeTycoon) => "the Slime Tycoon",
+            nameof(EnemySoccerCurveBall) => "an electric soccer ball",
+            nameof(EnemySoccerFireBall) => "a fiery soccer ball",
+            nameof(EnemySportsBatter) => "a batter",
+            nameof(EnemySportsCarrara) => "Cuca Carrara",
+            nameof(EnemySportsCharger) => "Cuca Carrara's football players",
+            nameof(EnemySportsHockey) => "a hockey player",
+            nameof(EnemySportsSkater) => "a skater",
+            nameof(EnemySportsSoccer) => "a soccer player",
+            nameof(EnemySwimmer) => "a swimmer",
+            nameof(EnemyTurtle) => "a turtle",
+            nameof(FireTrail) => "fire",
+            nameof(ObjectExplosion) => "an explosion",
+            nameof(ObjectGroundSpikeTrap) => "a turtle's spike trap",
+            nameof(ObjectPigeon) => "a pigeon",
+            nameof(ObjectSpikeRoller) => "a spike roller",
+            nameof(ObjectTurtleShell) => "a turtle shell",
+            _ => null
+        };
+        _deathCause = _deathCause != null ? $"died to {_deathCause}." : "died.";
+    }
+}
