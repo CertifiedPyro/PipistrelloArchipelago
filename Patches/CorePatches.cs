@@ -42,8 +42,13 @@ internal static class CorePatches
             record.flags[seedFlag] = 1;
 
             /* Disable various yoyo trick tutorials. */
-            // Disable Around-the-World tutorial.
             var gFlag = Game.GLOBAL_FLAG_PREFIX;
+            // TODO: Disable trigger area when auntie goes up to North Plaza
+            // Disable Wall-Dash tutorial.
+            record.flags[$"{gFlag}dungeon2/lor638{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
+            record.flags[$"{gFlag}dungeon2/lor149:walldash1"] = 1; // Disable instruction area.
+            record.flags[$"{gFlag}dungeon2/lor149:crumble2"] = 1; // Force area to be crumbled.
+            // Disable Around-the-World tutorial.
             record.flags[$"{gFlag}city/yug1405{Game.FLAG_OBJECT_USED_SUFFIX}"] = 1; // Disable trigger area.
             record.flags[$"{gFlag}tutorialSpin"] = 1; // Disable tutorial.
             // Disable Sleeper tutorial.
