@@ -11,6 +11,7 @@ internal static class MapChangePatches
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.LoadProject))]
     private static void Director_LoadProject_Postfix()
     {
+        // Block off Old Rattalia Town.
         var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "city")!;
         var room = map.rooms.ToArray().FirstOrDefault(r => r.id == "ren223")!;
         var objects = room.objects;
@@ -76,6 +77,54 @@ internal static class MapChangePatches
                     position = new Vector2(0, 4 * 16),
                     width = 16,
                     height = 2 * 16,
+                    properties = JsonValue.Parse("""{"activationFlag": true}"""),
+                    usesFlags = true
+                });
+        }
+        
+        // Block off Cancelled Subway Station
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "lor1128")!;
+        objects = room.objects;
+        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier4") == null)
+        {
+            room.objects.Add(
+                new Mapvania.Object
+                {
+                    objectDefId = "lor15",
+                    objectDefName = "barrier",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city",
+                        roomId = "lor1128",
+                        objectId = "archBarrier4"
+                    },
+                    position = new Vector2(14 * 16, 8 * 16),
+                    width = 2 * 16,
+                    height = 16,
+                    properties = JsonValue.Parse("""{"activationFlag": true}"""),
+                    usesFlags = true
+                });
+        }
+        
+        // Block off water access to Fadalins Neighborhood
+        room = map.rooms.ToArray().FirstOrDefault(r => r.id == "lor1097")!;
+        objects = room.objects;
+        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == "archBarrier5") == null)
+        {
+            room.objects.Add(
+                new Mapvania.Object
+                {
+                    objectDefId = "lor15",
+                    objectDefName = "barrier",
+                    globalObjectId = new Game.GlobalObjectId
+                    {
+                        mapId = "city",
+                        roomId = "lor1128",
+                        objectId = "archBarrier5"
+                    },
+                    position = new Vector2(4 * 16, 0),
+                    width = 25 * 16,
+                    height = 16,
                     properties = JsonValue.Parse("""{"activationFlag": true}"""),
                     usesFlags = true
                 });
