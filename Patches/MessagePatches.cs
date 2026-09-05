@@ -12,7 +12,7 @@ namespace PipistrelloArchipelago.Patches;
 [HarmonyPatch]
 internal static class MessagePatches
 {
-    private const int NormalTextShowTimeMs = 3500;
+    private const int NormalTextShowTimeMs = 3000;
     private const int CountdownTextShowTimeMs = 1000;
 
     private static readonly HashSet<ObjectPlayer.State> InvalidStates =
