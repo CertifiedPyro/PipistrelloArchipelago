@@ -27,7 +27,7 @@
 
 1. Download `PipistrelloArchipelago.dll` from the latest release.
 2. Place the dll file into the `Mods/` folder under the game's installation folder.
-3. Launch the game. The mod is installed correclty if a **Connect** button appears on the main menu.
+3. Launch the game. The mod is installed correctly if a **Connect** button appears on the main menu.
 
 ### Archipelago tools
 
