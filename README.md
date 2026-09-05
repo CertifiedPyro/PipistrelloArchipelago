@@ -2,7 +2,7 @@
 
 ## Required Software
 
-* [Archipelago](https://github.com/ArchipelagoMW/Archipelago/releases)
+* [Archipelago v0.6.7+](https://github.com/ArchipelagoMW/Archipelago/releases)
 * [MelonLoader](https://melonwiki.xyz/#/README?id=requirements)
   * Requires [Microsoft Visual C++ 2015-2019 Redistributable 64 Bit](https://aka.ms/vs/16/release/vc_redist.x64.exe)
   * Requires [dotnet 6.0](https://dotnet.microsoft.com/en-us/download/dotnet/6.0#runtime-desktop-6.0.19)
@@ -31,7 +31,7 @@
 
 ### Archipelago tools
 
-1. Make sure the Archipelago software is installed.
+1. Make sure the Archipelago software (v0.6.7 or newer) is installed.
 2. Download `pipistrello.apworld` from the latest release.
 3. Double-click on `pipistrello.apworld`. Archipelago should install the apworld automatically.
 4. Open the Archipelago Launcher and run "Generate Template Options" to create the options template file.
