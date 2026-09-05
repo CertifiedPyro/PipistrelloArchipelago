@@ -59,23 +59,31 @@ area (in logical order).
 
 ## What does randomization do to this game?
 
-The randomizer is still in early alpha, so only South Plaza and Faria (excluding the mini-dungeon and dungeon)
+The randomizer is still in early alpha, so only South Plaza and Faria (including the mini-dungeon and dungeon)
 are randomized.
-Most items and rewards are randomized and replaced with location checks.
+Items and rewards are randomized and replaced with location checks.
 
-The goal of the randomizer is to reach the North Plaa.
+The goal is to reach North Plaza via the sewers. In addition to hitting the 2 levers, you must also:
+
+- Obtain the Faria Mega-Battery
+- Defeat the Slime Tycoon in SlimeCorp Excavation Site
+
+You can also pick from several levels of logic difficulty.
+Make sure you read the description of the difficulty setting in the options yaml before selecting a difficulty above
+Normal.
 
 ## What items get shuffled?
 
 By default, the following items are in the item pool:
 - Abilities
 - Badges
-  - Badges are progressive. The first item will be the base badge, and the second item will be the refined badge.
+    - Badges are progressive. The first item will be the base badge, and the second item will be the refined badge.
 - BP shards
 - Charged moves
+- Mega-Batteries
 - Petal containers
 - Special moves
-- Special progression items (e.g. Staff ID for Faria dungeon)
+- Special items (e.g. Staff ID for the Faria dungeon)
 - Upgrades
 
 Money bags are given as filler items.
@@ -85,24 +93,24 @@ Money bags are given as filler items.
 By default, the following locations are enabled:
 - Badges
 - BP shards
-- Combat rewards (required)
+- Combat rewards (only required ones)
 - Diamonds
 - Musical notes rewards
 - Petal containers
 - Quest rewards
-- Taxi phone unlocks
+- Taxi phone interactions
 
 Additionally, the following options can be enabled:
 
-- Moneysanity - Adds standalone money bags and money bags from optional combat encounters as checks
-  - Note: Money bags from combats/quests/etc are always enabled as locations, regardless of this setting
+- Moneysanity - Adds standalone money bags and money bags from optional combat encounters as location checks
+    - Note: Money bags from combats/quests/etc are always enabled as locations, regardless of this setting
 
 The upgrade tree and badge refinements *are not* currently randomized.
 
 ## What does another world's item look like in Pipistrello and the Cursed Yoyo?
 
 Items from other worlds show up as Archipelago sprites in the game world, with corresponding Archipelago icons for map
-pins. If the location was originally a money bag, the Archipelago sprite will be green instead.
+pins. If the location was originally a money bag, the sprite and map pin will be green instead.
 
 When you collect another world's item, you will get a message showing the item name and recipient.
 
@@ -110,8 +118,8 @@ When you collect another world's item, you will get a message showing the item n
 
 The item is instantly granted to you, and a message appears on the bottom of the screen showing the item name and sender.
 
-## Credits
-- **Chibisatan** for helping so much with the rules,
-as well as everyone else in the Pocket Trap Speedrunners Discord.
-- **Scipio** for the original Archipelago sprites used in-game
-- **CrusherRL** for inspiration on how to bundle `Archipelago.MultiClient.Net.dll` with the mod
+# Credits
+- **sshard**, **Chibisatan** and everyone in the Pocket Trap Speedrunners Discord for help with making rules and finding new tricks.
+- **Scipio** for the original Archipelago sprites used in-game.
+- **CrusherRL** for inspiration on how to bundle `Archipelago.MultiClient.Net.dll` with the mod.
+- **Lordmau5** for inspiration on how to mask the password in Melon Preferences Manager.
