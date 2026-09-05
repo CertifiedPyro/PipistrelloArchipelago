@@ -140,11 +140,9 @@ internal static class LocationHandler
     {
         if (mapObject.globalObjectId.GlobalMapId.mapId == "dungeon2")
         {
+            // Don't mark the boss as defeated, because if the location at the Mega-Battery holder is auto-released,
+            // we still want the boss to be there.
             Global.Director.SetFlagBool("g:visited:dungeon2/lor1089", true); // Mark boss room as visited.
-            Global.Director.SetFlagBool("g:introBoss2:permanent", true); // Mark intro as shown.
-            Global.Director.SetFlagBool("g:bossDefeated2", true); // Mark boss as defeated.
-            Global.Director.SetFlagBool("g:dungeon2:bossChamber", true); // Not entirely sure what this does.
-            Global.Director.SetFlagBool("g:dungeon2/lor1095:used", true); // Mark boss setup code as finished.
             Global.Director.SetFlagBool(
                 $"{Game.FLAG_MEGABATTERY2}{Constants.FlagMegaBatterySuffix}",
                 true); // Mark Archipelago location as checked.
