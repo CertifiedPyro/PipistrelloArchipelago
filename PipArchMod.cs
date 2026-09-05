@@ -3,7 +3,7 @@ using System.Text.Json;
 using MelonLoader;
 using PipistrelloArchipelago;
 
-[assembly: MelonInfo(typeof(PipArchMod), "PipistrelloArchipelago", "0.2.0", "CertifiedPyro")]
+[assembly: MelonInfo(typeof(PipArchMod), "PipistrelloArchipelago", "0.3.0", "CertifiedPyro")]
 [assembly: MelonGame("Pocket Trap", "Pipistrello")]
 
 namespace PipistrelloArchipelago;
