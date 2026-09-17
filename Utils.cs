@@ -6,7 +6,7 @@ using Archipelago.MultiClient.Net.Exceptions;
 using Archipelago.MultiClient.Net.Models;
 using Il2CppPipistrello;
 using MelonLoader;
-using PipistrelloArchipelago.Patches;
+using PipistrelloArchipelago.Handlers;
 using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago;
@@ -18,6 +18,7 @@ internal static class Constants
     public const string ArchSmallSpriteName = "arch_small";
     public const string MoneyBagMediumSpriteName = "arch_moneyBag_medium";
     public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
+    public const string BossKillSmallSpriteName = "arch_boss_killed_small";
     public const string LeverDisabledSpriteName = "arch_lever_disabled";
     public const string FlagArchipelagoSeedSuffix = ":seed";
     public const string FlagInteractSuffix = ":interacted";
@@ -30,8 +31,8 @@ internal static class Constants
 internal static class Global
 {
     public static Director Director = null;
-    public static Dictionary<string, string> GlobalObjectIdToLocationName = null;
-    public static Dictionary<string, string> LocationNameToGlobalObjectId = null;
+    public static Dictionary<string, string> ObjectIdToLocationName = null;
+    public static Dictionary<string, string> LocationNameToObjectId = null;
     public static State State = new();
 }
 
@@ -45,7 +46,7 @@ internal static class Utils
 
     public static long ObjectIdToLocationId(string globalObjectId)
     {
-        var locationName = Global.GlobalObjectIdToLocationName[globalObjectId];
+        var locationName = Global.ObjectIdToLocationName[globalObjectId];
         var game = Global.State.Session.ConnectionInfo.Game;
         return Global.State.Session.Locations.GetLocationIdFromName(game, locationName);
     }
@@ -53,7 +54,7 @@ internal static class Utils
     public static string LocationIdToObjectId(long locationId)
     {
         var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
-        return Global.LocationNameToGlobalObjectId[locationName];
+        return Global.LocationNameToObjectId[locationName];
     }
 
     public static bool IsObjectIdActiveLocation(string globalObjectId)
@@ -66,7 +67,7 @@ internal static class Utils
         }
 
         // Check if location is eligible for replacement.
-        var objLocationName = Global.GlobalObjectIdToLocationName.GetValueOrDefault(globalObjectId);
+        var objLocationName = Global.ObjectIdToLocationName.GetValueOrDefault(globalObjectId);
         if (objLocationName == null)
         {
             return false;
@@ -82,14 +83,23 @@ internal static class Utils
         return active;
     }
 
-    public static bool IsLocalItem(ItemInfo item) => item.Player.Slot == Global.State.Session.ConnectionInfo.Slot;
-
-    public static Mapvania.Object? GetMapvaniaObject(string globalObjectIdString)
+    public static Game.GlobalObjectId ToGlobalObjectId(string globalObjectId)
     {
-        var parts = globalObjectIdString.Split('/');
-        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == parts[0]);
-        var room = map?.rooms.ToArray().FirstOrDefault(r => r.id == parts[1]);
-        var obj = room?.objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == parts[2]);
+        var parts = globalObjectId.Split('/');
+        return new Game.GlobalObjectId
+        {
+            mapId = parts[0],
+            roomId = parts[1],
+            objectId = parts[2],
+        };
+    }
+
+    public static Mapvania.Object? GetMapvaniaObject(string globalObjectId)
+    {
+        var goi = ToGlobalObjectId(globalObjectId);
+        var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == goi.mapId);
+        var room = map?.rooms.ToArray().FirstOrDefault(r => r.id == goi.roomId);
+        var obj = room?.objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == goi.objectId);
         return obj;
     }
 
@@ -105,6 +115,8 @@ internal static class Utils
             .FirstOrDefault(o => o.globalObjectId.AsString == mapObject.globalObjectId.AsString);
         return result?.Cast<T>();
     }
+
+    public static bool IsLocalItem(ItemInfo item) => item.Player.Slot == Global.State.Session.ConnectionInfo.Slot;
 
     public static void SendLocationCheck(string globalObjectId)
     {
@@ -159,7 +171,7 @@ internal static class Utils
 
     /// <summary>
     /// Converts an Archipelago color to a color the game understands.
-    /// This will get converted back to the palette color in <see cref="MessagePatches" />.
+    /// This will get converted back to the palette color in <see cref="MessageHandler" />.
     /// </summary>
     public static string GetTextColor(string color)
     {
@@ -176,7 +188,7 @@ internal static class Utils
             nameof(Color.SlateBlue) => "refine",
             nameof(Color.Salmon) => "lightPink",
             nameof(Color.Plum) => "blueprint",
-            _ => null
+            _ => null,
         };
     }
 }

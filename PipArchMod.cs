@@ -23,8 +23,8 @@ public class PipArchMod : MelonMod
         {
             const string file = $"{nameof(PipistrelloArchipelago)}.object_id_mapping.json";
             var data = LoadBytesFromResource(file) ?? throw new Exception($"Missing embedded resource: {file}");
-            Global.GlobalObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
-            Global.LocationNameToGlobalObjectId = Global.GlobalObjectIdToLocationName
+            Global.ObjectIdToLocationName = JsonSerializer.Deserialize<Dictionary<string, string>>(data);
+            Global.LocationNameToObjectId = Global.ObjectIdToLocationName
                 .ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
         }
         catch (Exception e)
@@ -45,7 +45,8 @@ public class PipArchMod : MelonMod
                 new(mapPinsFolder, $"{Constants.ArchSmallSpriteName}.png"),
                 new(spritesFolder, $"{Constants.MoneyBagMediumSpriteName}.png"),
                 new(mapPinsFolder, $"{Constants.MoneyBagSmallSpriteName}.png"),
-                new(spritesFolder, $"{Constants.LeverDisabledSpriteName}.png")
+                new(mapPinsFolder, $"{Constants.BossKillSmallSpriteName}.png"),
+                new(spritesFolder, $"{Constants.LeverDisabledSpriteName}.png"),
             };
             foreach (var (path, file) in filesToPaths)
             {

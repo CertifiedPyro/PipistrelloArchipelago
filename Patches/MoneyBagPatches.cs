@@ -56,8 +56,7 @@ internal class MoneyBagPatches
         // Money bag should not give money.
         __instance.moneyAmount = 0;
 
-        // Add map pin for money bag.
-        // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
+        // It's better performance-wise to always add the map pin, vs checking the existing map pins.
         __instance.UpdateMapPin(Constants.MoneyBagSmallSpriteName);
     }
 

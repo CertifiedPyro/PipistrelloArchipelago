@@ -65,7 +65,6 @@ public static class ArchipelagoHelper
             ScoutedLocations = await session.Locations.ScoutLocationsAsync([.. session.Locations.AllLocations]),
             RaceMode = await session.DataStorage.GetRaceModeAsync()
         };
-        _ = ItemHandler.Start();
 
         // Get the options from the slot data.
         if (loginSuccess.SlotData.TryGetValue("options", out var optionsObj) && optionsObj is JObject options)
@@ -104,8 +103,6 @@ public static class ArchipelagoHelper
         Global.State.Session.MessageLog.OnMessageReceived -= LogMessageHandler.Process;
         Global.State.Session.Socket.ErrorReceived -= HandleErrorReceived;
         Global.State.DeathLinkService?.OnDeathLinkReceived -= DeathLinkHandler.Process;
-
-        ItemHandler.End();
 
         if (Global.State.Session.Socket.Connected)
         {

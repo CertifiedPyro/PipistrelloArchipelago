@@ -76,7 +76,7 @@ internal static class DeathLinkSendPatches
             {
                 "fell into",
                 "drowned in",
-                "swam in"
+                "swam in",
             };
             var liquid = floor.materialLiquid switch
             {
@@ -87,7 +87,7 @@ internal static class DeathLinkSendPatches
                 Mapvania.TileMaterial.LiquidPoison => "poison water",
                 Mapvania.TileMaterial.LiquidLava => "lava",
                 Mapvania.TileMaterial.LiquidRose or Mapvania.TileMaterial.LiquidRose2 => "rose water",
-                _ => "unknown liquid"
+                _ => "unknown liquid",
             };
             _deathCause = $"{liquidCauses[Random.Range(0, liquidCauses.Length)]} {liquid}.";
             return;
@@ -98,7 +98,7 @@ internal static class DeathLinkSendPatches
             "fell into a hole.",
             "slipped into a pit.",
             "misjudged a step.",
-            "discovered gravity for the first time."
+            "discovered gravity for the first time.",
         };
         _deathCause = holeCauses[Random.Range(0, holeCauses.Length)];
     }
@@ -119,7 +119,7 @@ internal static class DeathLinkSendPatches
             "got ran over by a vehicle.",
             "forgot to look both ways.",
             "was caught jaywalking.",
-            "turned into a speed bump."
+            "turned into a speed bump.",
         };
         if (data.hitbox.obj.TryCast<ObjectVehicle>() != null)
         {
@@ -141,7 +141,7 @@ internal static class DeathLinkSendPatches
                     "a guacamole food bandit's projectile",
                 "enemies/madameBoss/madameProjectile" => "Madame Pipistrello's projectiles",
                 "enemies/swimmer/bubble" => "a swimmer's bubble",
-                _ => "a projectile"
+                _ => "a projectile",
             };
             _deathCause = $"died to {_deathCause}.";
             return;
@@ -197,7 +197,7 @@ internal static class DeathLinkSendPatches
             nameof(ObjectPigeon) => "a pigeon",
             nameof(ObjectSpikeRoller) => "a spike roller",
             nameof(ObjectTurtleShell) => "a turtle shell",
-            _ => null
+            _ => null,
         };
         _deathCause = _deathCause != null ? $"died to {_deathCause}." : "died.";
     }

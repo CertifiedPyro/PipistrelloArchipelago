@@ -1,12 +1,17 @@
 ﻿using Archipelago.MultiClient.Net.Colors;
 using Archipelago.MultiClient.Net.Enums;
 using Archipelago.MultiClient.Net.Models;
+using HarmonyLib;
 using Il2CppPipistrello;
 using Il2CppUtil;
 using MelonLoader;
 
 namespace PipistrelloArchipelago.Handlers;
 
+/// <summary>
+/// Handler for receiving items from Archipelago.
+/// </summary>
+[HarmonyPatch]
 internal static class ItemHandler
 {
     private static readonly Dictionary<string, string> ItemToFlag = new()
@@ -27,7 +32,7 @@ internal static class ItemHandler
         { "Mega-Battery 2", Game.FLAG_MEGABATTERY2 },
         { "Faria Mega-Battery", Game.FLAG_MEGABATTERY2 },
         { "Mega-Battery 3", Game.FLAG_MEGABATTERY3 },
-        { "Mega-Battery 4", Game.FLAG_MEGABATTERY4 }
+        { "Mega-Battery 4", Game.FLAG_MEGABATTERY4 },
     };
 
     private static readonly Dictionary<string, Game.Upgrade> ItemToUpgrade = Game.upgrades
@@ -38,81 +43,103 @@ internal static class ItemHandler
         .ToArray()
         .ToDictionary(e => Localization.Get($"equip_name_{e.id}", "en_US"));
 
-    private static CancellationTokenSource _cancellationTokenSource;
+    private static bool _disableHandler;
 
     /// <summary>
-    /// Starts the received item event loop.
+    /// If loading save, reset internal state.
     /// </summary>
-    public static async Task Start()
+    [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InitFromSavefile))]
+    private static void Director_InitFromSavefile_Postfix()
     {
-        _cancellationTokenSource = new CancellationTokenSource();
+        _disableHandler = false;
+    }
+
+    /// <summary>
+    /// Process received items list.
+    /// </summary>
+    [HarmonyPrefix, HarmonyPatch(typeof(ObjectPlayer), nameof(ObjectPlayer.Process))]
+    private static void ObjectPlayer_Process_Prefix()
+    {
+        if (!Global.State.SaveFileLoaded || _disableHandler)
+        {
+            return;
+        }
+
         var director = Global.Director;
         try
         {
-            while (!_cancellationTokenSource.IsCancellationRequested)
+            var helper = Global.State.Session.Items;
+            var lastIndex = director.GetFlag(Constants.FlagLastItemIndex);
+            if (lastIndex > helper.AllItemsReceived.Count)
             {
-                await Task.Delay(1000);
+                Global.State.Messages.Enqueue("[c:red|Unexpected item index. Please quit and reconnect.]");
+                Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
+                Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
+                _disableHandler = true;
+                return;
+            }
 
-                if (!Global.State.SaveFileLoaded)
-                {
-                    continue;
-                }
+            while (lastIndex < helper.AllItemsReceived.Count)
+            {
+                var oldFlags = new Il2CppSystem.Collections.Generic.Dictionary<string, int>();
+                Game.CopyFlags(director.playerRecord.flags, oldFlags);
 
-                var helper = Global.State.Session.Items;
-                var lastIndex = director.GetFlag(Constants.FlagLastItemIndex);
-                if (lastIndex > helper.AllItemsReceived.Count)
+                var item = helper.AllItemsReceived[lastIndex];
+                var isItemFromLocalLocation = Utils.IsLocalItem(item)
+                                              && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
+                var setting = ModSettings.MessagesItemReceivedAllowed.Value;
+                var itemMessageAllowedFromSetting =
+                    (item.Flags.HasFlag(ItemFlags.Advancement) && setting.HasFlag(ItemMessagesSetting.Progression))
+                    || (item.Flags.HasFlag(ItemFlags.NeverExclude) && setting.HasFlag(ItemMessagesSetting.Useful))
+                    || (item.Flags.HasFlag(ItemFlags.Trap) && setting.HasFlag(ItemMessagesSetting.Trap))
+                    || (item.Flags == ItemFlags.None && setting.HasFlag(ItemMessagesSetting.Filler))
+                    // Items granted by server have no flags, so always show if any messages are allowed.
+                    || (item.Player?.Slot == 0 && setting != ItemMessagesSetting.None);
+                var itemMessageAllowed = !isItemFromLocalLocation && itemMessageAllowedFromSetting;
+
+                var result = HandleItem(item, itemMessageAllowed);
+                if (!result)
                 {
-                    Global.State.Messages.Enqueue("[c:red|Unexpected item index. Please quit and reconnect.]");
-                    Melon<PipArchMod>.Logger.Error("Received item index was not expected.");
-                    Melon<PipArchMod>.Logger.Error($"Received index: {helper.Index} | Last index: {lastIndex}");
+                    _disableHandler = true;
                     return;
                 }
 
-                while (lastIndex < helper.AllItemsReceived.Count)
-                {
-                    var item = helper.AllItemsReceived[lastIndex];
-                    var isItemFromLocalLocation = Utils.IsLocalItem(item)
-                                                  && Global.State.LocalCheckedLocations.ContainsKey(item.LocationId);
-                    var setting = ModSettings.MessagesItemReceivedAllowed.Value;
-                    var itemMessageAllowedFromSetting =
-                        (item.Flags.HasFlag(ItemFlags.Advancement) && setting.HasFlag(ItemMessagesSetting.Progression))
-                        || (item.Flags.HasFlag(ItemFlags.NeverExclude) && setting.HasFlag(ItemMessagesSetting.Useful))
-                        || (item.Flags.HasFlag(ItemFlags.Trap) && setting.HasFlag(ItemMessagesSetting.Trap))
-                        || (item.Flags == ItemFlags.None && setting.HasFlag(ItemMessagesSetting.Filler))
-                        // Items granted by server have no flags, so always show if any messages are allowed.
-                        || (item.Player?.Slot == 0 && setting != ItemMessagesSetting.None);
-                    var itemMessageAllowed = !isItemFromLocalLocation && itemMessageAllowedFromSetting;
+                director.SetFlag(Constants.FlagLastItemIndex, ++lastIndex);
 
-                    var result = HandleItem(item, itemMessageAllowed);
-                    if (!result)
+                var newFlags = new Il2CppSystem.Collections.Generic.Dictionary<string, int>();
+                Game.CopyFlags(director.playerRecord.flags, newFlags);
+
+                // Determine which flags were modified during item handling.
+                var modifiedFlags = new Dictionary<string, int>();
+                foreach (var kvp in newFlags)
+                {
+                    if (!oldFlags.TryGetValue(kvp.Key, out var oldValue) || oldValue != kvp.Value)
                     {
-                        return;
+                        modifiedFlags.Add(kvp.Key, kvp.Value);
                     }
-
-                    director.SetFlag(Constants.FlagLastItemIndex, ++lastIndex);
-                    director.PrepareCheckpoint(false);
                 }
 
-                // Dequeue all items.
-                while (helper.DequeueItem() != null)
+                // Put the modified flags directly into playerCheckpoint.
+                // We don't call director.PrepareCheckpoint() since it can store temporary flags.
+                director.playerCheckpoint.money = director.playerRecord.money;
+                director.playerCheckpoint.petalContainers = director.playerRecord.petalContainers;
+                director.playerCheckpoint.bpContainers = director.playerRecord.bpContainers;
+                director.playerCheckpoint.followingObjectIds = director.playerRecord.followingObjectIds;
+                foreach (var kvp in modifiedFlags)
                 {
+                    director.playerCheckpoint.flags[kvp.Key] = kvp.Value;
                 }
+            }
+
+            // Dequeue all items.
+            while (helper.DequeueItem() != null)
+            {
             }
         }
         catch (Exception e)
         {
             Melon<PipArchMod>.Logger.Error($"Exception receiving item: {e}");
         }
-        finally
-        {
-            Melon<PipArchMod>.Logger.Msg($"Stopping {nameof(ItemHandler)}...");
-            _cancellationTokenSource = null;
-        }
-    }
-
-    public static void End()
-    {
-        _cancellationTokenSource?.Cancel();
     }
 
     /// <summary>
@@ -158,7 +185,7 @@ internal static class ItemHandler
                      && int.TryParse(itemName[(itemName.IndexOf('$') + 1)..], out var money))
             {
                 // CollectCoin properly handles debts.
-                Global.Director.CollectCoin(money);
+                director.CollectCoin(money);
                 Melon<PipArchMod>.Logger.Msg("Added $" + money);
             }
             else if (itemName == "Petal Container")

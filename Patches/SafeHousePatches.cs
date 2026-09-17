@@ -34,51 +34,44 @@ internal static class SafeHousePatches
     {
         // Add lever to Safe House that resets to South Plaza.
         var map = Global.Director.currentProject.maps.ToArray().FirstOrDefault(m => m.id == "safehouse")!;
-        var room = map.rooms.ToArray().FirstOrDefault(r => r.id == "mig38")!;
-        var objects = room.objects;
-        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == LeverObjectId) == null)
-        {
-            room.objects.Add(
-                new Mapvania.Object
+        var room = map.roomsById["mig38"];
+        room.objects.Add(
+            new Mapvania.Object
+            {
+                objectDefId = "lor20",
+                objectDefName = "lever",
+                globalObjectId = new Game.GlobalObjectId
                 {
-                    objectDefId = "lor20",
-                    objectDefName = "lever",
-                    globalObjectId = new Game.GlobalObjectId
-                    {
-                        mapId = "safehouse",
-                        roomId = "mig38",
-                        objectId = LeverObjectId
-                    },
-                    position = new Vector2(9 * 16, 8 * 16),
-                    width = 16,
-                    height = 16,
-                    properties = JsonValue.Parse($$"""{"controlsFlag": "{{ResetFlag}}", "mode": "toggle"}"""),
-                    usesFlags = true
-                });
-        }
+                    mapId = "safehouse",
+                    roomId = "mig38",
+                    objectId = LeverObjectId,
+                },
+                position = new Vector2(9 * 16, 8 * 16),
+                width = 16,
+                height = 16,
+                properties = JsonValue.Parse($$"""{"controlsFlag": "{{ResetFlag}}", "mode": "toggle"}"""),
+                usesFlags = true,
+            });
 
         // Add sign that explains the lever.
-        if (objects.ToArray().FirstOrDefault(o => o.globalObjectId.objectId == SignObjectId) == null)
-        {
-            const string signText = "Use this lever to return to South Plaza (if you are soft-locked).";
-            room.objects.Add(
-                new Mapvania.Object
+        const string signText = "Use this lever to return to South Plaza (if you are soft-locked).";
+        room.objects.Add(
+            new Mapvania.Object
+            {
+                objectDefId = "mig589",
+                objectDefName = "sign",
+                globalObjectId = new Game.GlobalObjectId
                 {
-                    objectDefId = "mig589",
-                    objectDefName = "sign",
-                    globalObjectId = new Game.GlobalObjectId
-                    {
-                        mapId = "safehouse",
-                        roomId = "mig38",
-                        objectId = SignObjectId
-                    },
-                    position = new Vector2(8 * 16, 8 * 16),
-                    width = 16,
-                    height = 16,
-                    properties = JsonValue.Parse($$"""{"code": "this.say(\"{{signText}}\")", "hideShadow": true}"""),
-                    usesFlags = true
-                });
-        }
+                    mapId = "safehouse",
+                    roomId = "mig38",
+                    objectId = SignObjectId,
+                },
+                position = new Vector2(8 * 16, 8 * 16),
+                width = 16,
+                height = 16,
+                properties = JsonValue.Parse($$"""{"code": "this.say(\"{{signText}}\")", "hideShadow": true}"""),
+                usesFlags = true,
+            });
     }
 
     /// <summary>

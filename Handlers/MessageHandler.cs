@@ -4,13 +4,13 @@ using Il2CppUtil;
 using UnityEngine;
 using Sprite = Il2CppUtil.Sprite;
 
-namespace PipistrelloArchipelago.Patches;
+namespace PipistrelloArchipelago.Handlers;
 
 /// <summary>
-/// Patches to handle queued messages.
+/// Handler for messages to show in-game.
 /// </summary>
 [HarmonyPatch]
-internal static class MessagePatches
+internal static class MessageHandler
 {
     private const int NormalTextShowTimeMs = 3000;
     private const int CountdownTextShowTimeMs = 1000;
@@ -21,7 +21,7 @@ internal static class MessagePatches
         ObjectPlayer.State.AcquiringMegaBattery,
         ObjectPlayer.State.AuntieFinish,
         ObjectPlayer.State.AuntieTalk,
-        ObjectPlayer.State.Cutscene
+        ObjectPlayer.State.Cutscene,
     ];
 
     private static InternalState _state = new();
@@ -59,11 +59,11 @@ internal static class MessagePatches
             _state = new InternalState
             {
                 MessageState = MessageState.Building,
-                TargetTextTimeSeconds = CountdownTextShowTimeMs
+                TargetTextTimeSeconds = CountdownTextShowTimeMs,
             };
 
             countdownMessage = $"[instant|{countdownMessage}]";
-            Global.Director.player.ExecuteCodeInThread($"say(\"{countdownMessage}\")", nameof(MessagePatches));
+            Global.Director.player.ExecuteCodeInThread($"say(\"{countdownMessage}\")", nameof(MessageHandler));
             return;
         }
 
@@ -72,11 +72,11 @@ internal static class MessagePatches
             _state = new InternalState
             {
                 MessageState = MessageState.Building,
-                TargetTextTimeSeconds = NormalTextShowTimeMs
+                TargetTextTimeSeconds = NormalTextShowTimeMs,
             };
 
             message = $"[fast|{message}]";
-            Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(MessagePatches));
+            Global.Director.player.ExecuteCodeInThread($"say(\"{message}\")", nameof(MessageHandler));
         }
     }
 
@@ -137,10 +137,7 @@ internal static class MessagePatches
     /// Prevents message from being skipped.
     /// </summary>
     [HarmonyPrefix, HarmonyPatch(typeof(TextScroll), nameof(TextScroll.AcceptClick))]
-    private static bool TextScroll_AcceptClick_Prefix()
-    {
-        return !_state.IgnoreClick;
-    }
+    private static bool TextScroll_AcceptClick_Prefix() => !_state.IgnoreClick;
 
     /// <summary>
     /// Hides the dialogue advance arrow.
@@ -224,13 +221,11 @@ internal static class MessagePatches
         }
     }
 
-    private static bool CanContinueShowingMessage()
-    {
-        return !InvalidStates.Contains(Global.Director.player.state)
-               && Global.Director.uiDialog == null
-               && !Global.Director.IsPlayerDead()
-               && !Global.Director.transitionActive;
-    }
+    private static bool CanContinueShowingMessage() =>
+        !InvalidStates.Contains(Global.Director.player.state)
+        && Global.Director.uiDialog == null
+        && !Global.Director.IsPlayerDead()
+        && !Global.Director.transitionActive;
 
     private class InternalState
     {
@@ -244,6 +239,6 @@ internal static class MessagePatches
     {
         None = 0,
         Building = 1,
-        Showing = 2
+        Showing = 2,
     }
 }

@@ -4,6 +4,9 @@ using Object = Il2CppPipistrello.Object;
 
 namespace PipistrelloArchipelago.Patches;
 
+/// <summary>
+/// Patches to handle physical Archipelago objects.
+/// </summary>
 [HarmonyPatch]
 internal class ArchObjectPatches
 {
@@ -14,7 +17,7 @@ internal class ArchObjectPatches
     private static void Director_InstantiateFromMap_Prefix(ref Mapvania.Object mapObj)
     {
         // Skip taxi phones and money bags.
-        if (mapObj.objectDefName is "taxiPhone" or "moneyBag" or "megaBatteryHolder")
+        if (mapObj.objectDefName is "megaBatteryHolder" or "moneyBag" or "taxiPhone")
         {
             return;
         }
@@ -62,8 +65,8 @@ internal class ArchObjectPatches
             return true;
         }
 
-        var objectId = Utils.ArchItemIdToId(id);
-        Utils.SendLocationCheck(objectId);
+        var globalObjectId = Utils.ArchItemIdToId(id);
+        Utils.SendLocationCheck(globalObjectId);
 
         __result = false;
         return false;
@@ -77,14 +80,14 @@ internal class ArchObjectPatches
     {
         // Check that save file is actually loaded, since Process() will run before load, for some reason.
         if (!Global.State.SaveFileLoaded
-            || !Utils.IsArchItemId(__instance.globalObjectId.AsString))
+            || !Utils.IsArchItemId(__instance.globalObjectId.AsString)
+            || __instance.specialState == Object.SpecialState.Acquiring
+            || __instance.destroyed)
         {
             return;
         }
 
-        // Update map pin.
-        // It seems better performance-wise to always add the map pin, vs checking against the existing map pins.
-        var mapPin = __instance.specialState != Object.SpecialState.Acquiring ? Constants.ArchSmallSpriteName : null;
-        __instance.UpdateMapPin(mapPin);
+        // It's better performance-wise to always add the map pin, vs checking the existing map pins.
+        __instance.UpdateMapPin(Constants.ArchSmallSpriteName);
     }
 }

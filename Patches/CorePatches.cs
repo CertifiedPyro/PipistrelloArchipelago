@@ -57,7 +57,7 @@ internal static class CorePatches
 
             /* Enable various misc flags. */
             record.flags[$"{gFlag}area2ExcavationCrumble"] = 1; // Forces area in front of Faria dungeon to be crumbled.
-            // These 2 flags force the start of Faria dungeon to be crumbled and the slime drill NPC to disappear.
+            // These 2 flags skip the Faria dungeon intro, so the start is crumbled and the slime drill NPC disappears.
             record.flags[$"{gFlag}dungeon2:intro"] = 1;
             record.flags[$"{gFlag}dungeon2:introCrumble"] = 1;
 
@@ -76,7 +76,7 @@ internal static class CorePatches
     {
         // Check if Director is null, since apparently this can run before the main menu appears.
         // Normally, PrepareCheckpoint() runs before ProcessObjects() within Director.InitRoom().
-        // However, since we're adding map pins to money bags in ProcessObjects(), we need to save those map pins.
+        // However, since we're adding map pins in ProcessObjects(), we need to save those map pins.
         // This way, if a player returns to the safehouse, the map pins are still saved.
         Global.Director?.PrepareCheckpoint(false);
     }

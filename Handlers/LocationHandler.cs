@@ -19,29 +19,27 @@ internal static class LocationHandler
         foreach (var locationId in newCheckedLocations)
         {
             var locationName = Global.State.Session.Locations.GetLocationNameFromId(locationId);
-            var objectId = Utils.LocationIdToObjectId(locationId);
-            var mapObject = Utils.GetMapvaniaObject(objectId);
-            Melon<PipArchMod>.Logger.Msg($"Location checked: {locationName}, {objectId}, {mapObject?.objectDefName}");
+            var globalObjectId = Utils.LocationIdToObjectId(locationId);
+            var mapObject = Utils.GetMapvaniaObject(globalObjectId);
+            Melon<PipArchMod>.Logger.Msg(
+                $"Location checked: {locationName}, {globalObjectId}, {mapObject?.objectDefName}");
 
             switch (mapObject?.objectDefName)
             {
-                case "taxiPhone":
-                    HandleTaxiPhone(mapObject);
+                case "megaBatteryHolder":
+                    HandleMegaBatteryHolder(mapObject);
                     break;
                 case "moneyBag":
                     HandleMoneyBag(mapObject);
                     break;
-                case "megaBatteryHolder":
-                    HandleMegaBatteryHolder(mapObject);
+                case "taxiPhone":
+                    HandleTaxiPhone(mapObject);
                     break;
                 default:
-                    HandleGenericLocation(objectId);
+                    HandleGenericLocation(globalObjectId);
                     break;
             }
         }
-
-        // Ensure map pin changes are queued for a save.
-        Global.Director.PrepareCheckpoint(false);
     }
 
     public static List<long> CheckUnsentLocalLocations()
@@ -49,39 +47,52 @@ internal static class LocationHandler
         Melon<PipArchMod>.Logger.Msg("Checking for unsent local locations...");
         return
         [
-            .. CheckUnsentTaxiPhonesLocations(),
-            .. CheckUnsentMoneyBagLocations(),
             .. CheckUnsentMegaBatteryHolderLocations(),
-            .. CheckUnsentGenericLocations()
+            .. CheckUnsentMoneyBagLocations(),
+            .. CheckUnsentTaxiPhonesLocations(),
+            .. CheckUnsentGenericLocations(),
         ];
     }
 
-    private static void HandleTaxiPhone(Mapvania.Object mapObject)
+    private static void HandleMegaBatteryHolder(Mapvania.Object mapObject)
     {
-        // Mark taxi phone interaction.
-        var flag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsString}{Constants.FlagInteractSuffix}";
-        if (!Global.Director.GetFlagBool(flag))
+        if (mapObject.globalObjectId.GlobalMapId.mapId == "dungeon2")
         {
-            Global.Director.SetFlagBool(flag, true);
-            Melon<PipArchMod>.Logger.Msg($"Set flag {flag}");
+            // Don't mark the boss as defeated, because if the location at the Mega-Battery holder is auto-released,
+            // we still want the boss to be there.
+            Global.Director.SetFlagBool(
+                $"{Game.FLAG_MEGABATTERY2}{Constants.FlagMegaBatterySuffix}",
+                true); // Mark Archipelago location as checked.
+            Melon<PipArchMod>.Logger.Msg("Set Faria boss defeat flags");
         }
     }
 
-    private static List<long> CheckUnsentTaxiPhonesLocations()
+    private static List<long> CheckUnsentMegaBatteryHolderLocations()
     {
-        var missingLocations = new HashSet<long>(Global.State.Session.Locations.AllMissingLocations);
-        var locations = new List<long>();
-        foreach (var taxiPhoneMeta in Global.Director.currentProject.taxiPhoneMeta)
+        var megaBatteries = new Dictionary<string, string>
         {
-            var globalObjectId = taxiPhoneMeta.globalObjectId.AsString;
-            var flag = $"{Game.GLOBAL_FLAG_PREFIX}{globalObjectId}{Constants.FlagInteractSuffix}";
-            if (!Utils.IsObjectIdActiveLocation(globalObjectId) || !Global.Director.GetFlagBool(flag))
+            { "dungeon1/ren29878/ren30081", Game.FLAG_MEGABATTERY1 },
+            { "dungeon2/lor1089/lor1264", Game.FLAG_MEGABATTERY2 },
+            { "dungeon3/lor2/lor455", Game.FLAG_MEGABATTERY3 },
+            { "dungeon4/lor155/lor597", Game.FLAG_MEGABATTERY4 },
+        };
+
+        var locations = new List<long>();
+        foreach (var (globalObjectId, megaBatteryFlag) in megaBatteries)
+        {
+            if (!Utils.IsObjectIdActiveLocation(globalObjectId))
             {
                 continue;
             }
 
             var locationId = Utils.ObjectIdToLocationId(globalObjectId);
-            if (missingLocations.Contains(locationId))
+            if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
+            {
+                continue;
+            }
+
+            var flag = $"{megaBatteryFlag}{Constants.FlagMegaBatterySuffix}";
+            if (Global.Director.GetFlagBool(flag))
             {
                 locations.Add(locationId);
             }
@@ -89,7 +100,6 @@ internal static class LocationHandler
 
         return locations;
     }
-
 
     private static void HandleMoneyBag(Mapvania.Object mapObject)
     {
@@ -118,8 +128,8 @@ internal static class LocationHandler
         var locations = new List<long>();
         foreach (var locationId in Global.State.Session.Locations.AllMissingLocations)
         {
-            var objectId = Utils.LocationIdToObjectId(locationId);
-            var mapObject = Utils.GetMapvaniaObject(objectId);
+            var globalObjectId = Utils.LocationIdToObjectId(locationId);
+            var mapObject = Utils.GetMapvaniaObject(globalObjectId);
             if (mapObject == null)
             {
                 continue;
@@ -136,46 +146,32 @@ internal static class LocationHandler
         return locations;
     }
 
-    private static void HandleMegaBatteryHolder(Mapvania.Object mapObject)
+    private static void HandleTaxiPhone(Mapvania.Object mapObject)
     {
-        if (mapObject.globalObjectId.GlobalMapId.mapId == "dungeon2")
+        // Mark taxi phone interaction.
+        var flag = $"{Game.GLOBAL_FLAG_PREFIX}{mapObject.globalObjectId.AsString}{Constants.FlagInteractSuffix}";
+        if (!Global.Director.GetFlagBool(flag))
         {
-            // Don't mark the boss as defeated, because if the location at the Mega-Battery holder is auto-released,
-            // we still want the boss to be there.
-            Global.Director.SetFlagBool("g:visited:dungeon2/lor1089", true); // Mark boss room as visited.
-            Global.Director.SetFlagBool(
-                $"{Game.FLAG_MEGABATTERY2}{Constants.FlagMegaBatterySuffix}",
-                true); // Mark Archipelago location as checked.
-            Melon<PipArchMod>.Logger.Msg("Set Faria boss defeat flags");
+            Global.Director.SetFlagBool(flag, true);
+            Melon<PipArchMod>.Logger.Msg($"Set flag {flag}");
         }
     }
 
-    private static List<long> CheckUnsentMegaBatteryHolderLocations()
+    private static List<long> CheckUnsentTaxiPhonesLocations()
     {
-        var megaBatteries = new Dictionary<string, string>
-        {
-            { "dungeon1/ren29878/ren30081", Game.FLAG_MEGABATTERY1 },
-            { "dungeon2/lor1089/lor1264", Game.FLAG_MEGABATTERY2 },
-            { "dungeon3/lor2/lor455", Game.FLAG_MEGABATTERY3 },
-            { "dungeon4/lor155/lor597", Game.FLAG_MEGABATTERY4 }
-        };
-
+        var missingLocations = new HashSet<long>(Global.State.Session.Locations.AllMissingLocations);
         var locations = new List<long>();
-        foreach (var (globalObjectId, megaBatteryFlag) in megaBatteries)
+        foreach (var taxiPhoneMeta in Global.Director.currentProject.taxiPhoneMeta)
         {
-            if (!Utils.IsObjectIdActiveLocation(globalObjectId))
+            var globalObjectId = taxiPhoneMeta.globalObjectId.AsString;
+            var flag = $"{Game.GLOBAL_FLAG_PREFIX}{globalObjectId}{Constants.FlagInteractSuffix}";
+            if (!Utils.IsObjectIdActiveLocation(globalObjectId) || !Global.Director.GetFlagBool(flag))
             {
                 continue;
             }
 
             var locationId = Utils.ObjectIdToLocationId(globalObjectId);
-            if (!Global.State.Session.Locations.AllMissingLocations.Contains(locationId))
-            {
-                continue;
-            }
-
-            var flag = $"{megaBatteryFlag}{Constants.FlagMegaBatterySuffix}";
-            if (Global.Director.GetFlagBool(flag))
+            if (missingLocations.Contains(locationId))
             {
                 locations.Add(locationId);
             }
@@ -227,7 +223,7 @@ internal static class LocationHandler
         var locations = new List<long>();
         foreach (var locationId in Global.State.Session.Locations.AllMissingLocations)
         {
-            // Check physical Archipelago items.
+            // Check physical Archipelago objects.
             var objectId = Utils.LocationIdToObjectId(locationId);
             var archObjectId = Utils.IdToArchItemId(objectId);
             var bpFlag = Game.FlagBpContainerAcquired(archObjectId);
@@ -242,9 +238,10 @@ internal static class LocationHandler
 
     private static void RemoveMapPin(string globalObjectId)
     {
-        // Remove from playerRecord.mapPins so that Minimap.RefreshPins() sees the pin removed.
-        // Remove from playerPendingCheckpoint.mapPins so that the removed map pin is eventually saved.
-        var records = new[] { Global.Director.playerRecord, Global.Director.playerPendingCheckpoint };
+        // Remove from playerRecord so that Minimap.RefreshPins() sees the pin removed.
+        // Remove from playerCheckpoint and playerPendingCheckpoint so that the removed map pin is eventually saved.
+        var records = new[]
+            { Global.Director.playerRecord, Global.Director.playerPendingCheckpoint, Global.Director.playerCheckpoint };
         foreach (var record in records)
         {
             var mapPins = record.mapPins;

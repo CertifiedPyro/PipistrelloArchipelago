@@ -13,7 +13,7 @@ internal static class MegaBatteryPatches
 {
     private static readonly HashSet<string> RoomsToReplaceSprite =
     [
-        "dungeon1/ren29878", "dungeon2/lor1089", "dungeon3/lor2", "dungeon4/lor155"
+        "dungeon1/ren29878", "dungeon2/lor1089", "dungeon3/lor2", "dungeon4/lor155",
     ];
 
     private static string _itemText;
@@ -28,18 +28,9 @@ internal static class MegaBatteryPatches
     [HarmonyPostfix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     private static void Director_InstantiateFromMap_Postfix(ref Object __result)
     {
-        if (__result?.TryCast<ObjectMegaBatteryHolder>() is not { } megaBatteryHolder)
+        if (__result?.TryCast<ObjectMegaBatteryHolder>() is null)
         {
             return;
-        }
-
-        // Mark Mega-Battery location as checked, without giving the actual Mega-Battery item.
-        __result.controlsFlag += Constants.FlagMegaBatterySuffix;
-
-        // Ensure the Mega-Battery holder state matches the modified flag.
-        if (Global.Director.GetFlagBool(__result.controlsFlag))
-        {
-            megaBatteryHolder.state = ObjectMegaBatteryHolder.State.Empty;
         }
 
         // Store the item info at the Archipelago location.
