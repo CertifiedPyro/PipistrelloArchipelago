@@ -296,6 +296,8 @@
         <EmbeddedResource Include="Images\arch_lever_disabled.png"/>
         <None Remove="Images\arch_complete_small.png"/>
         <EmbeddedResource Include="Images\arch_boss_killed_small.png"/>
+        <None Remove="Images\arch_bombDispenser_disabled.png"/>
+        <EmbeddedResource Include="Images\arch_bombDispenser_disabled.png"/>
     </ItemGroup>
 
     <ItemGroup>

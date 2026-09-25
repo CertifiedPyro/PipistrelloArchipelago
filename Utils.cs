@@ -19,7 +19,10 @@ internal static class Constants
     public const string MoneyBagMediumSpriteName = "arch_moneyBag_medium";
     public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
     public const string BossKillSmallSpriteName = "arch_boss_killed_small";
+
+    public const string BombDispenserDisabledSpriteName = "arch_bombDispenser_disabled";
     public const string LeverDisabledSpriteName = "arch_lever_disabled";
+
     public const string FlagArchipelagoSeedSuffix = ":seed";
     public const string FlagInteractSuffix = ":interacted";
     public const string FlagMegaBatterySuffix = ":archMegaBattery";
