@@ -31,18 +31,18 @@ internal static class ObjectLeverPatches
         // TODO: Check Archipelago item flag rather than g:dev flag.
         var flag = $"t:{mapObj.globalObjectId.AsString}:archDeactivated";
         var code = $$"""
-                     const lever = id(\"{{mapObj.globalObjectId.objectId}}\")
+                     const obj = id(\"{{mapObj.globalObjectId.objectId}}\")
                      const flagArch = flag(\"{{flag}}\")
                      if (!flagArch.isOn() && !flag(\"g:dev\").isOn())
                      {
                         wait(0.5)
-                        lever.deactivateWithPoof()
+                        obj.deactivateWithPoof()
                         flagArch.turnOn()
                      }
                      else if (flagArch.isOn() && flag(\"g:dev\").isOn())
                      {
-                        lever.deactivateWithPoof()
-                        lever.activate()
+                        obj.deactivateWithPoof()
+                        obj.activate()
                         flagArch.turnOff()
                      }
                      """;
