@@ -20,49 +20,49 @@ internal static class ObjectLeverPatches
     [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     private static void Director_InstantiateFromMap_Prefix(ref Mapvania.Object mapObj)
     {
-        if (mapObj == null || mapObj.isDev)
+        if (mapObj == null
+            || mapObj.isDev
+            || mapObj.objectDefName != "lever"
+            || mapObj.globalObjectId.objectId == "archResetLever")
         {
             return;
         }
 
-        if (mapObj.objectDefName == "lever" && mapObj.globalObjectId.objectId != "archResetLever")
+        // TODO: Check Archipelago item flag rather than g:dev flag.
+        var flag = $"t:{mapObj.globalObjectId.AsString}:archDeactivated";
+        var code = $$"""
+                     const lever = id(\"{{mapObj.globalObjectId.objectId}}\")
+                     const flagArch = flag(\"{{flag}}\")
+                     if (!flagArch.isOn() && !flag(\"g:dev\").isOn())
+                     {
+                        wait(0.5)
+                        lever.deactivateWithPoof()
+                        flagArch.turnOn()
+                     }
+                     else if (flagArch.isOn() && flag(\"g:dev\").isOn())
+                     {
+                        lever.deactivateWithPoof()
+                        lever.activate()
+                        flagArch.turnOff()
+                     }
+                     """;
+        var setupCode = new Mapvania.Object
         {
-            // TODO: Check Archipelago item flag rather than g:dev flag.
-            var flag = $"t:{mapObj.globalObjectId.AsString}:archDeactivated";
-            var code = $$"""
-                         const lever = id(\"{{mapObj.globalObjectId.objectId}}\")
-                         const flagArch = flag(\"{{flag}}\")
-                         if (!flagArch.isOn() && !flag(\"g:dev\").isOn())
-                         {
-                            wait(0.5)
-                            lever.deactivateWithPoof()
-                            flagArch.turnOn()
-                         }
-                         else if (flagArch.isOn() && flag(\"g:dev\").isOn())
-                         {
-                            lever.deactivateWithPoof()
-                            lever.activate()
-                            flagArch.turnOff()
-                         }
-                         """;
-            var setupCode = new Mapvania.Object
+            objectDefId = "lor110",
+            objectDefName = "setupCode",
+            globalObjectId = new Game.GlobalObjectId
             {
-                objectDefId = "lor110",
-                objectDefName = "setupCode",
-                globalObjectId = new Game.GlobalObjectId
-                {
-                    mapId = mapObj.globalObjectId.mapId,
-                    roomId = mapObj.globalObjectId.roomId,
-                    objectId = mapObj.globalObjectId.objectId + "_archCode",
-                },
-                position = mapObj.position,
-                width = mapObj.width,
-                height = mapObj.height,
-                properties = JsonValue.Parse($$"""{"mode": "runAlwaysOnAnyFlagChange", "code": "{{code}}"}"""),
-                usesFlags = true,
-            };
-            Global.Director.InstantiateFromMap(setupCode);
-        }
+                mapId = mapObj.globalObjectId.mapId,
+                roomId = mapObj.globalObjectId.roomId,
+                objectId = mapObj.globalObjectId.objectId + "_archCode",
+            },
+            position = mapObj.position,
+            width = mapObj.width,
+            height = mapObj.height,
+            properties = JsonValue.Parse($$"""{"mode": "runAlwaysOnAnyFlagChange", "code": "{{code}}"}"""),
+            usesFlags = true,
+        };
+        Global.Director.InstantiateFromMap(setupCode);
     }
 
     /// <summary>
@@ -83,7 +83,7 @@ internal static class ObjectLeverPatches
     }
 
     /// <summary>
-    /// Replaces the lever sprite.
+    /// Unmarks the lever sprite for replacement.
     /// </summary>
     [HarmonyPostfix, HarmonyPatch(typeof(ObjectLever), nameof(ObjectLever.Draw))]
     private static void ObjectLever_Draw_Postfix(ObjectLever __instance)

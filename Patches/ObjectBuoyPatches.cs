@@ -12,7 +12,6 @@ namespace PipistrelloArchipelago.Patches;
 internal static class ObjectBuoyPatches
 {
     private static bool _isDeactivated;
-    private static bool _replaceSprite;
 
     /// <summary>
     /// Disables buoys until Archipelago item is found.
@@ -75,7 +74,6 @@ internal static class ObjectBuoyPatches
 
         _isDeactivated = true;
         __instance.specialState = Object.SpecialState.None;
-        _replaceSprite = true;
     }
 
     /// <summary>
@@ -84,13 +82,10 @@ internal static class ObjectBuoyPatches
     [HarmonyPrefix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
     private static void SpriteManager_GetSprite_Prefix(ref string sprId)
     {
-        if (!_replaceSprite || sprId != "objs/lifebuoy")
+        if (_isDeactivated && sprId == "objs/lifebuoy")
         {
-            return;
+            sprId = Constants.BuoyDisabledSpriteName;
         }
-
-        sprId = Constants.BuoyDisabledSpriteName;
-        _replaceSprite = false;
     }
 
     /// <summary>

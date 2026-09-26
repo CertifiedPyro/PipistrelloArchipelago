@@ -12,7 +12,6 @@ namespace PipistrelloArchipelago.Patches;
 internal static class ObjectBombDispenserPatches
 {
     private static bool _isDeactivated;
-    private static bool _replaceSprite;
 
     /// <summary>
     /// Disables bomb dispensers until Archipelago item is found.
@@ -20,49 +19,46 @@ internal static class ObjectBombDispenserPatches
     [HarmonyPrefix, HarmonyPatch(typeof(Director), nameof(Director.InstantiateFromMap))]
     private static void Director_InstantiateFromMap_Prefix(ref Mapvania.Object mapObj)
     {
-        if (mapObj == null || mapObj.isDev)
+        if (mapObj == null || mapObj.isDev || mapObj.objectDefName != "bombDispenser")
         {
             return;
         }
 
-        if (mapObj.objectDefName == "bombDispenser")
+        // TODO: Check Archipelago item flag rather than g:dev flag.
+        var flag = $"t:{mapObj.globalObjectId.AsString}:archDeactivated";
+        var code = $$"""
+                     const lever = id(\"{{mapObj.globalObjectId.objectId}}\")
+                     const flagArch = flag(\"{{flag}}\")
+                     if (!flagArch.isOn() && !flag(\"g:dev\").isOn())
+                     {
+                        wait(0.5)
+                        lever.deactivateWithPoof()
+                        flagArch.turnOn()
+                     }
+                     else if (flagArch.isOn() && flag(\"g:dev\").isOn())
+                     {
+                        lever.deactivateWithPoof()
+                        lever.activate()
+                        flagArch.turnOff()
+                     }
+                     """;
+        var setupCode = new Mapvania.Object
         {
-            // TODO: Check Archipelago item flag rather than g:dev flag.
-            var flag = $"t:{mapObj.globalObjectId.AsString}:archDeactivated";
-            var code = $$"""
-                         const lever = id(\"{{mapObj.globalObjectId.objectId}}\")
-                         const flagArch = flag(\"{{flag}}\")
-                         if (!flagArch.isOn() && !flag(\"g:dev\").isOn())
-                         {
-                            wait(0.5)
-                            lever.deactivateWithPoof()
-                            flagArch.turnOn()
-                         }
-                         else if (flagArch.isOn() && flag(\"g:dev\").isOn())
-                         {
-                            lever.deactivateWithPoof()
-                            lever.activate()
-                            flagArch.turnOff()
-                         }
-                         """;
-            var setupCode = new Mapvania.Object
+            objectDefId = "lor110",
+            objectDefName = "setupCode",
+            globalObjectId = new Game.GlobalObjectId
             {
-                objectDefId = "lor110",
-                objectDefName = "setupCode",
-                globalObjectId = new Game.GlobalObjectId
-                {
-                    mapId = mapObj.globalObjectId.mapId,
-                    roomId = mapObj.globalObjectId.roomId,
-                    objectId = mapObj.globalObjectId.objectId + "_archCode",
-                },
-                position = mapObj.position,
-                width = mapObj.width,
-                height = mapObj.height,
-                properties = JsonValue.Parse($$"""{"mode": "runAlwaysOnAnyFlagChange", "code": "{{code}}"}"""),
-                usesFlags = true,
-            };
-            Global.Director.InstantiateFromMap(setupCode);
-        }
+                mapId = mapObj.globalObjectId.mapId,
+                roomId = mapObj.globalObjectId.roomId,
+                objectId = mapObj.globalObjectId.objectId + "_archCode",
+            },
+            position = mapObj.position,
+            width = mapObj.width,
+            height = mapObj.height,
+            properties = JsonValue.Parse($$"""{"mode": "runAlwaysOnAnyFlagChange", "code": "{{code}}"}"""),
+            usesFlags = true,
+        };
+        Global.Director.InstantiateFromMap(setupCode);
     }
 
     /// <summary>
@@ -78,7 +74,6 @@ internal static class ObjectBombDispenserPatches
 
         _isDeactivated = true;
         __instance.specialState = Object.SpecialState.None;
-        _replaceSprite = true;
         __instance.animFrame = 1; // 2nd frame is fully closed.
     }
 
@@ -88,13 +83,10 @@ internal static class ObjectBombDispenserPatches
     [HarmonyPrefix, HarmonyPatch(typeof(SpriteManager), nameof(SpriteManager.GetSprite))]
     private static void SpriteManager_GetSprite_Prefix(ref string sprId)
     {
-        if (!_replaceSprite || sprId != "objs/bombDispenser")
+        if (_isDeactivated && sprId == "objs/bombDispenser")
         {
-            return;
+            sprId = Constants.BombDispenserDisabledSpriteName;
         }
-
-        sprId = Constants.BombDispenserDisabledSpriteName;
-        _replaceSprite = false;
     }
 
     /// <summary>
@@ -120,6 +112,9 @@ internal static class ObjectBombDispenserPatches
     private static void ObjectBomb_Process_Postfix(ObjectBomb __instance)
     {
         // Don't disable explosions, since those are still needed for traps and boss fights.
-        __instance.canBeHeldState = false;
+        if (!Global.Director.GetFlagBool("g:dev"))
+        {
+            __instance.canBeHeldState = false;
+        }
     }
 }
