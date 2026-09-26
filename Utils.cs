@@ -21,6 +21,7 @@ internal static class Constants
     public const string BossKillSmallSpriteName = "arch_boss_killed_small";
 
     public const string BombDispenserDisabledSpriteName = "arch_bombDispenser_disabled";
+    public const string BuoyDisabledSpriteName = "arch_buoy_disabled";
     public const string LeverDisabledSpriteName = "arch_lever_disabled";
 
     public const string FlagArchipelagoSeedSuffix = ":seed";
