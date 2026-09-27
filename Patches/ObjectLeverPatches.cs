@@ -35,9 +35,10 @@ internal static class ObjectLeverPatches
                      const flagArch = flag(\"{{flag}}\")
                      if (!flagArch.isOn() && !flag(\"g:dev\").isOn())
                      {
-                        wait(0.5)
-                        obj.deactivateWithPoof()
+                        obj.deactivate()
                         flagArch.turnOn()
+                        wait(0.75)
+                        obj.deactivateWithPoof()
                      }
                      else if (flagArch.isOn() && flag(\"g:dev\").isOn())
                      {
