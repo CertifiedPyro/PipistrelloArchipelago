@@ -300,6 +300,8 @@
         <EmbeddedResource Include="Images\arch_bombDispenser_disabled.png"/>
         <None Remove="Images\arch_buoy_disabled.png"/>
         <EmbeddedResource Include="Images\arch_buoy_disabled.png"/>
+        <None Remove="Images\arch_cog_disabled.png" />
+        <EmbeddedResource Include="Images\arch_cog_disabled.png" />
     </ItemGroup>
 
     <ItemGroup>
