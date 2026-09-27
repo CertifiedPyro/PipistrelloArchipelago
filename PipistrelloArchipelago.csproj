@@ -302,6 +302,8 @@
         <EmbeddedResource Include="Images\arch_disabled_cog.png"/>
         <None Remove="Images\arch_disabled_lever.png"/>
         <EmbeddedResource Include="Images\arch_disabled_lever.png"/>
+        <None Remove="Images\arch_disabled_hook.png"/>
+        <EmbeddedResource Include="Images\arch_disabled_hook.png"/>
     </ItemGroup>
 
     <ItemGroup>
