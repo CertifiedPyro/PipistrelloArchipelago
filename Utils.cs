@@ -24,6 +24,7 @@ internal static class Constants
     public const string DisabledBuoySpriteName = "arch_disabled_buoy";
     public const string DisabledCogSpriteName = "arch_disabled_cog";
     public const string DisabledHookSpriteName = "arch_disabled_hook";
+    public const string DisabledKeySpriteName = "arch_disabled_key";
     public const string DisabledLeverSpriteName = "arch_disabled_lever";
 
     public const string FlagArchipelagoSeedSuffix = ":seed";
