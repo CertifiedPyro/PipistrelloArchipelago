@@ -20,10 +20,10 @@ internal static class Constants
     public const string MoneyBagSmallSpriteName = "arch_moneyBag_small";
     public const string BossKillSmallSpriteName = "arch_boss_killed_small";
 
-    public const string BombDispenserDisabledSpriteName = "arch_bombDispenser_disabled";
-    public const string BuoyDisabledSpriteName = "arch_buoy_disabled";
-    public const string CogDisabledSpriteName = "arch_cog_disabled";
-    public const string LeverDisabledSpriteName = "arch_lever_disabled";
+    public const string DisabledBombDispenserSpriteName = "arch_disabled_bombDispenser";
+    public const string DisabledBuoySpriteName = "arch_disabled_buoy";
+    public const string DisabledCogSpriteName = "arch_disabled_cog";
+    public const string DisabledLeverSpriteName = "arch_disabled_lever";
 
     public const string FlagArchipelagoSeedSuffix = ":seed";
     public const string FlagInteractSuffix = ":interacted";

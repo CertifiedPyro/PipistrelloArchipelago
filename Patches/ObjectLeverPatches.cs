@@ -79,7 +79,7 @@ internal static class ObjectLeverPatches
         _isDeactivated = true;
         __instance.specialState = Object.SpecialState.None;
         _spriteName = __instance.spriteName;
-        __instance.spriteName = Constants.LeverDisabledSpriteName;
+        __instance.spriteName = Constants.DisabledLeverSpriteName;
     }
 
     /// <summary>

@@ -84,7 +84,7 @@ internal static class ObjectCogPatches
     {
         if (_isDeactivated && sprId.StartsWith("objs/cog"))
         {
-            sprId = Constants.CogDisabledSpriteName;
+            sprId = Constants.DisabledCogSpriteName;
         }
     }
 

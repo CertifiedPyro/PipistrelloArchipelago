@@ -46,10 +46,10 @@ public class PipArchMod : MelonMod
                 new(spritesFolder, $"{Constants.MoneyBagMediumSpriteName}.png"),
                 new(mapPinsFolder, $"{Constants.MoneyBagSmallSpriteName}.png"),
                 new(mapPinsFolder, $"{Constants.BossKillSmallSpriteName}.png"),
-                new(spritesFolder, $"{Constants.BombDispenserDisabledSpriteName}.png"),
-                new(spritesFolder, $"{Constants.BuoyDisabledSpriteName}.png"),
-                new(spritesFolder, $"{Constants.CogDisabledSpriteName}.png"),
-                new(spritesFolder, $"{Constants.LeverDisabledSpriteName}.png"),
+                new(spritesFolder, $"{Constants.DisabledBombDispenserSpriteName}.png"),
+                new(spritesFolder, $"{Constants.DisabledBuoySpriteName}.png"),
+                new(spritesFolder, $"{Constants.DisabledCogSpriteName}.png"),
+                new(spritesFolder, $"{Constants.DisabledLeverSpriteName}.png"),
             };
             foreach (var (path, file) in filesToPaths)
             {

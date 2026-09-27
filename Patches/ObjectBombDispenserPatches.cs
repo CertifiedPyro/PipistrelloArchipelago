@@ -85,7 +85,7 @@ internal static class ObjectBombDispenserPatches
     {
         if (_isDeactivated && sprId == "objs/bombDispenser")
         {
-            sprId = Constants.BombDispenserDisabledSpriteName;
+            sprId = Constants.DisabledBombDispenserSpriteName;
         }
     }
 

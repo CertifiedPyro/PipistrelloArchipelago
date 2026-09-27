@@ -84,7 +84,7 @@ internal static class ObjectBuoyPatches
     {
         if (_isDeactivated && sprId == "objs/lifebuoy")
         {
-            sprId = Constants.BuoyDisabledSpriteName;
+            sprId = Constants.DisabledBuoySpriteName;
         }
     }
 

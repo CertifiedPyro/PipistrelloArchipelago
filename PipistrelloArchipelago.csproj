@@ -292,16 +292,16 @@
         <EmbeddedResource Include="Images\arch_moneyBag_medium.png"/>
         <None Remove="Images\arch_moneyBag_small.png"/>
         <EmbeddedResource Include="Images\arch_moneyBag_small.png"/>
-        <None Remove="Images\arch_lever_disabled.png"/>
-        <EmbeddedResource Include="Images\arch_lever_disabled.png"/>
-        <None Remove="Images\arch_complete_small.png"/>
+        <None Remove="Images\arch_boss_killed_small.png"/>
         <EmbeddedResource Include="Images\arch_boss_killed_small.png"/>
-        <None Remove="Images\arch_bombDispenser_disabled.png"/>
-        <EmbeddedResource Include="Images\arch_bombDispenser_disabled.png"/>
-        <None Remove="Images\arch_buoy_disabled.png"/>
-        <EmbeddedResource Include="Images\arch_buoy_disabled.png"/>
-        <None Remove="Images\arch_cog_disabled.png" />
-        <EmbeddedResource Include="Images\arch_cog_disabled.png" />
+        <None Remove="Images\arch_disabled_bombDispenser.png"/>
+        <EmbeddedResource Include="Images\arch_disabled_bombDispenser.png"/>
+        <None Remove="Images\arch_disabled_buoy.png"/>
+        <EmbeddedResource Include="Images\arch_disabled_buoy.png"/>
+        <None Remove="Images\arch_disabled_cog.png"/>
+        <EmbeddedResource Include="Images\arch_disabled_cog.png"/>
+        <None Remove="Images\arch_disabled_lever.png"/>
+        <EmbeddedResource Include="Images\arch_disabled_lever.png"/>
     </ItemGroup>
 
     <ItemGroup>
